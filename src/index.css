@@ -6,11 +6,11 @@
 
 @layer base {
   :root {
-    /* === WeKall Brand === */
-    --wk-violet: 263 57% 47%;
-    --wk-violet-dark: 263 70% 30%;
-    --wk-violet-soft: 263 40% 60%;
-    --wk-violet-light: 270 60% 75%;
+    /* === WeKall Brand Colors (V8 light mode) === */
+    --wk-violet: 263 57% 47%;          /* #6334C0 */
+    --wk-violet-light: 263 83% 76%;    /* #7B5CF0 */
+    --wk-violet-pale: 275 100% 76%;    /* #C184FF */
+    --wk-violet-bg: rgba(99,52,192,0.07);
 
     /* === Status Colors === */
     --wk-green: 142 76% 36%;
@@ -25,55 +25,44 @@
     --wk-blue: 217 91% 60%;
     --wk-blue-light: 199 78% 54%;
 
-    /* === Dark Palette === */
-    --wk-black: 240 10% 4%;
-    --wk-black-soft: 240 8% 8%;
-    --wk-black-light: 240 6% 12%;
-    --wk-gray: 240 5% 42%;
-    --wk-gray-medium: 240 5% 60%;
-    --wk-gray-border: 240 4% 18%;
-    --wk-gray-soft: 240 5% 15%;
-    --wk-gray-light: 240 6% 20%;
-    --wk-white: 240 10% 98%;
-
-    /* === shadcn Tokens — Dark Mode === */
-    --background: 240 10% 4%;
-    --foreground: 240 10% 98%;
-    --card: 240 8% 7%;
-    --card-foreground: 240 10% 98%;
-    --popover: 240 8% 9%;
-    --popover-foreground: 240 10% 98%;
-    --primary: 263 57% 47%;
+    /* === shadcn Tokens — LIGHT MODE (V8 colors) === */
+    --background: 225 30% 97%;         /* #F4F6FB */
+    --foreground: 225 40% 12%;         /* #12172A */
+    --card: 0 0% 100%;                 /* #FFFFFF */
+    --card-foreground: 225 40% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 40% 12%;
+    --primary: 263 57% 47%;            /* #6334C0 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 6% 12%;
-    --secondary-foreground: 240 5% 75%;
-    --muted: 240 6% 12%;
-    --muted-foreground: 240 5% 50%;
-    --accent: 263 40% 20%;
-    --accent-foreground: 263 60% 80%;
+    --secondary: 225 25% 95%;          /* light gray */
+    --secondary-foreground: 225 30% 30%;
+    --muted: 225 20% 93%;
+    --muted-foreground: 225 15% 55%;   /* #5A667A */
+    --accent: 263 40% 95%;
+    --accent-foreground: 263 57% 35%;
     --destructive: 4 86% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 4% 18%;
-    --input: 240 4% 18%;
-    --ring: 263 53% 48%;
+    --border: 225 20% 90%;             /* #E4E8EF */
+    --input: 225 20% 90%;
+    --ring: 263 57% 47%;
     --radius: 0.5rem;
 
-    --sidebar-background: 240 8% 7%;
-    --sidebar-foreground: 240 10% 98%;
-    --sidebar-primary: 263 53% 48%;
+    --sidebar-background: 0 0% 100%;   /* #FFFFFF */
+    --sidebar-foreground: 225 40% 12%;
+    --sidebar-primary: 263 57% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 263 40% 20%;
-    --sidebar-accent-foreground: 263 60% 80%;
-    --sidebar-border: 240 4% 18%;
-    --sidebar-ring: 263 53% 48%;
+    --sidebar-accent: 263 40% 95%;
+    --sidebar-accent-foreground: 263 57% 35%;
+    --sidebar-border: 225 20% 90%;
+    --sidebar-ring: 263 57% 47%;
 
-    /* === Shadows === */
-    --wk-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --wk-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --wk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
-    --wk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
-    --wk-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.7);
-    --wk-shadow-violet: 0 0 0 1px rgba(99, 52, 192, 0.5), 0 4px 16px rgba(99, 52, 192, 0.2);
+    /* === Shadows (light) === */
+    --wk-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --wk-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --wk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
+    --wk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.10);
+    --wk-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+    --wk-shadow-violet: 0 0 0 1px rgba(99, 52, 192, 0.25), 0 4px 16px rgba(99, 52, 192, 0.12);
   }
 
   * {
@@ -120,7 +109,7 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 52, 192, 0.4); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 52, 192, 0.3); }
   50% { box-shadow: 0 0 0 4px rgba(99, 52, 192, 0); }
 }
 
@@ -152,11 +141,11 @@
   background: hsl(var(--background));
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--wk-gray-border));
+  background: hsl(var(--border));
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--wk-gray));
+  background: hsl(var(--muted-foreground));
 }
 
 /* === KPI Card glow hover === */
@@ -170,5 +159,5 @@
 
 /* === Chat input === */
 .chat-input-wrapper:focus-within {
-  box-shadow: 0 0 0 1px rgba(99, 52, 192, 0.6);
+  box-shadow: 0 0 0 1px rgba(99, 52, 192, 0.4);
 }

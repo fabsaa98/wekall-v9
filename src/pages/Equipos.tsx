@@ -144,7 +144,7 @@ function AreaPanel({ area }: { area: Area }) {
             <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} domain={[50, 100]} />
             <Tooltip
-              contentStyle={{ background: '#181824', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: '#FFFFFF', border: '1px solid #E4E8EF', borderRadius: 8, fontSize: 12 }}
               formatter={(v: number) => [`${v}%`, 'FCR']}
             />
             <Bar dataKey="fcr" radius={[4, 4, 0, 0]}>
