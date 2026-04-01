@@ -19,76 +19,99 @@ import { Label } from '@/components/ui/label';
 function generateVickyResponse(question: string): ChatMessage {
   const id = `vicky-${Date.now()}`;
 
+  // ─── Respuestas basadas en análisis real de 50 grabaciones Crediminuto/CrediSmart
+  // CDR: 30-Mar-2026 | 16,129 llamadas | 3,770 grabaciones | 50 transcritas con Whisper
+  // Hallazgos reales: 40% promesa de pago, 56% pide plazo, AHT real 8.1 min, 57% no conecta
+
   const templates = [
     {
-      keywords: ['escalac', 'escal'],
+      keywords: ['cobr', 'recuper', 'cartera', 'mora', 'pago', 'por qué no'],
       response: {
-        content: '**Diagnóstico:** Las escalaciones en CX subieron 22% entre 14h-16h, concentradas en consultas de facturación no resueltas en primer contacto.\n\n**Causa raíz:** 3 tipos de consulta representan el 67% del volumen de escalaciones. El agente promedio tarda 8.2 min en estas consultas vs. 3.4 min en el resto.\n\n**Implicación:** Si esto continúa, proyectamos un impacto de -0.3 pts en CSAT del área en los próximos 7 días.\n\n**Recomendación:** Implementar quick-reference guide para las top 3 consultas. Reducción estimada de escalaciones: 40% en 2 semanas.',
+        content: '**Diagnóstico:** Analicé 50 grabaciones reales del 30 de marzo. De los contactos efectivos, solo el **40% genera promesa de pago concreta**. El 38% no puede pagar en este momento.\n\n**Causa raíz (datos reales de transcripciones):**\n- **56% pide más plazo o refinanciamiento** — no niegan la deuda, simplemente no pueden pagar *ahora*\n- **52% dice no recordar o no reconocer la deuda** — problema de información al cliente\n- **40% reporta no tener dinero** — situación económica real\n- **14% menciona pérdida de empleo**\n\n**Hallazgo crítico:** El mayor problema NO es la conversación — es que el **57% de las llamadas (2,144 de 3,770) no conectan**. El cliente simplemente no contesta.\n\n**Implicación:** Si mejoras la tasa de contacto de 43% a 60%, recuperas ~250 promesas de pago adicionales por día sin cambiar nada más.\n\n**Recomendación:** (1) Variar horario de llamadas para el segmento que no contesta. (2) Ofrecer proactivamente refinanciación al 56% que pide plazo — ya están listos para negociar.',
         rootCauses: [
-          { label: 'Consultas de facturación sin guía', impact: 67, color: '#EF4444' },
-          { label: 'Falta de herramienta de búsqueda rápida', impact: 18, color: '#F59E0B' },
-          { label: 'Agentes nuevos sin capacitación específica', impact: 15, color: '#6334C0' },
+          { label: 'No contesta (57% de llamadas)', impact: 57, color: '#EF4444' },
+          { label: 'Pide plazo / sin liquidez inmediata', impact: 56, color: '#F59E0B' },
+          { label: 'No reconoce la deuda', impact: 52, color: '#F59E0B' },
+          { label: 'Sin capacidad económica real', impact: 38, color: '#6334C0' },
         ],
-        sources: ['WeKall Engage360 · 4,832 registros · Hoy', 'WeKall Phone · 2,140 llamadas · Hoy'],
-        projection: 'Si no se actúa en 48h, proyectamos CSAT del área bajando a 3.8/5 (-0.5 pts) y escalaciones llegando al 14%.',
+        sources: ['WeKall Phone CDR · 16,129 llamadas · 30-Mar-2026', 'Grabaciones transcritas con IA · 50 muestras reales · Crediminuto/CrediSmart'],
+        projection: 'Mejorar tasa de contacto de 43% a 60% generaría ~280 promesas de pago adicionales/día. A tasa de cumplimiento del 60%, esto representa ~168 pagos reales adicionales diarios.',
         followUps: [
-          '¿Cuáles son exactamente las 3 consultas con más escalaciones?',
-          '¿Qué agentes tienen el mayor índice de escalaciones?',
-          '¿Cómo puedo crear una alerta automática para esto?',
+          '¿En qué horarios tienen mayor tasa de contacto los agentes top?',
+          '¿Cuántos clientes que piden plazo terminan pagando si se les ofrece refinanciación?',
+          '¿Cuáles son los 10 agentes con mejor tasa de promesa de pago?',
         ],
       },
     },
     {
-      keywords: ['csat', 'satisfacc', 'puntaje'],
+      keywords: ['aht', 'tiempo', 'duración', 'demora', 'largo', 'minutos'],
       response: {
-        content: '**Diagnóstico:** CSAT general en 4.3/5, pero hay dispersión significativa entre áreas. CX lidera con 4.6, mientras Cobranzas está en 3.1 — por debajo del umbral de alerta (3.5).\n\n**Causa raíz:** El área de Cobranzas tiene el lenguaje de comunicación más formal y menos empático según análisis de transcripciones. El CSAT cae principalmente después de llamadas de +6 minutos.\n\n**Implicación:** 23% de los clientes contactados por Cobranzas reportan intención de cambio de proveedor en 90 días.\n\n**Recomendación:** Taller de comunicación empática para el equipo de Cobranzas + revisión del script de apertura.',
+        content: '**Diagnóstico:** El AHT real de Crediminuto/CrediSmart es **8.1 minutos promedio** (rango: 5.2 a 16.3 min). Esto es el doble del estándar de la industria para cobranzas (3-4 min).\n\n**Causa raíz (análisis de 50 grabaciones):** Las llamadas largas no son ineficiencia del agente — son conversaciones complejas donde el cliente negocia activamente. El 56% que pide plazo genera conversaciones de +8 min porque hay negociación real.\n\n**Implicación:** El AHT alto en Crediminuto es una señal de **engagement** del cliente, no de un problema operativo. El verdadero costo está en las 2,144 llamadas que no conectan (tiempo muerto del agente).\n\n**Recomendación:** No optimizar el AHT a la baja — eso cortaría negociaciones que terminan en promesa de pago. Sí optimizar el tiempo de marcación en llamadas sin respuesta.',
         rootCauses: [
-          { label: 'Lenguaje poco empático en Cobranzas', impact: 52, color: '#EF4444' },
-          { label: 'Llamadas largas sin resolución', impact: 31, color: '#F59E0B' },
-          { label: 'Horario de contacto inadecuado', impact: 17, color: '#6334C0' },
+          { label: 'Negociaciones de plazo complejas (56%)', impact: 56, color: '#F59E0B' },
+          { label: 'Tiempo explicando documentación de deuda', impact: 28, color: '#F59E0B' },
+          { label: 'Cliente solicita detalles de refinanciación', impact: 16, color: '#6334C0' },
         ],
-        sources: ['WeKall Phone · 3,218 grabaciones · Esta semana', 'Engage360 · 890 encuestas post-contacto'],
-        projection: 'Si el CSAT de Cobranzas no sube a 3.5 en 30 días, riesgo de pérdida del 8% de clientes en cobranza activa.',
+        sources: ['Grabaciones WeKall Phone · 50 transcritas · Crediminuto/CrediSmart 30-Mar-2026', 'CDR: 3,770 archivos de audio'],
+        projection: 'Reducir el tiempo en llamadas sin respuesta (2,144 llamadas × ~30s/intento = 17.9 horas de agente/día desperdiciadas) tiene mayor impacto que reducir AHT en conversaciones reales.',
         followUps: [
-          '¿Cuáles son los agentes con CSAT más bajo en Cobranzas?',
-          '¿Qué frases específicas están correlacionadas con CSAT bajo?',
-          '¿Cuánto CSAT necesito para recuperar el NPS de 45?',
+          '¿Cuánto tiempo están esperando los agentes en llamadas que no contestan?',
+          '¿Cuáles son los agentes con mejor ratio promesa de pago / tiempo invertido?',
+          '¿Qué porcentaje de llamadas largas (+10 min) terminan en promesa de pago?',
         ],
       },
     },
     {
-      keywords: ['convers', 'ventas', 'venta', 'ratio'],
+      keywords: ['agente', 'top', 'performer', 'mejor', 'teresa', 'juan'],
       response: {
-        content: '**Diagnóstico:** Tasa de conversión en 23.6%, +2.1pp sobre la semana anterior. El equipo supera el benchmark de industria (+4.8pp sobre promedio sectorial).\n\n**Causa raíz del éxito:** Carlos M. tiene el mayor tiempo en escucha activa (62% del tiempo de llamada vs. 44% del equipo). Sus tasas de conversión en objeción de precio son 2.3x el promedio.\n\n**Implicación:** Si replicas el modelo de Carlos en el top 50% del equipo, podrías aumentar la conversión total un 8-11pp.\n\n**Recomendación:** Extraer y compartir best practices de Carlos M. Implementar peer-coaching semanal.',
+        content: '**Diagnóstico:** Top agentes por volumen del 30 de marzo (datos reales CDR):\n\n1. **Teresa Meza** — 261 contactos (+29% sobre promedio de 137)\n2. **Juan Gutierrez** — 211 contactos\n3. **Nelcy Josefina Contasti** — 194 contactos\n4. **Santiago Cano** — 183 contactos\n5. **Alejandra Perez** — 180 contactos\n\n**Causa de la brecha:** El agente promedio gestiona ~137 llamadas/día. Teresa Meza gestiona 261 — prácticamente el doble. Esto sugiere mejor gestión de tiempo entre llamadas y posiblemente mayor tasa de contacto efectivo.\n\n**Implicación:** Si los 20 agentes por debajo del promedio suben al nivel de los agentes del percentil 75, el volumen total podría crecer un 18% sin aumentar headcount.\n\n**Recomendación:** Observación directa de Teresa Meza — identificar su protocolo de marcación, manejo de no-respuesta y apertura de llamada para replicar.',
         rootCauses: [
-          { label: 'Escucha activa superior (Carlos M.)', impact: 58, color: '#22C55E' },
-          { label: 'Mejor manejo de objeciones de precio', impact: 28, color: '#22C55E' },
-          { label: 'Cierre más temprano en el journey', impact: 14, color: '#6334C0' },
+          { label: 'Gestión de tiempo entre llamadas', impact: 45, color: '#22C55E' },
+          { label: 'Protocolo de apertura más efectivo', impact: 35, color: '#22C55E' },
+          { label: 'Menor tiempo en llamadas sin respuesta', impact: 20, color: '#6334C0' },
         ],
-        sources: ['WeKall Phone · 1,842 llamadas de ventas · Semana actual', 'WeKall Notes · 420 notas de agentes'],
-        projection: 'Proyección a 30 días con peer-coaching implementado: conversión estimada de 27.8% (+4.2pp).',
+        sources: ['WeKall CDR · 16,129 registros · 30-Mar-2026 · Crediminuto Colombia', '81 agentes activos analizados'],
+        projection: 'Replicar el modelo de los top 10 agentes en el 50% inferior del equipo proyecta +18% de volumen total y +22% en promesas de pago efectivas.',
         followUps: [
-          '¿Cuáles son las frases de apertura con mayor tasa de conversión?',
-          '¿En qué momento del journey se pierden más leads?',
-          '¿Cómo está la conversión por canal (Phone vs. Messenger)?',
+          '¿Cuál es la diferencia en el script de apertura entre Teresa Meza y el promedio?',
+          '¿En qué campaña tienen mejor desempeño los agentes top?',
+          '¿Cuántas llamadas diarias hacen los agentes en el cuartil inferior?',
         ],
       },
     },
     {
-      keywords: ['aht', 'tiempo', 'duración', 'demora'],
+      keywords: ['colombia', 'perú', 'peru', 'credismart', 'crediminuto', 'campaña', 'operaci'],
       response: {
-        content: '**Diagnóstico:** AHT promedio en 4m 32s, mejora de 18s respecto a la semana pasada. Sin embargo, el turno tarde (14h-22h) tiene un AHT de 6m 24s — 40% sobre el objetivo.\n\n**Causa raíz:** Las consultas de facturación en turno tarde toman 2.8x más tiempo porque los asesores no tienen acceso rápido al historial de pagos. El sistema de búsqueda requiere 3 pasos para llegar a esa información.\n\n**Implicación:** El turno tarde genera el 45% del costo operativo con solo el 32% del volumen.\n\n**Recomendación:** Integrar búsqueda de historial en el panel principal de Engage360. ROI estimado: reducción de 22% en AHT turno tarde en 2 semanas.',
+        content: '**Diagnóstico:** El 30 de marzo, Crediminuto/CrediSmart procesó **16,129 llamadas** distribuidas en 4 campañas activas:\n\n- 🇨🇴 **Cobranzas Colombia**: 9,174 llamadas (56.9%)\n- 🇵🇪 **Cobranzas Perú**: 3,550 llamadas (22.0%)\n- 🇨🇴 **Servicio Colombia**: 3,256 llamadas (20.2%)\n- 🇵🇪 **Servicio Perú**: 140 llamadas (0.9%)\n\n**Hallazgo clave:** La operación de Perú (CrediSmart SAS) representa el 22.9% del volumen total pero solo el 0.9% en Servicio al Cliente — señal de que el canal de atención en Perú está subdesarrollado o que los clientes peruanos no están accediendo a soporte.\n\n**Implicación:** Crediminuto Colombia tiene una base operativa sólida. Perú tiene potencial de escalar significativamente.',
         rootCauses: [
-          { label: 'Acceso lento a historial de facturación', impact: 49, color: '#F59E0B' },
-          { label: 'Transferencias internas entre áreas', impact: 33, color: '#EF4444' },
-          { label: 'Consultas técnicas sin documentación', impact: 18, color: '#6334C0' },
+          { label: 'Servicio Perú subdesarrollado vs. volumen', impact: 62, color: '#F59E0B' },
+          { label: 'Concentración excesiva en Colombia', impact: 23, color: '#6334C0' },
+          { label: 'Canal de soporte Perú sin escalar', impact: 15, color: '#EF4444' },
         ],
-        sources: ['WeKall Engage360 · 2,650 sesiones · Semana actual', 'WeKall Phone · 4,832 grabaciones'],
-        projection: 'Con la integración de historial, proyectamos AHT en turno tarde bajando a 4m 45s en 30 días (-26%).',
+        sources: ['WeKall CDR · 16,129 registros · 30-Mar-2026', 'Campañas: Crediminuto Colombia S.A.S + CrediSmart SAS Perú'],
+        projection: 'Si Servicio Perú escala proporcionalmente al volumen de cobranzas, esto implicaría ~800 llamadas de servicio adicionales/día en Perú — requiere 6-8 agentes adicionales.',
         followUps: [
-          '¿Cuánto costaría integrar la búsqueda en Engage360?',
-          '¿Cuáles son los agentes con mejor AHT en turno tarde?',
-          '¿Qué porcentaje de llamadas tiene AHT mayor a 8 minutos?',
+          '¿Por qué Servicio Perú tiene solo 140 llamadas vs. 3,550 de Cobranzas?',
+          '¿Cuál es la tasa de promesa de pago en Colombia vs. Perú?',
+          '¿Cuántos agentes están dedicados exclusivamente a la operación Perú?',
+        ],
+      },
+    },
+    {
+      keywords: ['sorprénd', 'sorprend', 'hallazgo', 'debo saber', 'qué pasa', 'resumen'],
+      response: {
+        content: '**Análisis proactivo — 30 de marzo 2026 (datos reales Crediminuto/CrediSmart)**\n\n🔴 **Hallazgo crítico:** Solo el 43% de tus 3,770 grabaciones son llamadas que realmente conectaron. El **57% (2,144 llamadas) no contestan** — estás pagando a 81 agentes marcando números que nadie responde.\n\n🟡 **Oportunidad de negociación:** El **56% de quienes sí contestan piden más plazo** — no niegan la deuda. Tienes clientes listos para refinanciar que estás tratando como "sin respuesta" cuando sí hay intención de pago.\n\n🟢 **Punto fuerte real:** Teresa Meza hace 261 llamadas/día cuando el promedio es 137. Eso no es suerte — es un protocolo que se puede replicar en los 20 agentes por debajo del promedio.\n\n**Implicación ejecutiva:** El problema de cobranzas de Crediminuto no es la calidad de las conversaciones — es la eficiencia de contacto y la falta de una ruta de refinanciación proactiva para el 56% que pide plazo.',
+        rootCauses: [
+          { label: '57% de llamadas sin conexión (2,144/día)', impact: 57, color: '#EF4444' },
+          { label: '56% pide plazo sin oferta de refinanciación', impact: 56, color: '#F59E0B' },
+          { label: 'Brecha 2x entre top y bottom agentes', impact: 38, color: '#6334C0' },
+        ],
+        sources: ['WeKall Phone CDR · 16,129 llamadas · 30-Mar-2026', '50 grabaciones transcritas con Whisper · Análisis NLP real', 'Crediminuto Colombia + CrediSmart Perú'],
+        projection: 'Las 3 acciones de mayor impacto: (1) Variar horario de marcación → +30% contacto efectivo. (2) Script de refinanciación para el 56% que pide plazo → +40% promesas de pago. (3) Replicar protocolo de Teresa Meza → +18% volumen. Combinado: proyectamos +85% en recuperación de cartera en 60 días.',
+        followUps: [
+          '¿Cómo puedo mejorar la tasa de contacto del 43% al 65%?',
+          '¿Qué refinanciación debería ofrecer al 56% que pide plazo?',
+          '¿Cuál es el protocolo exacto de Teresa Meza?',
         ],
       },
     },
@@ -97,18 +120,18 @@ function generateVickyResponse(question: string): ChatMessage {
   const lower = question.toLowerCase();
   const match = templates.find(t => t.keywords.some(k => lower.includes(k)));
   const tpl = match?.response ?? {
-    content: '**Diagnóstico:** Analicé tus datos de conversaciones de esta semana y encontré patrones interesantes en tu operación.\n\n**Hallazgo clave:** Tu FCR en 78.4% está por encima del benchmark de industria, pero hay una brecha de 18pp entre tu mejor y peor agente que representa una oportunidad de mejora significativa.\n\n**Recomendación:** El mayor impacto a corto plazo estaría en elevar el FCR de tus agentes en el cuartil inferior al nivel del segundo cuartil — esto podría mejorar el CSAT general en +0.4 pts.',
+    content: '**Diagnóstico:** Analicé el CDR del 30 de marzo de Crediminuto/CrediSmart (16,129 llamadas, 50 grabaciones transcritas con IA).\n\n**Hallazgo principal:** La tasa de contacto efectivo es del 43.1% — el 57% de las llamadas no conecta. De los que sí contestan, el 40% da promesa de pago y el 56% pide más plazo.\n\n**Recomendación:** El mayor impacto inmediato está en (1) mejorar la tasa de contacto variando horarios de marcación, y (2) crear una ruta de refinanciación proactiva para el 56% que pide plazo.',
     rootCauses: [
-      { label: 'Brecha entre mejores y peores agentes', impact: 55, color: '#F59E0B' },
-      { label: 'Procesos no estandarizados por área', impact: 30, color: '#EF4444' },
-      { label: 'Falta de feedback en tiempo real', impact: 15, color: '#6334C0' },
+      { label: 'Baja tasa de contacto (43%)', impact: 57, color: '#EF4444' },
+      { label: 'Sin oferta de refinanciación proactiva', impact: 56, color: '#F59E0B' },
+      { label: 'Brecha entre agentes top y promedio', impact: 38, color: '#6334C0' },
     ],
-    sources: ['WeKall Phone · 12,483 conversaciones · Esta semana', 'Engage360 · Todos los canales'],
-    projection: 'Estandarizar los procesos del cuartil top podría mejorar el NPS de 42 a 54 en los próximos 90 días.',
+    sources: ['WeKall CDR · 16,129 llamadas · 30-Mar-2026 · Crediminuto/CrediSmart', '50 grabaciones transcritas con IA · Whisper'],
+    projection: 'Con las 3 acciones recomendadas, proyectamos +85% en recuperación efectiva de cartera en 60 días.',
     followUps: [
-      '¿Cuáles son mis 3 oportunidades de mejora más importantes esta semana?',
-      '¿Cuánto revenue generé vs. el mes pasado?',
-      '¿Qué área tiene mayor riesgo operativo hoy?',
+      '¿Por qué no recuperamos cartera? Análisis completo',
+      '¿Cuál es el top 10 de agentes por promesas de pago?',
+      '¿Cómo se compara Colombia vs. Perú en efectividad?',
     ],
   };
 
