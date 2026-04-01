@@ -140,7 +140,7 @@ function AreaPanel({ area }: { area: Area }) {
         <h3 className="text-sm font-semibold text-foreground mb-4">FCR por Agente (Top 5)</h3>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E4E8EF" vertical={false} />
             <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} domain={[50, 100]} />
             <Tooltip
