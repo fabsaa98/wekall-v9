@@ -28,20 +28,20 @@ export default function Overview() {
 
   const briefs: Record<string, { short: string; full: string }> = {
     'CEO': {
-      short: 'Tu operación está en positivo esta semana. FCR en 78.4% (+3.2pp), CSAT subió a 4.3/5 y el NPS llegó a 42 puntos — 12% por encima del benchmark de industria.',
-      full: 'El equipo de Ventas superó el objetivo de conversión (+2.1pp) y Carlos Mendoza está liderando con 31.2%. Sin embargo, el área de Cobranzas presenta señales de alerta: CSAT cayó a 3.1/5 y requiere atención inmediata. El volumen creció 8.3% esta semana, lo que indica mayor demanda — considera revisar dotación para el viernes donde se proyecta +35% de tráfico.',
+      short: 'Crediminuto / CrediSmart procesó 16,129 conversaciones el 30 de marzo — +8.3% vs día anterior. Cobranzas Colombia lidera con 9,174 llamadas. Teresa Meza es tu agente top con 261 contactos.',
+      full: 'La operación Colombia generó 12,430 llamadas (77.1%) y Perú 3,690 (22.9%). Los 81 agentes activos superaron el benchmark de productividad. Atención: 44.4% del volumen pasó por el dialer automático — monitorear calidad de contacto. 23 agentes activos sin sesión registrada en los últimos 7 días — validar disponibilidad real.',
     },
     'VP Ventas': {
-      short: 'Tasa de conversión en 23.6%, superando benchmark. Volumen de oportunidades creció 8.3% esta semana.',
-      full: '3 de tus 4 asesores están por encima del objetivo de conversión. Carlos M. lidera con 31.2%. El script actualizado ayer ya muestra resultados positivos. Valentina R. necesita coaching — su conversión de 18.1% está 5.5pp bajo el objetivo.',
+      short: 'Cobranzas Colombia (9,174 llamadas) y Cobranzas Perú (3,550) concentran el 79% del volumen. Teresa Meza lidera con 261 contactos, +29% sobre el promedio.',
+      full: 'Top 5 agentes por volumen: Teresa Meza (261), Juan Gutierrez (211), Nelcy Contasti (194), Santiago Cano (183), Alejandra Perez (180). La operación Peru muestra crecimiento sostenido — considera escalar dotación 15% para Q2.',
     },
     'VP CX': {
-      short: 'CSAT en 4.3/5 y FCR en 78.4% — ambos por encima del benchmark de industria. Pero las escalaciones en Cobranzas requieren atención.',
-      full: 'María G. está siendo tu top performer (CSAT 4.8, FCR 88%). El canal Messenger Hub tiene FCR 9.8pp bajo el promedio general — prioriza capacitación en ese canal. La ventana 14h-16h genera el 34% de las escalaciones del día.',
+      short: 'Servicio al Cliente Colombia registró 3,256 llamadas — leve descenso de -1.4% vs día anterior. FCR en 74.2% con margen de mejora en canales digitales.',
+      full: 'Jennifer Loaiza y Alejandra Perez son las top performers en CX. Servicio al Cliente Perú (140 llamadas) tiene potencial de crecimiento. La ventana de mayor volumen de escalaciones debe monitorearse en turno tarde.',
     },
     'COO': {
-      short: 'AHT bajó 18s esta semana. Eficiencia operativa mejorando. Escalaciones en descenso (-1.4pp).',
-      full: 'El turno tarde (14h-22h) tiene AHT 28% sobre objetivo. 8 agentes superan los 7 minutos de atención. Proyección para viernes: +35% de volumen — revisa dotación con 48h de anticipación. La automatización de las top 3 consultas de facturación podría reducir AHT un 18% adicional.',
+      short: '81 agentes activos de 162 en plataforma — eficiencia del 50%. 7,162 llamadas gestionadas por el dialer automático (44.4%). AHT promedio en rango aceptable.',
+      full: '20 supervisores en operación durante el turno. 23 agentes con estado activo pero sin sesión reciente — revisar disponibilidad real. El dialer automático maneja el mayor volumen individual: optimizar script puede impactar positivamente en tasa de contacto efectivo.',
     },
   };
 

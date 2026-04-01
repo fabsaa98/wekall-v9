@@ -193,7 +193,7 @@ export default function Configuracion() {
             <h3 className="text-sm font-semibold text-foreground">Información de la empresa</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: 'Empresa', value: 'Empresa Demo S.A.' },
+                { label: 'Empresa', value: 'Crediminuto / CrediSmart' },
                 { label: 'Industria', value: 'Servicios empresariales' },
                 { label: 'País', value: 'Colombia' },
                 { label: 'Plan', value: 'WeKall Intelligence Pro' },

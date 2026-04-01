@@ -106,7 +106,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             </div>
             {!collapsed && (
               <div className="overflow-hidden">
-                <p className="text-sm font-medium text-foreground truncate">Empresa Demo S.A.</p>
+                <p className="text-sm font-medium text-foreground truncate">Crediminuto / CrediSmart</p>
                 <p className="text-[10px] text-muted-foreground truncate">{role}</p>
               </div>
             )}
