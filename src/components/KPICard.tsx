@@ -41,14 +41,14 @@ export function KPICard({ kpi, className, style }: KPICardProps) {
             <AreaChart data={sparkData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id={`sg-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6C37BE" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#6C37BE" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#6334C0" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#6334C0" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <Area
                 type="monotone"
                 dataKey="v"
-                stroke="#6C37BE"
+                stroke="#6334C0"
                 strokeWidth={1.5}
                 fill={`url(#sg-${kpi.id})`}
                 dot={false}

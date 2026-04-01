@@ -258,7 +258,7 @@ export default function Configuracion() {
             <h3 className="text-sm font-semibold text-foreground">Acento de color</h3>
             <div className="flex gap-3">
               {[
-                { color: '#6C37BE', label: 'WeKall Violet', active: true },
+                { color: '#6334C0', label: 'WeKall Violet', active: true },
                 { color: '#2563EB', label: 'Azul' },
                 { color: '#16A34A', label: 'Verde' },
                 { color: '#DC2626', label: 'Rojo' },
@@ -274,7 +274,7 @@ export default function Configuracion() {
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">Color de acento predeterminado: WeKall Violet #6C37BE</p>
+            <p className="text-xs text-muted-foreground">Color de acento predeterminado: WeKall Violet #6334C0</p>
           </div>
         </TabsContent>
       </Tabs>

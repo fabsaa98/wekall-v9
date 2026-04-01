@@ -139,8 +139,8 @@ export default function Overview() {
             <AreaChart data={conversationTrend} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6C37BE" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#6C37BE" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#6334C0" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#6334C0" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gResolved" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#22C55E" stopOpacity={0.2} />
@@ -151,10 +151,10 @@ export default function Overview() {
               <XAxis dataKey="day" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip
-                contentStyle={{ background: '#111118', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: '#181824', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#F8F8FC' }}
               />
-              <Area type="monotone" dataKey="total" name="Total" stroke="#6C37BE" strokeWidth={2} fill="url(#gTotal)" />
+              <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" />
               <Area type="monotone" dataKey="resolved" name="Resueltas" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" />
               <Area type="monotone" dataKey="escalated" name="Escaladas" stroke="#EF4444" strokeWidth={1.5} fill="none" strokeDasharray="4 2" />
             </AreaChart>

@@ -144,12 +144,12 @@ function AreaPanel({ area }: { area: Area }) {
             <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} domain={[50, 100]} />
             <Tooltip
-              contentStyle={{ background: '#111118', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: '#181824', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
               formatter={(v: number) => [`${v}%`, 'FCR']}
             />
             <Bar dataKey="fcr" radius={[4, 4, 0, 0]}>
               {chartData.map((_, i) => (
-                <Cell key={i} fill={i === 0 ? '#6C37BE' : 'rgba(108,55,190,0.4)'} />
+                <Cell key={i} fill={i === 0 ? '#6334C0' : 'rgba(99,52,192,0.4)'} />
               ))}
             </Bar>
           </BarChart>

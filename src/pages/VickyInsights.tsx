@@ -27,7 +27,7 @@ function generateVickyResponse(question: string): ChatMessage {
         rootCauses: [
           { label: 'Consultas de facturación sin guía', impact: 67, color: '#EF4444' },
           { label: 'Falta de herramienta de búsqueda rápida', impact: 18, color: '#F59E0B' },
-          { label: 'Agentes nuevos sin capacitación específica', impact: 15, color: '#6C37BE' },
+          { label: 'Agentes nuevos sin capacitación específica', impact: 15, color: '#6334C0' },
         ],
         sources: ['WeKall Engage360 · 4,832 registros · Hoy', 'WeKall Phone · 2,140 llamadas · Hoy'],
         projection: 'Si no se actúa en 48h, proyectamos CSAT del área bajando a 3.8/5 (-0.5 pts) y escalaciones llegando al 14%.',
@@ -45,7 +45,7 @@ function generateVickyResponse(question: string): ChatMessage {
         rootCauses: [
           { label: 'Lenguaje poco empático en Cobranzas', impact: 52, color: '#EF4444' },
           { label: 'Llamadas largas sin resolución', impact: 31, color: '#F59E0B' },
-          { label: 'Horario de contacto inadecuado', impact: 17, color: '#6C37BE' },
+          { label: 'Horario de contacto inadecuado', impact: 17, color: '#6334C0' },
         ],
         sources: ['WeKall Phone · 3,218 grabaciones · Esta semana', 'Engage360 · 890 encuestas post-contacto'],
         projection: 'Si el CSAT de Cobranzas no sube a 3.5 en 30 días, riesgo de pérdida del 8% de clientes en cobranza activa.',
@@ -63,7 +63,7 @@ function generateVickyResponse(question: string): ChatMessage {
         rootCauses: [
           { label: 'Escucha activa superior (Carlos M.)', impact: 58, color: '#22C55E' },
           { label: 'Mejor manejo de objeciones de precio', impact: 28, color: '#22C55E' },
-          { label: 'Cierre más temprano en el journey', impact: 14, color: '#6C37BE' },
+          { label: 'Cierre más temprano en el journey', impact: 14, color: '#6334C0' },
         ],
         sources: ['WeKall Phone · 1,842 llamadas de ventas · Semana actual', 'WeKall Notes · 420 notas de agentes'],
         projection: 'Proyección a 30 días con peer-coaching implementado: conversión estimada de 27.8% (+4.2pp).',
@@ -81,7 +81,7 @@ function generateVickyResponse(question: string): ChatMessage {
         rootCauses: [
           { label: 'Acceso lento a historial de facturación', impact: 49, color: '#F59E0B' },
           { label: 'Transferencias internas entre áreas', impact: 33, color: '#EF4444' },
-          { label: 'Consultas técnicas sin documentación', impact: 18, color: '#6C37BE' },
+          { label: 'Consultas técnicas sin documentación', impact: 18, color: '#6334C0' },
         ],
         sources: ['WeKall Engage360 · 2,650 sesiones · Semana actual', 'WeKall Phone · 4,832 grabaciones'],
         projection: 'Con la integración de historial, proyectamos AHT en turno tarde bajando a 4m 45s en 30 días (-26%).',
@@ -101,7 +101,7 @@ function generateVickyResponse(question: string): ChatMessage {
     rootCauses: [
       { label: 'Brecha entre mejores y peores agentes', impact: 55, color: '#F59E0B' },
       { label: 'Procesos no estandarizados por área', impact: 30, color: '#EF4444' },
-      { label: 'Falta de feedback en tiempo real', impact: 15, color: '#6C37BE' },
+      { label: 'Falta de feedback en tiempo real', impact: 15, color: '#6334C0' },
     ],
     sources: ['WeKall Phone · 12,483 conversaciones · Esta semana', 'Engage360 · Todos los canales'],
     projection: 'Estandarizar los procesos del cuartil top podría mejorar el NPS de 42 a 54 en los próximos 90 días.',
