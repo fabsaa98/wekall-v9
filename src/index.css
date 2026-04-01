@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* === WeKall Brand === */
+    --wk-violet: 263 53% 48%;
+    --wk-violet-dark: 263 70% 30%;
+    --wk-violet-soft: 263 40% 60%;
+    --wk-violet-light: 270 60% 75%;
+
+    /* === Status Colors === */
+    --wk-green: 142 76% 36%;
+    --wk-green-dark: 142 60% 28%;
+    --wk-green-light: 142 60% 55%;
+    --wk-yellow-dark: 38 92% 50%;
+    --wk-yellow: 45 96% 56%;
+    --wk-yellow-light: 48 96% 70%;
+    --wk-red-dark: 0 72% 51%;
+    --wk-red: 4 86% 58%;
+    --wk-red-light: 4 86% 72%;
+    --wk-blue: 217 91% 60%;
+    --wk-blue-light: 199 78% 54%;
+
+    /* === Dark Palette === */
+    --wk-black: 240 10% 4%;
+    --wk-black-soft: 240 8% 8%;
+    --wk-black-light: 240 6% 12%;
+    --wk-gray: 240 5% 42%;
+    --wk-gray-medium: 240 5% 60%;
+    --wk-gray-border: 240 4% 18%;
+    --wk-gray-soft: 240 5% 15%;
+    --wk-gray-light: 240 6% 20%;
+    --wk-white: 240 10% 98%;
+
+    /* === shadcn Tokens — Dark Mode === */
+    --background: 240 10% 4%;
+    --foreground: 240 10% 98%;
+    --card: 240 8% 7%;
+    --card-foreground: 240 10% 98%;
+    --popover: 240 8% 9%;
+    --popover-foreground: 240 10% 98%;
+    --primary: 263 53% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 6% 12%;
+    --secondary-foreground: 240 5% 75%;
+    --muted: 240 6% 12%;
+    --muted-foreground: 240 5% 50%;
+    --accent: 263 40% 20%;
+    --accent-foreground: 263 60% 80%;
+    --destructive: 4 86% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 4% 18%;
+    --input: 240 4% 18%;
+    --ring: 263 53% 48%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 240 8% 7%;
+    --sidebar-foreground: 240 10% 98%;
+    --sidebar-primary: 263 53% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 263 40% 20%;
+    --sidebar-accent-foreground: 263 60% 80%;
+    --sidebar-border: 240 4% 18%;
+    --sidebar-ring: 263 53% 48%;
+
+    /* === Shadows === */
+    --wk-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --wk-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --wk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+    --wk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+    --wk-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.7);
+    --wk-shadow-violet: 0 0 0 1px rgba(108, 55, 190, 0.5), 0 4px 16px rgba(108, 55, 190, 0.2);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* === Animations === */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(108, 55, 190, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(108, 55, 190, 0); }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.4s ease-out forwards;
+}
+
+.animate-fade-slide-down {
+  animation: fadeSlideDown 0.3s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-stagger-1 { animation-delay: 0.05s; opacity: 0; }
+.animate-stagger-2 { animation-delay: 0.10s; opacity: 0; }
+.animate-stagger-3 { animation-delay: 0.15s; opacity: 0; }
+.animate-stagger-4 { animation-delay: 0.20s; opacity: 0; }
+.animate-stagger-5 { animation-delay: 0.25s; opacity: 0; }
+.animate-stagger-6 { animation-delay: 0.30s; opacity: 0; }
+
+/* === Scrollbar === */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--wk-gray-border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--wk-gray));
+}
+
+/* === KPI Card glow hover === */
+.kpi-card {
+  transition: all 0.2s ease;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--wk-shadow-violet);
+}
+
+/* === Chat input === */
+.chat-input-wrapper:focus-within {
+  box-shadow: 0 0 0 1px rgba(108, 55, 190, 0.6);
+}

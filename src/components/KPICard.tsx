@@ -1,0 +1,88 @@
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { cn } from '@/lib/utils';
+import type { KPIData } from '@/data/mockData';
+
+interface KPICardProps {
+  kpi: KPIData;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export function KPICard({ kpi, className, style }: KPICardProps) {
+  const isPositive = kpi.change >= 0;
+  const isGood = kpi.invertColor ? !isPositive : isPositive;
+
+  const sparkData = kpi.sparkline.map((v, i) => ({ i, v }));
+  const vsPositive = kpi.vsIndustry >= 0;
+
+  return (
+    <div
+      className={cn(
+        'kpi-card rounded-xl border border-border bg-card p-5 flex flex-col gap-3 cursor-default animate-fade-slide-up',
+        className,
+      )}
+      style={style}
+    >
+      {/* Top row */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest truncate">
+            {kpi.title}
+          </p>
+          <p className="mt-1.5 text-[28px] font-bold text-foreground leading-none tracking-tight">
+            {kpi.value}
+          </p>
+        </div>
+
+        {/* Sparkline */}
+        <div className="w-20 h-10 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={sparkData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id={`sg-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6C37BE" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#6C37BE" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="v"
+                stroke="#6C37BE"
+                strokeWidth={1.5}
+                fill={`url(#sg-${kpi.id})`}
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Bottom row */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        {/* Trend */}
+        <div className={cn(
+          'flex items-center gap-1 text-xs font-semibold',
+          isGood ? 'text-emerald-400' : 'text-red-400',
+        )}>
+          {Math.abs(kpi.change) < 0.1
+            ? <Minus size={13} />
+            : isPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />
+          }
+          <span>{kpi.changeLabel}</span>
+          <span className="font-normal text-muted-foreground ml-0.5">vs sem. ant.</span>
+        </div>
+
+        {/* vs Industria badge */}
+        <div className={cn(
+          'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border',
+          vsPositive
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+            : 'bg-red-500/10 text-red-400 border-red-500/20',
+        )}>
+          {vsPositive ? '+' : ''}{kpi.vsIndustry > 0 ? '+' : ''}{kpi.vsIndustry.toFixed(1)}% vs industria
+        </div>
+      </div>
+    </div>
+  );
+}
