@@ -25,25 +25,25 @@
     --wk-blue: 217 91% 60%;
     --wk-blue-light: 199 78% 54%;
 
-    /* === shadcn Tokens — LIGHT MODE (V8 colors) === */
+    /* === shadcn Tokens — LIGHT MODE (V8 colors, WCAG AA contrast) === */
     --background: 225 30% 97%;         /* #F4F6FB */
-    --foreground: 225 40% 12%;         /* #12172A */
+    --foreground: 225 40% 12%;         /* #12172A — texto principal */
     --card: 0 0% 100%;                 /* #FFFFFF */
-    --card-foreground: 225 40% 12%;
+    --card-foreground: 225 40% 12%;    /* #12172A */
     --popover: 0 0% 100%;
     --popover-foreground: 225 40% 12%;
     --primary: 263 57% 47%;            /* #6334C0 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 225 25% 95%;          /* light gray */
-    --secondary-foreground: 225 30% 30%;
+    --secondary: 225 25% 94%;
+    --secondary-foreground: 225 30% 20%;   /* más oscuro para contraste */
     --muted: 225 20% 93%;
-    --muted-foreground: 225 15% 55%;   /* #5A667A */
+    --muted-foreground: 225 20% 35%;   /* #3D4A60 — suficiente contraste AA */
     --accent: 263 40% 95%;
-    --accent-foreground: 263 57% 35%;
-    --destructive: 4 86% 58%;
+    --accent-foreground: 263 57% 30%;
+    --destructive: 4 86% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 225 20% 90%;             /* #E4E8EF */
-    --input: 225 20% 90%;
+    --border: 225 20% 88%;             /* #E4E8EF */
+    --input: 225 20% 88%;
     --ring: 263 57% 47%;
     --radius: 0.5rem;
 
@@ -52,8 +52,8 @@
     --sidebar-primary: 263 57% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 263 40% 95%;
-    --sidebar-accent-foreground: 263 57% 35%;
-    --sidebar-border: 225 20% 90%;
+    --sidebar-accent-foreground: 263 57% 30%;
+    --sidebar-border: 225 20% 88%;
     --sidebar-ring: 263 57% 47%;
 
     /* === Shadows (light) === */

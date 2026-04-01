@@ -141,8 +141,8 @@ function AreaPanel({ area }: { area: Area }) {
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E4E8EF" vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} domain={[50, 100]} />
+            <XAxis dataKey="name" tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} domain={[50, 100]} />
             <Tooltip
               contentStyle={{ background: '#FFFFFF', border: '1px solid #E4E8EF', borderRadius: 8, fontSize: 12 }}
               formatter={(v: number) => [`${v}%`, 'FCR']}

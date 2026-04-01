@@ -148,8 +148,8 @@ export default function Overview() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E4E8EF" />
-              <XAxis dataKey="day" tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="day" tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{ background: '#FFFFFF', border: '1px solid #E4E8EF', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#12172A' }}
