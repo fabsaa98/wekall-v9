@@ -119,6 +119,7 @@ export default function Overview() {
             <div>
               <h2 className="text-sm font-semibold text-foreground">Tendencia de Conversaciones</h2>
               <p className="text-xs text-muted-foreground">Últimos 7 días</p>
+              <p className="text-xs text-amber-600 mt-1">* Estimado · ✓ Dato real CDR 30-Mar-2026</p>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">

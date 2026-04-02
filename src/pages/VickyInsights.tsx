@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
-  FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle,
+  FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/data/mockData';
@@ -149,6 +149,37 @@ function generateVickyResponse(question: string): ChatMessage {
   };
 }
 
+// ─── Export to PDF ───────────────────────────────────────────────────────────
+
+function exportToPDF(content: string, sources?: string[]) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>WeKall Intelligence — Análisis Ejecutivo</title>
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; color: #12172A; }
+        h1 { color: #6334C0; font-size: 20px; border-bottom: 2px solid #6334C0; padding-bottom: 8px; }
+        .sources { background: #F4F6FB; padding: 12px; border-radius: 6px; font-size: 12px; margin-top: 20px; }
+        .footer { margin-top: 40px; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
+        @media print { body { margin: 20px; } }
+      </style>
+    </head>
+    <body>
+      <h1>WeKall Intelligence — Análisis Ejecutivo</h1>
+      <p style="color:#999;font-size:12px">Crediminuto / CrediSmart · ${new Date().toLocaleDateString('es-CO')}</p>
+      <div style="margin-top:20px;line-height:1.6">${content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
+      ${sources ? `<div class="sources"><strong>Fuentes:</strong> ${sources.join(' · ')}</div>` : ''}
+      <div class="footer">Generado por Vicky Insights — WeKall Intelligence · ${new Date().toLocaleString('es-CO')}</div>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
+}
+
 // ─── Chat Bubble ──────────────────────────────────────────────────────────────
 
 function ChatBubble({ msg, onFollowUp, onAction }: {
@@ -283,6 +314,13 @@ function ChatBubble({ msg, onFollowUp, onAction }: {
         >
           <CheckCircle size={13} />
           → Crear acción
+        </button>
+        <button
+          onClick={() => exportToPDF(msg.content, msg.sources)}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-1.5 hover:bg-secondary transition-colors ml-1"
+        >
+          <FileText size={12} />
+          Exportar PDF
         </button>
       </div>
     </div>

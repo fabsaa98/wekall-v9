@@ -118,3 +118,33 @@
 - Role Selector en header: adapta Overview al rol activo
 - CSS animations: fade-slide-up en KPI cards al montar
 - Mobile-first responsive (375px iPhone funcional)
+
+## Metodología de Muestreo — Estándar COPC
+
+Para garantizar que las transcripciones de grabaciones sean estadísticamente representativas:
+
+### Muestra mínima válida
+- Universo: ~16,000 llamadas/día (Crediminuto/CrediSmart)
+- Nivel de confianza: 95%
+- Margen de error: ±5%
+- **Muestra mínima: 375 llamadas/día** (fórmula: n = Z²·p·q / e²)
+
+### Método de selección (aleatorio sistemático)
+1. Ordenar el CDR por hora del día
+2. Calcular intervalo: N/n = 16,000/375 ≈ 43
+3. Seleccionar una de las primeras 43 llamadas al azar (número inicial aleatorio k)
+4. Luego tomar: k, k+43, k+86, k+129... hasta completar 375
+5. Distribuir proporcionalmente entre campañas:
+   - Cobranzas Colombia: 56.9% → ~213 llamadas
+   - Cobranzas Perú: 22.0% → ~83 llamadas
+   - Servicio Colombia: 20.2% → ~76 llamadas
+   - Servicio Perú: 0.9% → ~3 llamadas
+
+### Frecuencia recomendada
+- Diaria: 375 llamadas (operación normal)
+- Semanal acumulada: mínimo 375 por día × 5 días hábiles
+- Por evento especial: muestra adicional si hay cambio de script, nuevo agente, o pico de volumen
+
+### Estado actual
+- 30-Mar-2026: 50 llamadas transcritas (muestra piloto — ampliar a 375 para siguiente ciclo)
+- Las 50 transcripciones actuales se usan como representación del comportamiento cualitativo

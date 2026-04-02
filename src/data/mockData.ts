@@ -167,13 +167,13 @@ export function getKPIsForRole(role: Role): KPIData[] {
 // ─── Conversation Trend (datos reales 30-Mar como día base) ─────────────────
 
 export const conversationTrend = [
-  { day: 'Lun 24', total: 13200, resolved: 9800, escalated: 1056 },
-  { day: 'Mar 25', total: 14100, resolved: 10500, escalated: 987 },
-  { day: 'Mié 26', total: 14800, resolved: 11100, escalated: 1036 },
-  { day: 'Jue 27', total: 15200, resolved: 11400, escalated: 1064 },
-  { day: 'Vie 28', total: 15600, resolved: 11700, escalated: 1092 },
-  { day: 'Sáb 29', total: 12400, resolved: 9300, escalated: 868 },
-  { day: 'Dom 30', total: 16129, resolved: 11966, escalated: 1129 },
+  { day: 'Lun 24*', total: 13200, resolved: 9800, escalated: 1056, isReal: false },
+  { day: 'Mar 25*', total: 14100, resolved: 10500, escalated: 987, isReal: false },
+  { day: 'Mié 26*', total: 14800, resolved: 11100, escalated: 1036, isReal: false },
+  { day: 'Jue 27*', total: 15200, resolved: 11400, escalated: 1064, isReal: false },
+  { day: 'Vie 28*', total: 15600, resolved: 11700, escalated: 1092, isReal: false },
+  { day: 'Sáb 29*', total: 12400, resolved: 9300, escalated: 868, isReal: false },
+  { day: 'Dom 30 ✓', total: 16129, resolved: 11966, escalated: 1129, isReal: true },
 ];
 
 // ─── Proactive Insights (basados en datos reales) ─────────────────────────────
