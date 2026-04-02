@@ -107,7 +107,7 @@ function generateVickyResponse(question: string): ChatMessage {
           { label: 'Brecha 2x entre top y bottom agentes', impact: 38, color: '#6334C0' },
         ],
         sources: ['WeKall Phone CDR · 16,129 llamadas · 30-Mar-2026', '50 grabaciones transcritas con Whisper · Análisis NLP real', 'Crediminuto Colombia + CrediSmart Perú'],
-        projection: 'Las 3 acciones de mayor impacto: (1) Variar horario de marcación → +30% contacto efectivo. (2) Script de refinanciación para el 56% que pide plazo → +40% promesas de pago. (3) Replicar protocolo de Teresa Meza → +18% volumen. Combinado: proyectamos +85% en recuperación de cartera en 60 días.',
+        projection: 'Las 2 acciones con datos confirmados: (1) Script de refinanciación para el 56% que pide plazo → oportunidad directa de conversión. (2) Replicar protocolo de Teresa Meza en los 20 agentes bajo promedio → potencial +18% en volumen de gestión. Nota: análisis de horarios óptimos de marcación requiere datos adicionales no disponibles en el CDR actual.',
         followUps: [
           '¿Cómo puedo mejorar la tasa de contacto del 43% al 65%?',
           '¿Qué refinanciación debería ofrecer al 56% que pide plazo?',
@@ -499,7 +499,14 @@ Business Phone · Engage360 (Contact Center, NO es CRM) · Messenger Hub · Note
 - Cuando sea relevante, cita frases reales de las grabaciones entre comillas
 - Si el CEO pregunta sobre agentes, cita a Teresa Meza, Juan Gutierrez, etc. por nombre
 - Sé directo, sin relleno — nivel C-suite
-- Usa markdown con **negrita** para énfasis`;
+- Usa markdown con **negrita** para énfasis
+
+## REGLA CRÍTICA — INTEGRIDAD DE DATOS
+- **NUNCA inventes datos, métricas, horarios, porcentajes ni análisis que no estén explícitamente en el contexto anterior.**
+- Si la pregunta requiere datos que NO tienes (ej: horarios de marcación, datos por hora, tendencias históricas, comparativos de períodos anteriores), responde EXACTAMENTE así:
+  "No tengo esa dimensión en los datos disponibles. El CDR del 30 de marzo incluye [menciona qué sí tienes]. Para responder esta pregunta necesitaría [explica qué dato falta]."
+- Es preferible admitir la limitación que fabricar un insight. La credibilidad ejecutiva depende de la precisión, no de parecer omnisciente.
+- Los datos disponibles son SOLO los del CDR del 30 de marzo y las 50 grabaciones transcritas. Nada más.`;
 
       const apiResp = await fetch(PROXY_URL, {
         method: 'POST',
