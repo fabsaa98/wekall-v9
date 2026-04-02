@@ -1,4 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// Extend Window interface for PWA install prompt
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, Search, Sparkles, ChevronDown, Check } from 'lucide-react';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -25,9 +31,28 @@ const breadcrumbs: Record<string, string> = {
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
   const { role, setRole } = useRole();
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  function handleInstall() {
+    if (!installPrompt) return;
+    (installPrompt as BeforeInstallPromptEvent).prompt();
+    setShowInstallBanner(false);
+    setInstallPrompt(null);
+  }
 
   const currentPage = breadcrumbs[location.pathname] ?? 'WeKall Intelligence';
 
@@ -37,7 +62,28 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
+      {/* PWA Install Banner */}
+      {showInstallBanner && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2 bg-primary text-primary-foreground text-sm shrink-0 z-50">
+          <span>📲 Instalar WeKall Intelligence como app</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleInstall}
+              className="px-3 py-1 rounded bg-white/20 hover:bg-white/30 text-white font-medium text-xs transition-all"
+            >
+              Instalar
+            </button>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="px-2 py-1 rounded hover:bg-white/20 text-white/70 text-xs transition-all"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+    <div className="flex flex-1 h-0 overflow-hidden">
       <AppSidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed(v => !v)}
@@ -112,6 +158,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+    </div>
     </div>
   );
 }
