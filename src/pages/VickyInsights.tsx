@@ -28,7 +28,7 @@ function generateVickyResponse(question: string): ChatMessage {
     {
       keywords: ['cobr', 'recuper', 'cartera', 'mora', 'pago', 'por qué no'],
       response: {
-        content: '**Diagnóstico:** Analicé 50 grabaciones reales del 30 de marzo. De los contactos efectivos, solo el **40% genera promesa de pago concreta**. El 38% no puede pagar en este momento.\n\n**Causa raíz (datos reales de transcripciones):**\n- **56% pide más plazo o refinanciamiento** — no niegan la deuda, simplemente no pueden pagar *ahora*\n- **52% dice no recordar o no reconocer la deuda** — problema de información al cliente\n- **40% reporta no tener dinero** — situación económica real\n- **14% menciona pérdida de empleo**\n\n**Hallazgo crítico:** El mayor problema NO es la conversación — es que el **57% de las llamadas (2,144 de 3,770) no conectan**. El cliente simplemente no contesta.\n\n**Implicación:** Si mejoras la tasa de contacto de 43% a 60%, recuperas ~250 promesas de pago adicionales por día sin cambiar nada más.\n\n**Recomendación:** (1) Variar horario de llamadas para el segmento que no contesta. (2) Ofrecer proactivamente refinanciación al 56% que pide plazo — ya están listos para negociar.',
+        content: '**Diagnóstico:** Analicé 50 grabaciones reales del 30 de marzo. De los contactos efectivos, solo el **40% genera promesa de pago concreta**. El 38% no puede pagar en este momento.\n\n**Causa raíz (datos reales de transcripciones):**\n- **56% pide más plazo o refinanciamiento** — no niegan la deuda, simplemente no pueden pagar *ahora*\n- **52% dice no recordar o no reconocer la deuda** — problema de información al cliente\n- **40% reporta no tener dinero** — situación económica real\n- **14% menciona pérdida de empleo**\n\n**Hallazgo crítico:** El mayor problema NO es la conversación — es que el **57% de las llamadas (2,144 de 3,770) no conectan**. El cliente simplemente no contesta.\n\n**Implicación:** Si mejoras la tasa de contacto de 43% a 60%, recuperas ~280 promesas de pago adicionales por día sin cambiar nada más.\n\n**Recomendación:** (1) Crear ruta de refinanciación proactiva para el 56% que pide plazo — ya están listos para negociar. (2) Replicar el protocolo de Teresa Meza (261 llamadas/día) en los agentes por debajo del promedio. Nota: para optimizar horarios de marcación se necesita el timestamp por llamada, dato no disponible en el CDR actual.',
         rootCauses: [
           { label: 'No contesta (57% de llamadas)', impact: 57, color: '#EF4444' },
           { label: 'Pide plazo / sin liquidez inmediata', impact: 56, color: '#F59E0B' },
@@ -36,9 +36,9 @@ function generateVickyResponse(question: string): ChatMessage {
           { label: 'Sin capacidad económica real', impact: 38, color: '#6334C0' },
         ],
         sources: ['WeKall Phone CDR · 16,129 llamadas · 30-Mar-2026', 'Grabaciones transcritas con IA · 50 muestras reales · Crediminuto/CrediSmart'],
-        projection: 'Mejorar tasa de contacto de 43% a 60% generaría ~280 promesas de pago adicionales/día. A tasa de cumplimiento del 60%, esto representa ~168 pagos reales adicionales diarios.',
+        projection: 'Mejorar tasa de contacto de 43% a 60% generaría ~280 promesas de pago adicionales/día (dato calculado con CDR real). Impacto EBITDA: depende del ticket promedio de cartera por cliente.',
         followUps: [
-          '¿En qué horarios tienen mayor tasa de contacto los agentes top?',
+          '¿Cuánto impacto en EBITDA tiene mejorar la tasa de contacto al 55%?',
           '¿Cuántos clientes que piden plazo terminan pagando si se les ofrece refinanciación?',
           '¿Cuáles son los 10 agentes con mejor tasa de promesa de pago?',
         ],
@@ -121,14 +121,14 @@ function generateVickyResponse(question: string): ChatMessage {
   const lower = question.toLowerCase();
   const match = templates.find(t => t.keywords.some(k => lower.includes(k)));
   const tpl = match?.response ?? {
-    content: '**Diagnóstico:** Analicé el CDR del 30 de marzo de Crediminuto/CrediSmart (16,129 llamadas, 50 grabaciones transcritas con IA).\n\n**Hallazgo principal:** La tasa de contacto efectivo es del 43.1% — el 57% de las llamadas no conecta. De los que sí contestan, el 40% da promesa de pago y el 56% pide más plazo.\n\n**Recomendación:** El mayor impacto inmediato está en (1) mejorar la tasa de contacto variando horarios de marcación, y (2) crear una ruta de refinanciación proactiva para el 56% que pide plazo.',
+    content: '**Diagnóstico:** Analicé el CDR del 30 de marzo de Crediminuto/CrediSmart (16,129 llamadas, 50 grabaciones transcritas con IA).\n\n**Hallazgo principal:** La tasa de contacto efectivo es del 43.1% — el 57% de las llamadas no conecta. De los que sí contestan, el 40% da promesa de pago y el 56% pide más plazo.\n\n**Recomendación:** El mayor impacto inmediato está en (1) crear una ruta de refinanciación proactiva para el 56% que pide plazo, y (2) replicar el protocolo de Teresa Meza en agentes bajo el promedio. Nota: optimización de horarios requiere timestamp por llamada, dato no disponible en el CDR. una ruta de refinanciación proactiva para el 56% que pide plazo.',
     rootCauses: [
       { label: 'Baja tasa de contacto (43%)', impact: 57, color: '#EF4444' },
       { label: 'Sin oferta de refinanciación proactiva', impact: 56, color: '#F59E0B' },
       { label: 'Brecha entre agentes top y promedio', impact: 38, color: '#6334C0' },
     ],
     sources: ['WeKall CDR · 16,129 llamadas · 30-Mar-2026 · Crediminuto/CrediSmart', '50 grabaciones transcritas con IA · Whisper'],
-    projection: 'Con las 3 acciones recomendadas, proyectamos +85% en recuperación efectiva de cartera en 60 días.',
+    projection: 'Acción con datos confirmados: Script de refinanciación para el 56% que pide plazo → conversión directa. Replicar protocolo de Teresa Meza → +18% volumen estimado. Para cuantificar impacto en COP, se necesita el ticket promedio de cartera.',
     followUps: [
       '¿Por qué no recuperamos cartera? Análisis completo',
       '¿Cuál es el top 10 de agentes por promesas de pago?',
