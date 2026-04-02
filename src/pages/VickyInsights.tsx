@@ -7,7 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/data/mockData';
 import { initialVickyMessages, decisionLog } from '@/data/mockData';
-import { detectOperationType, generateBenchmarkContext } from '@/data/benchmarks';
+import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -451,7 +451,8 @@ export default function VickyInsights() {
     let resp: ChatMessage;
     try {
       const _opType = detectOperationType('cobranzas colombia crediminuto promesa pago deuda');
-      const _benchmarkCtx = generateBenchmarkContext(_opType, 'colombia');
+      const _region = detectRegion('cobranzas colombia crediminuto promesa pago deuda');
+      const _benchmarkCtx = generateBenchmarkContext(_opType, _region);
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
 
 ## DATOS REALES CDR — 30-Mar-2026

@@ -235,6 +235,76 @@ Cuando se tenga la muestra diaria completa (375 llamadas), Vicky podrá responde
 - Comparativas día-a-día con significancia estadística
 - Alertas basadas en cambios reales vs. variación aleatoria
 
+## [V11.0.0] — 2026-04-02 — Intelligence Layer: Benchmarks, EBITDA & Multi-Industria
+
+### Decisiones estratégicas del día
+- **Vicky = producto de clase mundial**: arquitectura de BI ejecutivo comparable a Tellius Kaiya / Zenlytic Zoë
+- **Motor de benchmarks multi-industria**: Vicky ya no solo muestra datos — los posiciona contra estándares globales
+- **Motor EBITDA**: brecha operativa → impacto financiero en COP (nivel McKinsey/BCG/Deloitte)
+- **Integridad de datos**: regla explícita — Vicky nunca inventa datos que no están en el CDR
+- **Arquitectura genérica**: todo lo construido aplica a CUALQUIER cliente e industria, no solo CrediSmart
+- **Cloudflare Worker proxy**: API key de OpenAI nunca en el código — arquitectura enterprise
+
+### Cambio 1: Regla de integridad de datos (feat: fix Vicky no inventa)
+- Vicky tiene instrucción explícita de NO fabricar insights sin datos
+- Si faltan datos (ej: horarios, históricos), responde: "No tengo esa dimensión. Necesitaría [dato]."
+- Proyección hardcodeada de "+30% variando horario" eliminada — era especulación sin respaldo
+
+### Cambio 2: Benchmarks de industria — COPC, SQM, E&Y, MetricNet
+Archivo creado: `src/data/benchmarks.ts`
+- Librería inicial con 2 tipos de operación (cobranzas, servicio)
+- P25/P50/P75 por Colombia / Latam / USA / Global
+- Fuentes institucionales: COPC Inc., SQM Group, E&Y Collections, CCContact Colombia
+
+### Cambio 3: Benchmarks expandidos — 8 industrias completas (V11)
+Archivo `src/data/benchmarks.ts` expandido a 8 tipos de operación:
+1. Contact Center Cobranzas → fuentes: COPC, SQM, E&Y, ACDECC Colombia
+2. Contact Center Servicio al Cliente → COPC, SQM, CFI Group, MetricNet
+3. Contact Center Ventas Outbound → COPC, SQM, Contact Babel
+4. Soporte Técnico / Help Desk → HDI, MetricNet, ITIL
+5. Banca / Seguros / Fintech → McKinsey FS, J.D. Power, Bain, FELABAN
+6. Salud → HIMSS, J.D. Power Healthcare, Accenture
+7. Retail / E-Commerce → NRF, Baymard Institute, ACSI, Bain
+8. Telecomunicaciones → TM Forum (TMF), GSMA, McKinsey Telco
+- Detección automática de operación por regex (detectOperationType)
+- Detección automática de país/región (detectRegion)
+
+### Cambio 4: Motor EBITDA — impacto financiero en COP
+- Parámetros financieros reales embebidos en el contexto de Vicky:
+  - Costo empresa/agente Colombia: COP $3,000,000/mes = COP $284/min
+  - Nómina activa: COP $243,000,000/mes (81 agentes)
+- Fórmulas de impacto en 3 escenarios:
+  - A: Reducción de costo (liberación de headcount)
+  - B: Crecimiento con mismo headcount (más transacciones)
+  - C: EBITDA combinado A+B
+- Dato pendiente para cerrar cálculo de ingresos: ticket promedio de cartera (lo pide Vicky al CEO)
+
+### Cambio 5: Cloudflare Worker Proxy (arquitectura enterprise)
+- Worker deployado: wekall-vicky-proxy.fabsaa98.workers.dev
+- OpenAI API key nunca en el código — vive como secreto en Cloudflare
+- Frontend usa VITE_PROXY_URL → Cloudflare Worker → OpenAI
+- Fallback: motor de respuestas local si proxy no disponible
+
+### Investigación de referencia
+- McKinsey: Peer Group + percentil relativo; Customer Care 360; Platinum Standard (500+ best practices)
+- BCG: "Smart Simplicity" — action titles; gráfico de cuadrantes cliente vs. peers
+- Bain: Balanced Scorecard multidimensional; score ponderado por dimensión
+- Deloitte/KPMG: Gap Analysis cuantificado; brecha → impacto económico directo
+
+### Datos operativos reales — Crediminuto/CrediSmart (caso piloto)
+- CDR 30-Mar-2026: 16,129 llamadas | 81 agentes | 4 campañas
+- AHT: 8.1 min | Contacto efectivo: 43.1% | Promesa de pago: 40%
+- 50 grabaciones transcritas con Whisper (análisis NLP real)
+- Top agente: Teresa Meza (261 llamadas vs. promedio 137)
+
+### Pendientes próxima versión
+- Parámetros de costo configurables por cliente (Perú ≠ Colombia ≠ México)
+- Ticket promedio de cartera de Crediminuto (pendiente que Fabián suministre)
+- CDR del mes completo (pendiente equipo de operaciones Crediminuto)
+- Ampliar muestra de transcripciones a 375 (estándar COPC)
+
+---
+
 ## [V10.0.0] — 2026-04-02 — Enterprise Architecture
 
 ### Decisiones de producto
