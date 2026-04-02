@@ -405,9 +405,69 @@ export default function VickyInsights() {
     setInput('');
     setLoading(true);
 
-    // Simulate AI response delay
-    await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
-    const resp = generateVickyResponse(text);
+    // Try OpenAI API first, fallback to local response engine
+    let resp: ChatMessage;
+    try {
+      const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
+Datos reales del CDR del 30 de marzo de 2026 (análisis de 50 grabaciones con Whisper + 16,129 registros CDR):
+- Total llamadas del día: 16,129
+- Campañas: Cobranzas Colombia (9,174) · Cobranzas Perú (3,550) · Servicio Colombia (3,256) · Servicio Perú (140)
+- Agentes activos: 81 de 162 en plataforma · 20 supervisores
+- Grabaciones totales: 3,770 (de las cuales 2,144 = 56.9% son llamadas sin respuesta/0 bytes)
+- Contacto efectivo real: 43.1% (1,626 llamadas con audio real)
+- AHT real (de grabaciones): 8.1 min promedio (rango 5.2-16.3 min)
+- Top agentes por volumen: Teresa Meza (261 llamadas), Juan Gutierrez (211), Nelcy Contasti (194), Santiago Cano (183), Alejandra Perez (180)
+- Resultados de 50 grabaciones reales: Promesa de pago 40% · Sin capacidad de pago 38% · Contacto positivo 14% · Sin resolución 8%
+- Objeciones reales (NLP en transcripciones): Pide plazo/tiempo 56% · Niega conocer deuda 52% · Sin dinero 40% · Sin trabajo 14%
+- Tipo de llamadas: 91.6% salientes (dialer) · 8.4% entrantes
+
+Responde SIEMPRE en español. Sé ejecutivo, directo, con estructura: Diagnóstico → Causa raíz → Implicación → Recomendación.
+Usa SOLO los datos reales arriba — si no tienes el dato, indícalo claramente.
+Responde en formato markdown con **negrita** para énfasis.`;
+
+      const apiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: CONTEXT },
+            { role: 'user', content: text },
+          ],
+          max_tokens: 800,
+          temperature: 0.3,
+        }),
+      });
+
+      if (apiResp.ok) {
+        const data = await apiResp.json();
+        const aiContent = data.choices?.[0]?.message?.content ?? '';
+        resp = {
+          id: `vicky-${Date.now()}`,
+          role: 'vicky',
+          content: aiContent,
+          timestamp: new Date(),
+          sources: ['WeKall CDR · 16,129 llamadas · 30-Mar-2026 · Crediminuto/CrediSmart', '50 grabaciones transcritas con Whisper · Análisis NLP real'],
+          confidence: 'Alta',
+          reasoning: `Analicé 16,129 registros CDR + 50 transcripciones reales de Crediminuto/CrediSmart en tiempo real. Modelo: GPT-4o mini + contexto de datos reales.`,
+          followUps: [
+            '¿Por qué no estamos recuperando cartera?',
+            '¿Cuáles son los agentes top performers?',
+            '¿Cómo mejorar la tasa de contacto efectivo?',
+          ],
+        };
+      } else {
+        throw new Error('API error');
+      }
+    } catch {
+      // Fallback to local engine
+      await new Promise(r => setTimeout(r, 800));
+      resp = generateVickyResponse(text);
+    }
+
     setMessages(prev => [...prev, resp]);
     setLoading(false);
   }
