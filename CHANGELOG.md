@@ -304,6 +304,13 @@ Archivo `src/data/benchmarks.ts` expandido a 8 tipos de operación:
 - System prompt mejorado con protocolo explícito de 4 pasos para responder preguntas
 - Vicky ahora entiende la pregunta real antes de buscar datos
 
+### Cambio 7: Motor de validación de cálculos (V11.2)
+- Problema detectado: Vicky calculaba AHT × 16,129 llamadas totales en lugar de 6,951 contactos efectivos → error 2.3x
+- Solución: Límites de sanidad explícitos para cada métrica financiera
+- Protocolo obligatorio: Vicky muestra fórmula + variables + operación + resultado + validación (formato 📐)
+- Límites implementados: ahorro máx COP $243M, agentes máx 81, llamadas máx 16,129, promesas máx 2,780/día
+- Cualquier resultado que exceda el 50% del máximo lógico genera advertencia automática
+
 ### Pendientes próxima versión
 - Parámetros de costo configurables por cliente (Perú ≠ Colombia ≠ México)
 - Ticket promedio de cartera de Crediminuto (pendiente que Fabián suministre)
