@@ -15,6 +15,29 @@
 
 ---
 
+## [V12.0.0] — 2026-04-02 — Arquitectura Function Calling
+
+### Decisión arquitectural estratégica
+**Causa raíz de errores de cálculo:** Vicky usaba el LLM como calculadora. Los LLMs razonan bien pero no son calculadoras confiables — pueden aplicar fórmulas incorrectamente.
+
+**Solución:** Separar razonamiento (LLM) de cálculo (código determinístico) mediante OpenAI Function Calling.
+- LLM: interpreta la pregunta, decide qué análisis hacer
+- Código TypeScript: ejecuta el cálculo — siempre correcto, siempre reproducible
+- LLM: presenta el resultado en lenguaje ejecutivo
+
+### Funciones implementadas (src/lib/vickyCalculations.ts)
+- `calcularImpactoAHT(ahtObjetivo)` → COP ahorro/mes + promesas adicionales
+- `calcularImpactoContactRate(tasaObjetivo)` → promesas adicionales/mes
+- `calcularImpactoAgentes(percentilObjetivo)` → impacto de mejorar el peor cuartil
+- `getEstadoOperativo()` → KPIs actuales del CDR
+
+### Datos reales del CDR integrados en el motor
+- P25=76, P50=120, P75=143 llamadas/agente/día (81 agentes humanos)
+- Promedio real: 110.7 (corregido — excluye marcador automático)
+- Todos los cálculos validados contra límites de sanidad antes de mostrarse
+
+---
+
 ## ICP (Ideal Customer Profile)
 
 - **Quién:** CEO y equipo C-suite (VP Ventas, VP CX, COO, CFO)

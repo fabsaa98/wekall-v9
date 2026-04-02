@@ -5,6 +5,7 @@ import {
   FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText, Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { calcularImpactoAHT, calcularImpactoContactRate, calcularImpactoAgentes, getEstadoOperativo } from '@/lib/vickyCalculations';
 import type { ChatMessage } from '@/data/mockData';
 import { initialVickyMessages, decisionLog } from '@/data/mockData';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
@@ -553,6 +554,70 @@ Vicky es un analista de BI ejecutivo de clase mundial. Para CADA pregunta del CE
 - Es preferible admitir la limitación que fabricar un insight. La credibilidad ejecutiva depende de la precisión, no de parecer omnisciente.
 - Los datos disponibles son SOLO los del CDR del 30 de marzo y las 50 grabaciones transcritas. Nada más.`;
 
+      // ─── Function Calling — cálculos determinísticos ─────────────────────────────
+      const TOOLS = [
+        {
+          type: 'function' as const,
+          function: {
+            name: 'calcularImpactoAHT',
+            description: 'Calcula el impacto financiero en COP de reducir el AHT (tiempo promedio de atención). Usa este tool cuando el CEO pregunte sobre eficiencia de llamadas, tiempo de atención, o cuánto ahorraría reduciendo el AHT.',
+            parameters: {
+              type: 'object',
+              properties: {
+                ahtObjetivo: {
+                  type: 'number',
+                  description: 'El AHT objetivo en minutos (ej: 7.2 para reducir de 8.1 a 7.2 min)',
+                },
+              },
+              required: ['ahtObjetivo'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'calcularImpactoContactRate',
+            description: 'Calcula el impacto de mejorar la tasa de contacto efectivo. Usa cuando pregunten cuántas promesas adicionales se generarían si mejora la tasa de contacto.',
+            parameters: {
+              type: 'object',
+              properties: {
+                tasaObjetivo: {
+                  type: 'number',
+                  description: 'La tasa de contacto objetivo como decimal (ej: 0.55 para 55%)',
+                },
+              },
+              required: ['tasaObjetivo'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'calcularImpactoAgentes',
+            description: 'Calcula el impacto de subir el rendimiento del peor cuartil de agentes. Usa cuando pregunten sobre el bottom cuartil, agentes de bajo rendimiento, o cuánto mejoraría si los peores agentes mejoran.',
+            parameters: {
+              type: 'object',
+              properties: {
+                percentilObjetivo: {
+                  type: 'number',
+                  description: 'El percentil objetivo (50 para mediana, 75 para mejor cuartil, 90 para top performers)',
+                },
+              },
+              required: ['percentilObjetivo'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'getEstadoOperativo',
+            description: 'Retorna el resumen del estado operativo actual con todos los KPIs reales del CDR. Usa cuando pregunten por el estado general, resumen ejecutivo, o KPIs de la operación.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ];
+
+      // ─── Llamada a la API con Function Calling ──────────────────────────────
       const apiResp = await fetch(PROXY_URL, {
         method: 'POST',
         headers: {
@@ -565,31 +630,83 @@ Vicky es un analista de BI ejecutivo de clase mundial. Para CADA pregunta del CE
             { role: 'system', content: CONTEXT },
             { role: 'user', content: text },
           ],
-          max_tokens: 800,
+          tools: TOOLS,
+          tool_choice: 'auto',
+          max_tokens: 1500,
           temperature: 0.3,
         }),
       });
 
-      if (apiResp.ok) {
-        const data = await apiResp.json();
-        const aiContent = data.choices?.[0]?.message?.content ?? '';
-        resp = {
-          id: `vicky-${Date.now()}`,
-          role: 'vicky',
-          content: aiContent,
-          timestamp: new Date(),
-          sources: ['WeKall CDR · 16,129 llamadas · 30-Mar-2026 · Crediminuto/CrediSmart', '50 grabaciones transcritas con Whisper · Análisis NLP real'],
-          confidence: 'Alta',
-          reasoning: `Analicé 16,129 registros CDR + 50 transcripciones reales de Crediminuto/CrediSmart en tiempo real. Modelo: GPT-4o mini + contexto de datos reales.`,
-          followUps: [
-            '¿Por qué no estamos recuperando cartera?',
-            '¿Cuáles son los agentes top performers?',
-            '¿Cómo mejorar la tasa de contacto efectivo?',
-          ],
-        };
+      if (!apiResp.ok) throw new Error(`API error: ${apiResp.status}`);
+      const data = await apiResp.json();
+      const choice = data.choices?.[0];
+
+      let finalContent = '';
+
+      // ─── Manejar Function Calling ───────────────────────────────────────────
+      if (choice?.finish_reason === 'tool_calls' && choice?.message?.tool_calls) {
+        const toolCalls = choice.message.tool_calls as Array<{ id: string; function: { name: string; arguments: string } }>;
+        const toolResults: string[] = [];
+
+        for (const call of toolCalls) {
+          const fnName = call.function.name;
+          const fnArgs = JSON.parse(call.function.arguments || '{}');
+
+          let calcResult;
+          if (fnName === 'calcularImpactoAHT') calcResult = calcularImpactoAHT(fnArgs.ahtObjetivo);
+          else if (fnName === 'calcularImpactoContactRate') calcResult = calcularImpactoContactRate(fnArgs.tasaObjetivo);
+          else if (fnName === 'calcularImpactoAgentes') calcResult = calcularImpactoAgentes(fnArgs.percentilObjetivo);
+          else if (fnName === 'getEstadoOperativo') calcResult = getEstadoOperativo();
+          else calcResult = { error: 'Función no encontrada' };
+
+          toolResults.push(`[${fnName}]: ${JSON.stringify(calcResult)}`);
+        }
+
+        // Segunda llamada a la API con los resultados del cálculo
+        const apiResp2 = await fetch(PROXY_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(USE_PROXY ? {} : { 'Authorization': 'Bearer ' + atob('c2stcHJvai0xcllfQTlHRDBQMzU3SVVXWlIxbmhFM0J2NmFXRzllbzI5OFZ1eFVSM3BjNV9zM0tkSGZhekpRekVQV3k3ek5menFya203ZkwweVQzQmxia0ZKUXpUaEx6dHhRQnU2MUUyUEs0bnNvYW5PeV9mYm52THB1N2ZjV0dKWnlSTDlGUXl1aXlGWjJUV181WmNYa3U1eEtWSFJiVldoVUE=') }),
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: CONTEXT },
+              { role: 'user', content: text },
+              choice.message,
+              ...toolCalls.map((call, i: number) => ({
+                role: 'tool' as const,
+                tool_call_id: call.id,
+                content: toolResults[i],
+              })),
+            ],
+            max_tokens: 1500,
+            temperature: 0.3,
+          }),
+        });
+
+        if (!apiResp2.ok) throw new Error(`API error 2: ${apiResp2.status}`);
+        const data2 = await apiResp2.json();
+        finalContent = data2.choices?.[0]?.message?.content || 'Sin respuesta';
       } else {
-        throw new Error('API error');
+        finalContent = choice?.message?.content || 'Sin respuesta';
       }
+
+      resp = {
+        id: `vicky-${Date.now()}`,
+        role: 'vicky',
+        content: finalContent,
+        timestamp: new Date(),
+        sources: ['WeKall CDR · 16,129 llamadas · 30-Mar-2026 · Crediminuto/CrediSmart', '50 grabaciones transcritas con Whisper · Análisis NLP real'],
+        confidence: 'Alta',
+        reasoning: `Analicé 16,129 registros CDR + 50 transcripciones reales de Crediminuto/CrediSmart en tiempo real. Modelo: GPT-4o + Function Calling determinístico.`,
+        followUps: [
+          '¿Por qué no estamos recuperando cartera?',
+          '¿Cuáles son los agentes top performers?',
+          '¿Cómo mejorar la tasa de contacto efectivo?',
+        ],
+      };
     } catch {
       // Fallback to local engine
       await new Promise(r => setTimeout(r, 800));
