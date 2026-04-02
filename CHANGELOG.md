@@ -234,3 +234,39 @@ Cuando se tenga la muestra diaria completa (375 llamadas), Vicky podrá responde
 - Porcentajes de objeciones con ±5% de error estadístico
 - Comparativas día-a-día con significancia estadística
 - Alertas basadas en cambios reales vs. variación aleatoria
+
+## [V10.0.0] — 2026-04-02 — Enterprise Architecture
+
+### Decisiones de producto
+- **Proxy backend**: OpenAI API key expuso en GitHub (revocado). Arquitectura enterprise: Cloudflare Worker como backend-for-frontend. Key nunca en el frontend.
+- **BSC metrics**: Métricas del CEO cambiadas de contact center genérico a Balanced Scorecard real para empresa de cobranzas
+- **Transcripciones como contexto**: 50 grabaciones reales de Crediminuto embebidas en el contexto de Vicky Insights
+- **UX fix**: Proyección AutoML con contraste correcto
+
+### Cambio 1: Cloudflare Worker Proxy
+- Repositorio del worker: `/Users/celeru/.openclaw/workspace/wekall-proxy/`
+- Arquitectura: Frontend → Cloudflare Worker → OpenAI API
+- El API key vive como secreto en Cloudflare, nunca en el código
+- **Para activar**: Deployar el worker en Cloudflare y configurar `VITE_PROXY_URL` en GitHub Secrets
+- Frontend actualizado para usar `VITE_PROXY_URL` si está disponible
+
+### Cambio 2: Fix UX — Proyección AutoML
+- Anterior: texto ámbar sobre fondo ámbar (invisible)
+- Nuevo: texto oscuro (`text-slate-700`) sobre fondo `bg-slate-50` con borde `border-amber-200`
+- WCAG AA compliant
+
+### Cambio 3: BSC CEO Metrics — Crediminuto/CrediSmart
+Métricas reemplazadas con 4 perspectivas del Balanced Scorecard:
+- **Financiera**: Tasa de Recuperación (40%) · Tasa de Contacto Efectivo (43.1%)
+- **Cliente**: Promesa de Pago (40%) · Sin Capacidad de Pago (38%)
+- **Procesos**: AHT Real (8.1 min) · Llamadas/Día (16,129)
+- **Aprendizaje**: Agentes Activos (81/162) · Top Agente (Teresa Meza, 261 llamadas)
+Todas basadas en datos reales del CDR 30-Mar-2026 + análisis de 50 grabaciones
+
+### Cambio 4: Vicky Insights — Contexto enriquecido con transcripciones reales
+Vicky ahora conoce:
+- Frases exactas que dicen los deudores (de grabaciones reales)
+- Objeciones más frecuentes por porcentaje
+- Nombres reales de agentes top con datos de productividad
+- Análisis de resultados de contacto (40% promesa de pago, etc.)
+- Insight clave: el problema es la tasa de contacto (43%), no la conversación

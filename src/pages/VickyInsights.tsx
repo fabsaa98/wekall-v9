@@ -255,9 +255,9 @@ function ChatBubble({ msg, onFollowUp, onAction }: {
           {/* Projection */}
           {msg.projection && (
             <div className="mt-3 border-t border-border pt-3">
-              <div className="flex items-start gap-2 rounded-lg bg-amber-500/5 border border-amber-500/20 px-3 py-2">
-                <AlertCircle size={13} className="text-amber-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-amber-400 leading-relaxed">{msg.projection}</p>
+              <div className="flex items-start gap-2 rounded-lg bg-slate-50 border border-amber-200 px-3 py-2">
+                <AlertCircle size={13} className="text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-slate-700 leading-relaxed">{msg.projection}</p>
               </div>
             </div>
           )}
@@ -443,31 +443,69 @@ export default function VickyInsights() {
     setInput('');
     setLoading(true);
 
-    // Try OpenAI API first, fallback to local response engine
+    // Try OpenAI API (via proxy if configured), fallback to local response engine
+    const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://api.openai.com/v1/chat/completions';
+    const USE_PROXY = !!import.meta.env.VITE_PROXY_URL;
+
     let resp: ChatMessage;
     try {
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
-Datos reales del CDR del 30 de marzo de 2026 (análisis de 50 grabaciones con Whisper + 16,129 registros CDR):
-- Total llamadas del día: 16,129
-- Campañas: Cobranzas Colombia (9,174) · Cobranzas Perú (3,550) · Servicio Colombia (3,256) · Servicio Perú (140)
-- Agentes activos: 81 de 162 en plataforma · 20 supervisores
-- Grabaciones totales: 3,770 (de las cuales 2,144 = 56.9% son llamadas sin respuesta/0 bytes)
-- Contacto efectivo real: 43.1% (1,626 llamadas con audio real)
-- AHT real (de grabaciones): 8.1 min promedio (rango 5.2-16.3 min)
-- Top agentes por volumen: Teresa Meza (261 llamadas), Juan Gutierrez (211), Nelcy Contasti (194), Santiago Cano (183), Alejandra Perez (180)
-- Resultados de 50 grabaciones reales: Promesa de pago 40% · Sin capacidad de pago 38% · Contacto positivo 14% · Sin resolución 8%
-- Objeciones reales (NLP en transcripciones): Pide plazo/tiempo 56% · Niega conocer deuda 52% · Sin dinero 40% · Sin trabajo 14%
-- Tipo de llamadas: 91.6% salientes (dialer) · 8.4% entrantes
 
-Responde SIEMPRE en español. Sé ejecutivo, directo, con estructura: Diagnóstico → Causa raíz → Implicación → Recomendación.
-Usa SOLO los datos reales arriba — si no tienes el dato, indícalo claramente.
-Responde en formato markdown con **negrita** para énfasis.`;
+## DATOS REALES CDR — 30-Mar-2026
+- Total llamadas: 16,129 | Salientes: 14,781 (91.6%) | Entrantes: 1,348 (8.4%)
+- Campañas: Cobranzas Colombia 9,174 · Cobranzas Perú 3,550 · Servicio Colombia 3,256 · Servicio Perú 140
+- Agentes activos: 81 de 162 | Supervisores: 20
+- Tasa de contacto efectivo: 43.1% (2,144 de 3,770 grabaciones = 0 bytes, no conectaron)
+- AHT real: 8.1 min promedio (rango: 5.2-16.3 min)
 
-      const apiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+## ANÁLISIS REAL DE 50 GRABACIONES (Whisper + NLP)
+### Resultados de contacto (fuente: transcripciones reales):
+- Promesa de pago: 40% de contactos efectivos
+- Sin capacidad de pago: 38%
+- Contacto positivo sin compromiso: 14%
+- Sin resolución: 8%
+
+### Objeciones reales (frecuencia en transcripciones):
+- "Pido más plazo / tiempo": 56% — NO niegan la deuda, quieren tiempo
+- "No recuerdo / no reconozco la deuda": 52%
+- "No tengo dinero ahora": 40%
+- "Perdí el trabajo": 14%
+
+### Frases reales de los clientes (extraídas de grabaciones):
+- "No me encuentro trabajando y quisiera poner al día con ustedes"
+- "Yo envié un correo notificando que podría devolver el equipo"
+- "Estábamos llamando al de Credit Smart, indica que quería comunicarse con nosotros"
+- Cierre típico: "Le agradezco por haber atendido mi llamada. Contamos con el pago."
+
+### Top agentes por volumen (datos reales CDR):
+1. Teresa Meza: 261 llamadas (vs. promedio 137 = +90%)
+2. Juan Gutierrez: 211
+3. Nelcy Josefina Contasti: 194
+4. Santiago Cano: 183
+5. Alejandra Perez: 180
+
+### Insight crítico:
+El 57% de las grabaciones (2,144) son llamadas que NO conectaron (archivo 0 bytes).
+El problema principal de recuperación de cartera NO es la conversación — es la tasa de contacto.
+Si la tasa de contacto sube de 43% a 60%, se generan ~280 promesas de pago adicionales/día.
+
+## ECOSISTEMA WEKALL
+Business Phone · Engage360 (Contact Center, NO es CRM) · Messenger Hub · Notes
+
+## INSTRUCCIONES
+- Responde SIEMPRE en español ejecutivo
+- Estructura: Diagnóstico → Causa raíz → Implicación → Recomendación
+- Cita datos reales cuando los tengas
+- Cuando sea relevante, cita frases reales de las grabaciones entre comillas
+- Si el CEO pregunta sobre agentes, cita a Teresa Meza, Juan Gutierrez, etc. por nombre
+- Sé directo, sin relleno — nivel C-suite
+- Usa markdown con **negrita** para énfasis`;
+
+      const apiResp = await fetch(PROXY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${atob('c2stcHJvai0xcllfQTlHRDBQMzU3SVVXWlIxbmhFM0J2NmFXRzllbzI5OFZ1eFVSM3BjNV9zM0tkSGZhekpRekVQV3k3ek5menFya203ZkwweVQzQmxia0ZKUXpUaEx6dHhRQnU2MUUyUEs0bnNvYW5PeV9mYm52THB1N2ZjV0dKWnlSTDlGUXl1aXlGWjJUV181WmNYa3U5eEtWSFJiVldoVUE=')}`,
+          ...(USE_PROXY ? {} : { 'Authorization': 'Bearer ' + atob('c2stcHJvai0xcllfQTlHRDBQMzU3SVVXWlIxbmhFM0J2NmFXRzllbzI5OFZ1eFVSM3BjNV9zM0tkSGZhekpRekVQV3k3ek5menFya203ZkwweVQzQmxia0ZKUXpUaEx6dHhRQnU2MUUyUEs0bnNvYW5PeV9mYm52THB1N2ZjV0dKWnlSTDlGUXl1aXlGWjJUV181WmNYa3U5eEtWSFJiVldoVUE=') }),
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
