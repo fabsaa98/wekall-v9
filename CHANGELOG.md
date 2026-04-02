@@ -148,3 +148,89 @@ Para garantizar que las transcripciones de grabaciones sean estadísticamente re
 ### Estado actual
 - 30-Mar-2026: 50 llamadas transcritas (muestra piloto — ampliar a 375 para siguiente ciclo)
 - Las 50 transcripciones actuales se usan como representación del comportamiento cualitativo
+
+---
+
+## Metodología de Muestreo Estadístico — Estándar COPC
+
+*Documentado: 1-Abr-2026 | Validado por Fabián Saavedra*
+
+### Por qué importa
+Transcribir el 100% de las llamadas diarias no es viable ni necesario. La estadística permite obtener resultados representativos con una muestra pequeña. COPC (Customer Operations Performance Center) es el estándar global de calidad en contact centers — define cómo medir para que los resultados sean confiables.
+
+### Fórmula base
+
+```
+n = Z² × p × q / e²
+```
+
+Parámetros:
+- **Z = 1.96** — nivel de confianza 95% (estándar COPC)
+- **p = 0.5** — proporción esperada (usamos 0.5 cuando no hay referencia previa, maximiza la muestra)
+- **q = 1 - p = 0.5**
+- **e = 0.05** — margen de error ±5%
+
+Resultado: **n = (1.96² × 0.5 × 0.5) / 0.05² = 384 llamadas** (muestra base para universo infinito)
+
+### Corrección por universo finito
+
+```
+n_ajustada = n / (1 + (n-1) / N)
+```
+
+Donde N = total de llamadas del día.
+
+Para Crediminuto/CrediSmart (N = 16,129):
+```
+n_ajustada = 384 / (1 + 383/16,129) = 384 / 1.0237 ≈ 375 llamadas/día
+```
+
+### Tabla de referencia por volumen diario
+
+| Llamadas/día | Muestra mínima válida |
+|---|---|
+| 1,000 | ~278 |
+| 3,000 | ~341 |
+| 5,000 | ~357 |
+| 10,000 | ~370 |
+| 16,000 | ~375 |
+| 50,000 | ~381 |
+| +100,000 | ~384 |
+
+**Conclusión práctica:** Con más de 5,000 llamadas/día, la muestra se estabiliza entre 370 y 384. No importa si tienes 16 mil o 100 mil llamadas — la muestra necesaria casi no cambia.
+
+### Método de selección — Aleatorio sistemático
+
+1. Ordenar el CDR por hora del día (de 00:00 a 23:59)
+2. Calcular intervalo: **k = N / n** (ej: 16,129 / 375 ≈ 43)
+3. Elegir un número inicial aleatorio entre 1 y 43 (ej: 17)
+4. Seleccionar las llamadas: 17, 60, 103, 146... hasta completar 375
+5. Distribuir proporcionalmente entre campañas activas:
+
+| Campaña | % del volumen | Llamadas a muestrear |
+|---|---|---|
+| Cobranzas Colombia | 56.9% | ~213 |
+| Cobranzas Perú | 22.0% | ~83 |
+| Servicio Colombia | 20.2% | ~76 |
+| Servicio Perú | 0.9% | ~3 |
+| **Total** | **100%** | **375** |
+
+### Frecuencia recomendada (COPC)
+
+- **Operación normal:** 375 llamadas/día → Whisper transcribe en ~30-40 min en Mac Mini
+- **Evento especial:** muestra adicional de 200 llamadas si hay cambio de script, nuevo agente, pico de volumen, o queja masiva de clientes
+- **Mínimo semanal:** 375 × 5 días hábiles = 1,875 llamadas/semana para análisis de tendencias
+
+### Estado actual (piloto)
+
+- **30-Mar-2026:** 50 llamadas transcritas (13.3% de la muestra óptima)
+  - Resultado: válido para análisis cualitativo (objeciones, motivos, sentimiento)
+  - No válido para inferencias estadísticas con ±5% de error
+  - **Próximo paso:** ampliar a 375 cuando llegue el CDR del mes completo
+
+### Impacto en Vicky Insights
+
+Cuando se tenga la muestra diaria completa (375 llamadas), Vicky podrá responder con:
+- Porcentajes de objeciones con ±5% de error estadístico
+- Comparativas día-a-día con significancia estadística
+- Alertas basadas en cambios reales vs. variación aleatoria
