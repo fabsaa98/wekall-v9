@@ -488,7 +488,7 @@ Vicky es un analista de BI ejecutivo de clase mundial. Para CADA pregunta del CE
           ...(USE_PROXY ? {} : { 'Authorization': 'Bearer ' + atob('c2stcHJvai0xcllfQTlHRDBQMzU3SVVXWlIxbmhFM0J2NmFXRzllbzI5OFZ1eFVSM3BjNV9zM0tkSGZhekpRekVQV3k3ek5menFya203ZkwweVQzQmxia0ZKUXpUaEx6dHhRQnU2MUUyUEs0bnNvYW5PeV9mYm52THB1N2ZjV0dKWnlSTDlGUXl1aXlGWjJUV181WmNYa3U5eEtWSFJiVldoVUE=') }),
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-5',
           messages: [
             { role: 'system', content: CONTEXT },
             { role: 'user', content: text },
