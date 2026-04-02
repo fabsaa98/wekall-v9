@@ -98,16 +98,30 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="border-t border-border px-3 py-3">
+        {/* Footer — Logo cliente + rol */}
+        <div className="border-t border-border px-3 py-3 space-y-2">
+          {/* Logo cliente */}
+          {!collapsed && (
+            <div className="flex items-center justify-center px-2 py-1.5 rounded-lg bg-secondary/50">
+              <img
+                src="/wekall-v9/credismart-logo.png"
+                alt="CrediSmart"
+                className="h-7 w-auto object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+          {/* Usuario y rol */}
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary border border-primary/20">
               {initials}
             </div>
             {!collapsed && (
               <div className="overflow-hidden">
-                <p className="text-sm font-medium text-foreground truncate">Crediminuto / CrediSmart</p>
-                <p className="text-[10px] text-muted-foreground truncate">{role}</p>
+                <p className="text-sm font-medium text-foreground truncate">{role}</p>
+                <p className="text-[10px] text-muted-foreground truncate">Crediminuto / CrediSmart</p>
               </div>
             )}
           </div>
