@@ -362,12 +362,31 @@ export default function VickyInsights() {
 - "Estábamos llamando al de Credit Smart, indica que quería comunicarse con nosotros"
 - Cierre típico: "Le agradezco por haber atendido mi llamada. Contamos con el pago."
 
-### Top agentes por volumen (datos reales CDR):
-1. Teresa Meza: 261 llamadas (vs. promedio 137 = +90%)
+### Distribución real de volumen por agente (CDR 30-Mar-2026, 81 agentes humanos):
+- Promedio real: 110.7 llamadas/agente/día (el "137" anterior incluía el marcador automático — dato corregido)
+- P10: 49 llamadas/día
+- P25 (peor cuartil — dato REAL, no suposición): 76 llamadas/agente/día
+- P50 (mediana real): 120 llamadas/agente/día
+- P75 (mejor cuartil inicio): 143 llamadas/agente/día
+- P90: 154 llamadas/agente/día
+- Mínimo real: 4 llamadas/día | Máximo real: 261 llamadas/día
+
+### Top 10 agentes (mejor cuartil — datos reales CDR):
+1. Teresa Meza: 261 llamadas/día
 2. Juan Gutierrez: 211
 3. Nelcy Josefina Contasti: 194
 4. Santiago Cano: 183
 5. Alejandra Perez: 180
+6. Neleanny Sequera: 174
+7. Selena Romero Ventura: 162
+8. Joel Jose: 160
+9. Angel Cuberos: 154
+10. Jennifer Loaiza: 152
+
+### Bottom 10 agentes (peor cuartil — datos reales CDR):
+- Melisa Campuzano: 55 | Solymar Mijares: 49 | Daniela Vargas: 44
+- Noemi Marin: 40 | Liseth Obando Robayo: 40 | Ana Maria Lopez Rojas: 32
+- Juan Carlos Becerra Manrique: 27 | Vannesa Sauce: 9 | Yuleidy Gonzalez: 7 | Paola Joya: 4
 
 ### Insight crítico:
 El 57% de las grabaciones (2,144) son llamadas que NO conectaron (archivo 0 bytes).
@@ -418,13 +437,15 @@ ${_benchmarkCtx}
 - Promesas_adicionales/mes = promesas_adicionales/día × 22
 
 **3. Impacto de replicar protocolo top agente (Teresa Meza)**
-- Promedio actual: 137 llamadas/agente/día
-- Teresa Meza: 261 llamadas/agente/día
-- Brecha: 124 llamadas/agente/día
-- Si los 20 agentes bajo promedio suben al percentil 75 (183 llamadas):
-  - Incremento = (183-137) × 20 agentes = 920 llamadas adicionales/día
-  - En contactos efectivos: 920 × 43.1% = 397 contactos adicionales/día
-  - En promesas: 397 × 40% = 159 promesas adicionales/día = 3,498/mes
+- Promedio real: 110.7 llamadas/agente/día (81 agentes humanos, excluyendo marcador automático)
+- P25 real (peor cuartil): 76 llamadas/agente/día — NO asumir, este es el dato del CDR
+- P75 real (mejor cuartil): 143 llamadas/agente/día
+- Teresa Meza: 261 llamadas/agente/día (top performer, 2.4x el promedio)
+- Brecha peor cuartil vs. promedio: 110.7 - 76 = 34.7 llamadas/agente/día × ~20 agentes en P25 = 694 llamadas/día
+- Si los 20 agentes del peor cuartil suben al P50 (120):
+  - Incremento = (120 - 76) × 20 = 880 llamadas adicionales/día
+  - Contactos efectivos adicionales: 880 × 43.1% = 379/día
+  - Promesas adicionales: 379 × 40% = 152/día = 3,344/mes
 
 ### LÍMITES DE SANIDAD — VALIDACIÓN OBLIGATORIA
 Antes de presentar cualquier cálculo financiero, valida que el resultado esté dentro de estos rangos:
