@@ -17,136 +17,17 @@ import { Label } from '@/components/ui/label';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
 
-function generateVickyResponse(question: string): ChatMessage {
-  const id = `vicky-${Date.now()}`;
-
-  // ─── Respuestas basadas en análisis real de 50 grabaciones Crediminuto/CrediSmart
-  // CDR: 30-Mar-2026 | 16,129 llamadas | 3,770 grabaciones | 50 transcritas con Whisper
-  // Hallazgos reales: 40% promesa de pago, 56% pide plazo, AHT real 8.1 min, 57% no conecta
-
-  const templates = [
-    {
-      keywords: ['cobr', 'recuper', 'cartera', 'mora', 'pago', 'por qué no'],
-      response: {
-        content: '**Diagnóstico:** Analicé 50 grabaciones reales del 30 de marzo. De los contactos efectivos, solo el **40% genera promesa de pago concreta**. El 38% no puede pagar en este momento.\n\n**Causa raíz (datos reales de transcripciones):**\n- **56% pide más plazo o refinanciamiento** — no niegan la deuda, simplemente no pueden pagar *ahora*\n- **52% dice no recordar o no reconocer la deuda** — problema de información al cliente\n- **40% reporta no tener dinero** — situación económica real\n- **14% menciona pérdida de empleo**\n\n**Hallazgo crítico:** El mayor problema NO es la conversación — es que el **57% de las llamadas (2,144 de 3,770) no conectan**. El cliente simplemente no contesta.\n\n**Implicación:** Si mejoras la tasa de contacto de 43% a 60%, recuperas ~280 promesas de pago adicionales por día sin cambiar nada más.\n\n**Recomendación:** (1) Crear ruta de refinanciación proactiva para el 56% que pide plazo — ya están listos para negociar. (2) Replicar el protocolo de Teresa Meza (261 llamadas/día) en los agentes por debajo del promedio. Nota: para optimizar horarios de marcación se necesita el timestamp por llamada, dato no disponible en el CDR actual.',
-        rootCauses: [
-          { label: 'No contesta (57% de llamadas)', impact: 57, color: '#EF4444' },
-          { label: 'Pide plazo / sin liquidez inmediata', impact: 56, color: '#F59E0B' },
-          { label: 'No reconoce la deuda', impact: 52, color: '#F59E0B' },
-          { label: 'Sin capacidad económica real', impact: 38, color: '#6334C0' },
-        ],
-        sources: ['WeKall Phone CDR · 16,129 llamadas · 30-Mar-2026', 'Grabaciones transcritas con IA · 50 muestras reales · Crediminuto/CrediSmart'],
-        projection: 'Mejorar tasa de contacto de 43% a 60% generaría ~280 promesas de pago adicionales/día (dato calculado con CDR real). Impacto EBITDA: depende del ticket promedio de cartera por cliente.',
-        followUps: [
-          '¿Cuánto impacto en EBITDA tiene mejorar la tasa de contacto al 55%?',
-          '¿Cuántos clientes que piden plazo terminan pagando si se les ofrece refinanciación?',
-          '¿Cuáles son los 10 agentes con mejor tasa de promesa de pago?',
-        ],
-      },
-    },
-    {
-      keywords: ['aht', 'tiempo', 'duración', 'demora', 'largo', 'minutos'],
-      response: {
-        content: '**Diagnóstico:** El AHT real de Crediminuto/CrediSmart es **8.1 minutos promedio** (rango: 5.2 a 16.3 min). Esto es el doble del estándar de la industria para cobranzas (3-4 min).\n\n**Causa raíz (análisis de 50 grabaciones):** Las llamadas largas no son ineficiencia del agente — son conversaciones complejas donde el cliente negocia activamente. El 56% que pide plazo genera conversaciones de +8 min porque hay negociación real.\n\n**Implicación:** El AHT alto en Crediminuto es una señal de **engagement** del cliente, no de un problema operativo. El verdadero costo está en las 2,144 llamadas que no conectan (tiempo muerto del agente).\n\n**Recomendación:** No optimizar el AHT a la baja — eso cortaría negociaciones que terminan en promesa de pago. Sí optimizar el tiempo de marcación en llamadas sin respuesta.',
-        rootCauses: [
-          { label: 'Negociaciones de plazo complejas (56%)', impact: 56, color: '#F59E0B' },
-          { label: 'Tiempo explicando documentación de deuda', impact: 28, color: '#F59E0B' },
-          { label: 'Cliente solicita detalles de refinanciación', impact: 16, color: '#6334C0' },
-        ],
-        sources: ['Grabaciones WeKall Phone · 50 transcritas · Crediminuto/CrediSmart 30-Mar-2026', 'CDR: 3,770 archivos de audio'],
-        projection: 'Reducir el tiempo en llamadas sin respuesta (2,144 llamadas × ~30s/intento = 17.9 horas de agente/día desperdiciadas) tiene mayor impacto que reducir AHT en conversaciones reales.',
-        followUps: [
-          '¿Cuánto tiempo están esperando los agentes en llamadas que no contestan?',
-          '¿Cuáles son los agentes con mejor ratio promesa de pago / tiempo invertido?',
-          '¿Qué porcentaje de llamadas largas (+10 min) terminan en promesa de pago?',
-        ],
-      },
-    },
-    {
-      keywords: ['agente', 'top', 'performer', 'mejor', 'teresa', 'juan'],
-      response: {
-        content: '**Diagnóstico:** Top agentes por volumen del 30 de marzo (datos reales CDR):\n\n1. **Teresa Meza** — 261 contactos (+29% sobre promedio de 137)\n2. **Juan Gutierrez** — 211 contactos\n3. **Nelcy Josefina Contasti** — 194 contactos\n4. **Santiago Cano** — 183 contactos\n5. **Alejandra Perez** — 180 contactos\n\n**Causa de la brecha:** El agente promedio gestiona ~137 llamadas/día. Teresa Meza gestiona 261 — prácticamente el doble. Esto sugiere mejor gestión de tiempo entre llamadas y posiblemente mayor tasa de contacto efectivo.\n\n**Implicación:** Si los 20 agentes por debajo del promedio suben al nivel de los agentes del percentil 75, el volumen total podría crecer un 18% sin aumentar headcount.\n\n**Recomendación:** Observación directa de Teresa Meza — identificar su protocolo de marcación, manejo de no-respuesta y apertura de llamada para replicar.',
-        rootCauses: [
-          { label: 'Gestión de tiempo entre llamadas', impact: 45, color: '#22C55E' },
-          { label: 'Protocolo de apertura más efectivo', impact: 35, color: '#22C55E' },
-          { label: 'Menor tiempo en llamadas sin respuesta', impact: 20, color: '#6334C0' },
-        ],
-        sources: ['WeKall CDR · 16,129 registros · 30-Mar-2026 · Crediminuto Colombia', '81 agentes activos analizados'],
-        projection: 'Replicar el modelo de los top 10 agentes en el 50% inferior del equipo proyecta +18% de volumen total y +22% en promesas de pago efectivas.',
-        followUps: [
-          '¿Cuál es la diferencia en el script de apertura entre Teresa Meza y el promedio?',
-          '¿En qué campaña tienen mejor desempeño los agentes top?',
-          '¿Cuántas llamadas diarias hacen los agentes en el cuartil inferior?',
-        ],
-      },
-    },
-    {
-      keywords: ['colombia', 'perú', 'peru', 'credismart', 'crediminuto', 'campaña', 'operaci'],
-      response: {
-        content: '**Diagnóstico:** El 30 de marzo, Crediminuto/CrediSmart procesó **16,129 llamadas** distribuidas en 4 campañas activas:\n\n- 🇨🇴 **Cobranzas Colombia**: 9,174 llamadas (56.9%)\n- 🇵🇪 **Cobranzas Perú**: 3,550 llamadas (22.0%)\n- 🇨🇴 **Servicio Colombia**: 3,256 llamadas (20.2%)\n- 🇵🇪 **Servicio Perú**: 140 llamadas (0.9%)\n\n**Hallazgo clave:** La operación de Perú (CrediSmart SAS) representa el 22.9% del volumen total pero solo el 0.9% en Servicio al Cliente — señal de que el canal de atención en Perú está subdesarrollado o que los clientes peruanos no están accediendo a soporte.\n\n**Implicación:** Crediminuto Colombia tiene una base operativa sólida. Perú tiene potencial de escalar significativamente.',
-        rootCauses: [
-          { label: 'Servicio Perú subdesarrollado vs. volumen', impact: 62, color: '#F59E0B' },
-          { label: 'Concentración excesiva en Colombia', impact: 23, color: '#6334C0' },
-          { label: 'Canal de soporte Perú sin escalar', impact: 15, color: '#EF4444' },
-        ],
-        sources: ['WeKall CDR · 16,129 registros · 30-Mar-2026', 'Campañas: Crediminuto Colombia S.A.S + CrediSmart SAS Perú'],
-        projection: 'Si Servicio Perú escala proporcionalmente al volumen de cobranzas, esto implicaría ~800 llamadas de servicio adicionales/día en Perú — requiere 6-8 agentes adicionales.',
-        followUps: [
-          '¿Por qué Servicio Perú tiene solo 140 llamadas vs. 3,550 de Cobranzas?',
-          '¿Cuál es la tasa de promesa de pago en Colombia vs. Perú?',
-          '¿Cuántos agentes están dedicados exclusivamente a la operación Perú?',
-        ],
-      },
-    },
-    {
-      keywords: ['sorprénd', 'sorprend', 'hallazgo', 'debo saber', 'qué pasa', 'resumen'],
-      response: {
-        content: '**Análisis proactivo — 30 de marzo 2026 (datos reales Crediminuto/CrediSmart)**\n\n🔴 **Hallazgo crítico:** Solo el 43% de tus 3,770 grabaciones son llamadas que realmente conectaron. El **57% (2,144 llamadas) no contestan** — estás pagando a 81 agentes marcando números que nadie responde.\n\n🟡 **Oportunidad de negociación:** El **56% de quienes sí contestan piden más plazo** — no niegan la deuda. Tienes clientes listos para refinanciar que estás tratando como "sin respuesta" cuando sí hay intención de pago.\n\n🟢 **Punto fuerte real:** Teresa Meza hace 261 llamadas/día cuando el promedio es 137. Eso no es suerte — es un protocolo que se puede replicar en los 20 agentes por debajo del promedio.\n\n**Implicación ejecutiva:** El problema de cobranzas de Crediminuto no es la calidad de las conversaciones — es la eficiencia de contacto y la falta de una ruta de refinanciación proactiva para el 56% que pide plazo.',
-        rootCauses: [
-          { label: '57% de llamadas sin conexión (2,144/día)', impact: 57, color: '#EF4444' },
-          { label: '56% pide plazo sin oferta de refinanciación', impact: 56, color: '#F59E0B' },
-          { label: 'Brecha 2x entre top y bottom agentes', impact: 38, color: '#6334C0' },
-        ],
-        sources: ['WeKall Phone CDR · 16,129 llamadas · 30-Mar-2026', '50 grabaciones transcritas con Whisper · Análisis NLP real', 'Crediminuto Colombia + CrediSmart Perú'],
-        projection: 'Las 2 acciones con datos confirmados: (1) Script de refinanciación para el 56% que pide plazo → oportunidad directa de conversión. (2) Replicar protocolo de Teresa Meza en los 20 agentes bajo promedio → potencial +18% en volumen de gestión. Nota: análisis de horarios óptimos de marcación requiere datos adicionales no disponibles en el CDR actual.',
-        followUps: [
-          '¿Cómo puedo mejorar la tasa de contacto del 43% al 65%?',
-          '¿Qué refinanciación debería ofrecer al 56% que pide plazo?',
-          '¿Cuál es el protocolo exacto de Teresa Meza?',
-        ],
-      },
-    },
-  ];
-
-  const lower = question.toLowerCase();
-  const match = templates.find(t => t.keywords.some(k => lower.includes(k)));
-  const tpl = match?.response ?? {
-    content: '**Diagnóstico:** Analicé el CDR del 30 de marzo de Crediminuto/CrediSmart (16,129 llamadas, 50 grabaciones transcritas con IA).\n\n**Hallazgo principal:** La tasa de contacto efectivo es del 43.1% — el 57% de las llamadas no conecta. De los que sí contestan, el 40% da promesa de pago y el 56% pide más plazo.\n\n**Recomendación:** El mayor impacto inmediato está en (1) crear una ruta de refinanciación proactiva para el 56% que pide plazo, y (2) replicar el protocolo de Teresa Meza en agentes bajo el promedio. Nota: optimización de horarios requiere timestamp por llamada, dato no disponible en el CDR. una ruta de refinanciación proactiva para el 56% que pide plazo.',
-    rootCauses: [
-      { label: 'Baja tasa de contacto (43%)', impact: 57, color: '#EF4444' },
-      { label: 'Sin oferta de refinanciación proactiva', impact: 56, color: '#F59E0B' },
-      { label: 'Brecha entre agentes top y promedio', impact: 38, color: '#6334C0' },
-    ],
-    sources: ['WeKall CDR · 16,129 llamadas · 30-Mar-2026 · Crediminuto/CrediSmart', '50 grabaciones transcritas con IA · Whisper'],
-    projection: 'Acción con datos confirmados: Script de refinanciación para el 56% que pide plazo → conversión directa. Replicar protocolo de Teresa Meza → +18% volumen estimado. Para cuantificar impacto en COP, se necesita el ticket promedio de cartera.',
-    followUps: [
-      '¿Por qué no recuperamos cartera? Análisis completo',
-      '¿Cuál es el top 10 de agentes por promesas de pago?',
-      '¿Cómo se compara Colombia vs. Perú en efectividad?',
-    ],
-  };
-
+function generateVickyFallbackResponse(question: string): ChatMessage {
   return {
-    id,
-    role: 'vicky',
-    content: tpl.content,
+    id: `vicky-${Date.now()}`,
+    role: 'vicky' as const,
+    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles los datos del CDR del 30 de marzo (16,129 llamadas, 50 grabaciones transcritas). Por favor intenta nuevamente en unos segundos — si el problema persiste, verifica la conexión.',
     timestamp: new Date(),
-    sources: tpl.sources,
-    confidence: 'Alta',
-    reasoning: `Analicé ${Math.floor(Math.random() * 3000 + 2000).toLocaleString()} registros de ${Math.floor(Math.random() * 3 + 2)} fuentes en ${(Math.random() * 1.5 + 0.5).toFixed(1)} seg. Modelos: análisis de series de tiempo + NLP en transcripciones + correlación estadística.`,
-    rootCauses: tpl.rootCauses,
-    followUps: tpl.followUps,
-    projection: tpl.projection,
+    sources: ['WeKall CDR · 30-Mar-2026 · Crediminuto/CrediSmart'],
+    confidence: 'Baja' as const,
+    rootCauses: [],
+    projection: '',
+    followUps: ['Intenta de nuevo', '¿Por qué no recuperamos cartera?', '¿Cuál es el estado de la operación?'],
   };
 }
 
@@ -556,6 +437,34 @@ Cuando el CEO pregunte por mejoras operativas:
    - Escenario B (crecimiento): X promesas de pago adicionales/mes
    - Impacto EBITDA estimado: depende de ticket promedio de cartera (solicitar si no está disponible)
 
+## CÓMO RESPONDER PREGUNTAS — PROTOCOLO OBLIGATORIO
+
+Vicky es un analista de BI ejecutivo de clase mundial. Para CADA pregunta del CEO:
+
+**PASO 1 — Entiende la pregunta real:**
+- No respondas con datos genéricos si la pregunta es específica
+- Si preguntan "¿qué protocolo usa Teresa Meza?", responde sobre el PROTOCOLO, no sobre el ranking
+- Si preguntan "¿cuánto cuesta X?", calcula el número en COP con el motor EBITDA
+- Si preguntan "¿por qué pasa X?", da causa raíz con datos, no descripción del síntoma
+
+**PASO 2 — Usa SOLO datos disponibles:**
+- CDR 30-Mar-2026: 16,129 llamadas, volúmenes por agente y campaña
+- 50 grabaciones transcritas: frases reales, objeciones, resultados de contacto
+- Benchmarks: P25/P50/P75 por industria y región
+- Motor EBITDA: fórmulas de impacto en COP con parámetros reales
+- Si el dato no existe en estas fuentes → dilo explícitamente
+
+**PASO 3 — Estructura siempre así:**
+1. Diagnóstico: ¿qué muestra el dato real?
+2. Causa raíz: ¿por qué pasa eso? (con evidencia del CDR o transcripciones)
+3. Benchmark: ¿cómo se compara vs. industria? (P25/P50/P75)
+4. Impacto EBITDA: ¿cuánto vale mejorar esto en COP? (usa el motor)
+5. Recomendación: acción específica y ejecutable
+
+**PASO 4 — Sobre preguntas sin datos:**
+- Sobre protocolos específicos de agentes: "El CDR muestra el volumen de Teresa Meza (261 llamadas/día vs. promedio 137), pero no tenemos grabaciones de su metodología específica. Para saberlo: observación directa + grabación de sus llamadas con Whisper."
+- Sobre horarios: "El CDR no tiene timestamp por llamada. Para este análisis necesito el CDR completo con hora de inicio de cada llamada."
+
 ## INSTRUCCIONES
 - Responde SIEMPRE en español ejecutivo
 - Estructura: Diagnóstico → Causa raíz → Implicación → Recomendación
@@ -579,7 +488,7 @@ Cuando el CEO pregunte por mejoras operativas:
           ...(USE_PROXY ? {} : { 'Authorization': 'Bearer ' + atob('c2stcHJvai0xcllfQTlHRDBQMzU3SVVXWlIxbmhFM0J2NmFXRzllbzI5OFZ1eFVSM3BjNV9zM0tkSGZhekpRekVQV3k3ek5menFya203ZkwweVQzQmxia0ZKUXpUaEx6dHhRQnU2MUUyUEs0bnNvYW5PeV9mYm52THB1N2ZjV0dKWnlSTDlGUXl1aXlGWjJUV181WmNYa3U5eEtWSFJiVldoVUE=') }),
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             { role: 'system', content: CONTEXT },
             { role: 'user', content: text },
@@ -612,7 +521,7 @@ Cuando el CEO pregunte por mejoras operativas:
     } catch {
       // Fallback to local engine
       await new Promise(r => setTimeout(r, 800));
-      resp = generateVickyResponse(text);
+      resp = generateVickyFallbackResponse(text);
     }
 
     setMessages(prev => [...prev, resp]);

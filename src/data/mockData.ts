@@ -311,7 +311,7 @@ export const initialVickyMessages: ChatMessage[] = [
   {
     id: 'init-1',
     role: 'vicky',
-    content: '¡Hola! Soy **Vicky**, tu analista de inteligencia de negocio. Analicé el CDR del 30 de marzo de Crediminuto / CrediSmart: **16,129 conversaciones** en 4 campañas, con **81 agentes activos** en Colombia y Perú. ¿Qué quieres explorar?',
+    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR 30-Mar-2026**: 16,129 llamadas · 81 agentes · 4 campañas\n- **50 grabaciones** transcritas con IA · Análisis de objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero en COP de cada mejora operativa\n\n¿Qué quieres analizar?',
     timestamp: new Date(Date.now() - 60000),
     sources: ['WeKall CDR 30-Mar-2026', 'Engage360', 'Crediminuto Colombia · CrediSmart Perú'],
     confidence: 'Alta',

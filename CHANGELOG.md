@@ -297,6 +297,13 @@ Archivo `src/data/benchmarks.ts` expandido a 8 tipos de operación:
 - 50 grabaciones transcritas con Whisper (análisis NLP real)
 - Top agente: Teresa Meza (261 llamadas vs. promedio 137)
 
+### Cambio 6: Reestructuración del motor de IA (V11.1)
+- Modelo actualizado: gpt-4o-mini → **gpt-4o** (mayor capacidad de razonamiento ejecutivo)
+- Fallback por keywords eliminado — ya no intercepta preguntas antes de GPT
+- Fallback nuevo: solo activa si el proxy falla completamente (mensaje honesto, sin datos inventados)
+- System prompt mejorado con protocolo explícito de 4 pasos para responder preguntas
+- Vicky ahora entiende la pregunta real antes de buscar datos
+
 ### Pendientes próxima versión
 - Parámetros de costo configurables por cliente (Perú ≠ Colombia ≠ México)
 - Ticket promedio de cartera de Crediminuto (pendiente que Fabián suministre)
