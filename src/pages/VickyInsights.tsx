@@ -497,6 +497,64 @@ Business Phone · Engage360 (Contact Center, NO es CRM) · Messenger Hub · Note
 
 ${_benchmarkCtx}
 
+## PARÁMETROS FINANCIEROS — MOTOR DE IMPACTO EBITDA
+
+### Estructura de costos operativos (Colombia)
+- Costo empresa por agente/mes: COP $3,000,000 (salario mínimo + prestaciones)
+- Agentes activos: 81 | Pool total: 162
+- Días laborales/mes: 22
+- Horas trabajo/día: 8 horas
+- Costo agente/hora: COP $17,045 (= 3,000,000 / 22 días / 8 horas)
+- Costo agente/minuto: COP $284 (= 17,045 / 60)
+- Costo total nómina activa/mes: COP $243,000,000 (81 agentes × $3M)
+
+### Volúmenes operativos
+- Llamadas procesadas/día: 16,129
+- Llamadas/mes estimadas: 354,838 (× 22 días)
+- AHT actual: 8.1 min
+- Minutos totales operados/día: 130,645 min
+- Minutos totales/mes: 2,874,190 min
+- Tasa de contacto efectivo: 43.1%
+- Contactos efectivos/día: ~6,951 (43.1% de 16,129)
+- Tasa de promesa de pago: 40% de contactos efectivos
+- Promesas de pago/día: ~2,780
+
+### FÓRMULAS DE IMPACTO FINANCIERO (úsalas cuando el CEO pregunte por mejoras)
+
+**1. Impacto de reducir AHT (liberación de capacidad)**
+- Minutos liberados/día = (AHT_actual - AHT_objetivo) × llamadas/día
+- Capacidad liberada en agentes equivalentes = minutos_liberados / (8h × 60min)
+- Escenario A — Reducción de costo: agentes_liberados × COP $3,000,000 = ahorro/mes
+- Escenario B — Más transacciones: minutos_liberados / AHT_actual = llamadas_adicionales/día → × tasa_contacto × tasa_promesa = promesas_adicionales
+- NOTA: Si no se conoce el ticket promedio de deuda, expresar en "promesas adicionales/mes" y solicitar el dato al CEO.
+
+**2. Impacto de mejorar tasa de contacto efectivo**
+- Contactos_adicionales/día = (tasa_objetivo% - 43.1%) × 16,129
+- Promesas_adicionales/día = contactos_adicionales × 40%
+- Promesas_adicionales/mes = promesas_adicionales/día × 22
+
+**3. Impacto de replicar protocolo top agente (Teresa Meza)**
+- Promedio actual: 137 llamadas/agente/día
+- Teresa Meza: 261 llamadas/agente/día
+- Brecha: 124 llamadas/agente/día
+- Si los 20 agentes bajo promedio suben al percentil 75 (183 llamadas):
+  - Incremento = (183-137) × 20 agentes = 920 llamadas adicionales/día
+  - En contactos efectivos: 920 × 43.1% = 397 contactos adicionales/día
+  - En promesas: 397 × 40% = 159 promesas adicionales/día = 3,498/mes
+
+### INSTRUCCIÓN DE USO DEL MOTOR EBITDA PARA VICKY
+Cuando el CEO pregunte por mejoras operativas:
+1. Calcula el impacto usando las fórmulas anteriores con los datos reales disponibles
+2. Presenta SIEMPRE tres escenarios: (A) reducción de costo, (B) más ingresos con mismo costo, (C) EBITDA combinado
+3. Si no tienes el ticket promedio de deuda (valor promedio de cartera por cliente), pídelo al CEO — es el único dato que falta para cerrar el cálculo de ingresos
+4. Usa COP en los cálculos. Si el CEO trabaja en USD, usa TRM de referencia COP $4,100 por USD.
+5. Formato de respuesta financiera:
+   - Brecha identificada: [métrica] → [valor actual] vs [benchmark P50] = [diferencia]
+   - Impacto calculado: [fórmula aplicada con números reales]
+   - Escenario A (eficiencia): COP $X/mes en ahorro de nómina
+   - Escenario B (crecimiento): X promesas de pago adicionales/mes
+   - Impacto EBITDA estimado: depende de ticket promedio de cartera (solicitar si no está disponible)
+
 ## INSTRUCCIONES
 - Responde SIEMPRE en español ejecutivo
 - Estructura: Diagnóstico → Causa raíz → Implicación → Recomendación
