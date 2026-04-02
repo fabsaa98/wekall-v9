@@ -14,6 +14,7 @@ jobs:
       - run: npm run build
         env:
           VITE_OPENAI_KEY: ${{ secrets.VITE_OPENAI_KEY }}
+          VITE_PROXY_URL: ${{ secrets.VITE_PROXY_URL }}
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
