@@ -448,6 +448,12 @@ ${_benchmarkCtx}
   - Contactos efectivos adicionales: 880 × 43.1% = 379/día
   - Promesas adicionales: 379 × 40% = 152/día = 3,344/mes
 
+### DATOS LABORALES POR PAÍS (fuentes oficiales)
+- Colombia: COP $3,000,000/mes empresa/agente (Decreto 2381/2023 + prestaciones completas) — DATO CONFIRMADO
+- Perú: ≈ COP $1,600,000/mes empresa/agente estimado (RMV PEN 1,025 + CTS + gratificaciones + ESSALUD, DS 004-2022-TR) — ESTIMACIÓN, indicar como tal
+- Si preguntan por otro país: usar OIT/CEPAL como referencia o indicar que se necesita dato local
+- Si hay ambigüedad entre Colombia y Perú: responder con ambos datos y señalar la diferencia
+
 ### LÍMITES DE SANIDAD — VALIDACIÓN OBLIGATORIA
 Antes de presentar cualquier cálculo financiero, valida que el resultado esté dentro de estos rangos:
 
@@ -525,6 +531,8 @@ No sigue una plantilla rígida. Responde a la pregunta de manera fluida y natura
 - No da listas de 5 puntos cuando una respuesta fluida de 3-4 párrafos funciona mejor
 - No empieza con "Diagnóstico:" como título
 - No dice "según los datos disponibles" — simplemente usa los datos
+- **Nunca usa jerga estadística con el CEO**: no dice "P25", "P50", "P75", "percentil 75". Dice "el mejor cuartil de la industria", "la mediana del sector", "las operaciones líderes en Latam", "el estándar que separa a los mejores del promedio". El CEO no tiene que conocer estadística para entender el insight.
+- **Evita tecnicismos operativos sin contexto**: no "AHT" a secas — dice "tiempo promedio por llamada". No "FCR" — dice "resolución en el primer contacto". Introduce las siglas solo si las explica de inmediato.
 
 ## REGLAS DE DATOS — INAMOVIBLES
 - Usa SOLO datos del CDR 30-Mar-2026 y las 50 grabaciones transcritas
@@ -608,6 +616,27 @@ No sigue una plantilla rígida. Responde a la pregunta de manera fluida y natura
             parameters: { type: 'object', properties: {} },
           },
         },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'buscarDatoOficial',
+            description: 'Busca datos oficiales en tiempo real cuando no están en el CDR ni en las constantes del motor. Úsalo para: salarios mínimos de países distintos a Colombia/Perú, tasas de inflación, tasas de crédito, datos de competidores, regulaciones laborales, o cualquier dato de mercado que necesite ser verificado con fuentes oficiales. NO usarlo para datos que ya están en el contexto.',
+            parameters: {
+              type: 'object',
+              properties: {
+                consulta: {
+                  type: 'string',
+                  description: 'La consulta de búsqueda en español o inglés. Sé específico: incluye país, año y tipo de dato. Ej: "salario mínimo México 2024 pesos mensuales", "inflación Colombia 2024 DANE", "tasa de empleo contact center Latam 2024"',
+                },
+                proposito: {
+                  type: 'string',
+                  description: 'Para qué vas a usar este dato (ej: "calcular costo de agente en México", "contextualizar índice de rotación")',
+                },
+              },
+              required: ['consulta', 'proposito'],
+            },
+          },
+        },
       ];
 
       // ─── Llamada a la API con Function Calling ──────────────────────────────
@@ -650,6 +679,15 @@ No sigue una plantilla rígida. Responde a la pregunta de manera fluida y natura
           else if (fnName === 'calcularImpactoContactRate') calcResult = calcularImpactoContactRate(fnArgs.tasaObjetivo);
           else if (fnName === 'calcularImpactoAgentes') calcResult = calcularImpactoAgentes(fnArgs.percentilObjetivo);
           else if (fnName === 'getEstadoOperativo') calcResult = getEstadoOperativo();
+          else if (fnName === 'buscarDatoOficial') {
+            // Esta función indica que necesita búsqueda web — se resuelve con nota
+            calcResult = {
+              nota: `Búsqueda solicitada: "${fnArgs.consulta}" para ${fnArgs.proposito}`,
+              disponible: false,
+              mensaje: 'Búsqueda web en tiempo real requiere integración adicional. Usar datos disponibles en el contexto o indicar al CEO que el dato necesita verificación externa.',
+              alternativa: 'Si el dato es salarial: Colombia=COP $3M/mes (Decreto 2381/2023), Perú≈COP $1.6M/mes (RMV PEN 1,025 + prestaciones). Para otros países, citar OIT/CEPAL como referencia.',
+            };
+          }
           else calcResult = { error: 'Función no encontrada' };
 
           toolResults.push(`[${fnName}]: ${JSON.stringify(calcResult)}`);

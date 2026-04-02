@@ -45,6 +45,36 @@ export const OPS = {
   trmCopUsd: 4100,
 } as const;
 
+// ─── Datos laborales por país (fuentes oficiales) ─────────────────────────────
+export const LABOR_COSTS = {
+  colombia: {
+    salarioMinimo2024: 1_300_000, // COP — Decreto 2381 de 2023
+    costoEmpresaAgente: 3_000_000, // COP/mes (salario + prestaciones sociales + parafiscales)
+    moneda: 'COP',
+    fuente: 'Decreto 2381/2023 + cálculo prestaciones Colombia',
+  },
+  peru: {
+    salarioMinimo2024: 1025, // PEN — RMV vigente desde mayo 2022
+    salarioMinimoCOP: 1_066_000, // PEN 1,025 × TRM aprox. 1,040 COP/PEN
+    costoEmpresaAgente: 1_600_000, // COP/mes estimado (salario + CTS + gratificaciones + ESSALUD)
+    moneda: 'PEN',
+    fuente: 'RMV Perú DS 004-2022-TR + cálculo prestaciones Perú',
+    nota: 'Estimación basada en RMV vigente + beneficios legales Perú. Confirmar con datos locales del cliente.',
+  },
+  referencia_latam: {
+    rangoMinimo: 800_000, // COP/mes equivalente
+    rangoMaximo: 3_500_000, // COP/mes equivalente
+    fuente: 'OIT / CEPAL Salarios Latam 2024',
+  },
+} as const;
+
+// Función para obtener costo de agente por país
+export function getCostoAgente(pais: 'colombia' | 'peru' | string): { costo: number; moneda: string; fuente: string; esEstimacion: boolean } {
+  if (pais === 'colombia') return { costo: LABOR_COSTS.colombia.costoEmpresaAgente, moneda: 'COP', fuente: LABOR_COSTS.colombia.fuente, esEstimacion: false };
+  if (pais === 'peru') return { costo: LABOR_COSTS.peru.costoEmpresaAgente, moneda: 'COP', fuente: LABOR_COSTS.peru.fuente, esEstimacion: true };
+  return { costo: 2_000_000, moneda: 'COP', fuente: 'Estimación regional Latam (OIT 2024)', esEstimacion: true };
+}
+
 // ─── Funciones de cálculo ────────────────────────────────────────────────────────
 
 export function calcularImpactoAHT(ahtObjetivo: number): CalcResult {

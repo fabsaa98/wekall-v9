@@ -31,6 +31,32 @@
 - `calcularImpactoAgentes(percentilObjetivo)` → impacto de mejorar el peor cuartil
 - `getEstadoOperativo()` → KPIs actuales del CDR
 
+### Cambio: V12.3 — CEO Language + Datos Perú + Web Search Tool
+
+**CEO Language:**
+- Eliminado lenguaje estadístico técnico para CEOs (P25/P50/P75 → "mejor cuartil del sector", "operaciones líderes en Latam")
+- Introducción de siglas solo con explicación inmediata (AHT → "tiempo promedio por llamada (AHT)")
+
+**Datos laborales Perú:**
+- Colombia: COP $3,000,000/mes (confirmado, Decreto 2381/2023)
+- Perú: ≈ COP $1,600,000/mes (estimado, RMV PEN 1,025 + prestaciones DS 004-2022-TR)
+- Función getCostoAgente(país) en vickyCalculations.ts
+- Vicky ya no dice "no tengo acceso" para datos laborales de Colombia/Perú
+
+**Tool de búsqueda web (base):**
+- Tool `buscarDatoOficial` agregado a Function Calling
+- Versión inicial: indica la necesidad y usa datos de respaldo conocidos
+- Roadmap: conectar con API de búsqueda real (Perplexity/Brave) para datos en tiempo real
+
+**Roadmap documentado:**
+- [ ] Gráficos y visualizaciones generados desde conversación (charts dinámicos)
+- [ ] Carga automática CDR desde WeKall (sin subir archivo manual)
+- [ ] Análisis de chats y mensajes Messenger Hub
+- [ ] Búsqueda web real integrada al backend proxy (Perplexity API)
+- [ ] Multi-cliente: config por tenant (CDR + industry + country auto-loaded)
+
+---
+
 ### Datos reales del CDR integrados en el motor
 - P25=76, P50=120, P75=143 llamadas/agente/día (81 agentes humanos)
 - Promedio real: 110.7 (corregido — excluye marcador automático)
