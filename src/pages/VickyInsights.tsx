@@ -404,10 +404,12 @@ ${_benchmarkCtx}
 ### FÓRMULAS DE IMPACTO FINANCIERO (úsalas cuando el CEO pregunte por mejoras)
 
 **1. Impacto de reducir AHT (liberación de capacidad)**
-- Minutos liberados/día = (AHT_actual - AHT_objetivo) × llamadas/día
+- ⚠️ CRÍTICO: El AHT de 8.1 min aplica SOLO a las llamadas que SÍ conectaron (contactos efectivos = 6,951/día). Las llamadas sin respuesta tienen ~0.5 min de marcación promedio. NO aplicar AHT a las 16,129 llamadas totales.
+- Minutos liberados/día = (AHT_actual - AHT_objetivo) × contactos_efectivos_día (= 6,951, NO 16,129)
 - Capacidad liberada en agentes equivalentes = minutos_liberados / (8h × 60min)
 - Escenario A — Reducción de costo: agentes_liberados × COP $3,000,000 = ahorro/mes
 - Escenario B — Más transacciones: minutos_liberados / AHT_actual = llamadas_adicionales/día → × tasa_contacto × tasa_promesa = promesas_adicionales
+- Ejemplo correcto: reducir AHT de 8.1 → 7.2 min libera 6,951 × 0.9 = 6,256 min/día = 13 agentes equivalentes = COP $39M/mes (NO COP $90.6M — ese error viene de aplicar AHT a todas las llamadas)
 - NOTA: Si no se conoce el ticket promedio de deuda, expresar en "promesas adicionales/mes" y solicitar el dato al CEO.
 
 **2. Impacto de mejorar tasa de contacto efectivo**
