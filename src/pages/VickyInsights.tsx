@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
-  FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText,
+  FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText, Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/data/mockData';
@@ -518,7 +518,7 @@ Responde en formato markdown con **negrita** para énfasis.`;
   }
 
   const statusMap: Record<string, string> = {
-    'En progreso': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    'En progreso': 'text-amber-800 bg-amber-100 border-amber-300',
     'Completada': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     'Planificada': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   };
@@ -607,9 +607,14 @@ Responde en formato markdown con **negrita** para énfasis.`;
             <UploadTab />
           </TabsContent>
 
-          <TabsContent value="decisions" className="flex-1 overflow-y-auto mt-0 p-4">
+          <TabsContent value="decisions" className="flex-1 overflow-y-auto mt-0 p-3">
             <div>
-              <h2 className="text-sm font-semibold text-foreground mb-3">Decision Log</h2>
+              <div className="flex items-start gap-2 mb-3 p-2.5 rounded-lg bg-muted/40 border border-border">
+                <Info size={13} className="text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Registro de decisiones ejecutivas tomadas a partir de insights de Vicky. Cierra el loop: <span className="text-foreground font-medium">Insight → Decisión → Responsable → Resultado.</span>
+                </p>
+              </div>
               <div className="space-y-2">
                 {decisionLog.map(d => (
                   <div key={d.id} className="rounded-lg border border-border bg-card p-4">

@@ -48,7 +48,12 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           {!collapsed && (
             <div className="overflow-hidden flex-1">
               <h1 className="text-sm font-bold text-foreground truncate">WeKall Intelligence</h1>
-              <p className="text-[10px] text-muted-foreground tracking-wider uppercase">Business Intelligence</p>
+              <img
+                src="/wekall-v9/credismart-logo.png"
+                alt="CrediSmart"
+                className="h-4 w-auto object-contain mt-0.5"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
             </div>
           )}
           {/* Desktop toggle */}
