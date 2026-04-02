@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/data/mockData';
 import { initialVickyMessages, decisionLog } from '@/data/mockData';
+import { detectOperationType, generateBenchmarkContext } from '@/data/benchmarks';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -449,6 +450,8 @@ export default function VickyInsights() {
 
     let resp: ChatMessage;
     try {
+      const _opType = detectOperationType('cobranzas colombia crediminuto promesa pago deuda');
+      const _benchmarkCtx = generateBenchmarkContext(_opType, 'colombia');
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
 
 ## DATOS REALES CDR — 30-Mar-2026
@@ -491,6 +494,8 @@ Si la tasa de contacto sube de 43% a 60%, se generan ~280 promesas de pago adici
 
 ## ECOSISTEMA WEKALL
 Business Phone · Engage360 (Contact Center, NO es CRM) · Messenger Hub · Notes
+
+${_benchmarkCtx}
 
 ## INSTRUCCIONES
 - Responde SIEMPRE en español ejecutivo
