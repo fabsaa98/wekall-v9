@@ -17,6 +17,16 @@
 
 ## [V12.0.0] — 2026-04-02 — Arquitectura Function Calling
 
+### Cambio: V12.4 — Prosa estructural garantizada (dos capas)
+
+**El problema:** El prompt solo no garantiza prosa — los LLMs default a listas.
+
+**Solución de dos capas:**
+1. Prompt con prohibición absoluta de listas/headers + ejemplos explícitos de ❌ MAL y ✅ BIEN
+2. Post-procesamiento en código (`convertirMarkdownAProsa`) que convierte cualquier lista o header a prosa antes de mostrarse al CEO — garantía estructural independiente del modelo
+
+**Resultado:** Para cualquier pregunta, de cualquier cliente, en cualquier industria, Vicky siempre responde en prosa conversacional. El CEO nunca ve bullets ni headers.
+
 ### Decisión arquitectural estratégica
 **Causa raíz de errores de cálculo:** Vicky usaba el LLM como calculadora. Los LLMs razonan bien pero no son calculadoras confiables — pueden aplicar fórmulas incorrectamente.
 

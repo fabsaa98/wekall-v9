@@ -289,6 +289,44 @@ function UploadTab() {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+// ─── Post-procesamiento: convertir markdown estructural a prosa ──────────────
+function convertirMarkdownAProsa(texto: string): string {
+  if (!texto) return texto;
+
+  // Eliminar headers (##, ###, ####, etc.)
+  let resultado = texto.replace(/^#{1,6}\s+(.+)$/gm, '$1.');
+
+  // Convertir listas numeradas a prosa (1. item → item,)
+  resultado = resultado.replace(/^\d+\.\s+(.+)$/gm, '$1');
+
+  // Convertir listas de viñetas a prosa (- item, * item, • item)
+  resultado = resultado.replace(/^[-*•]\s+(.+)$/gm, '$1');
+
+  // Eliminar líneas en blanco múltiples consecutivas (dejando máx 2)
+  resultado = resultado.replace(/\n{3,}/g, '\n\n');
+
+  // Unir líneas cortas consecutivas que fueron items de lista en un párrafo fluido
+  // (líneas de menos de 200 chars que no tienen punto final se unen con coma)
+  resultado = resultado.split('\n\n').map(parrafo => {
+    const lineas = parrafo.split('\n').filter(l => l.trim());
+    if (lineas.length <= 1) return parrafo;
+
+    // Si hay múltiples líneas cortas (probablemente items convertidos), unirlas
+    const todasCortas = lineas.every(l => l.trim().length < 150);
+    if (todasCortas && lineas.length > 1) {
+      const unidas = lineas.map((l, i) => {
+        const limpia = l.trim().replace(/[,;.]$/, '');
+        if (i === lineas.length - 1) return limpia + '.';
+        return limpia;
+      }).join('. ');
+      return unidas;
+    }
+    return parrafo;
+  }).join('\n\n');
+
+  return resultado.trim();
+}
+
 export default function VickyInsights() {
   const location = useLocation();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
@@ -525,12 +563,30 @@ No sigue una plantilla rígida. Responde a la pregunta de manera fluida y natura
 - Si hay un número financiero relevante, lo incluye integrado en el argumento, no como apéndice técnico
 - Cierra con algo concreto y accionable, de manera conversacional — no como bullet final
 
-**Lo que nunca hace:**
+**FORMATO DE RESPUESTA — PROHIBICIÓN ABSOLUTA:**
+
+NUNCA uses estos formatos:
+- Listas con viñetas (- item, • item, * item)
+- Listas numeradas (1. item, 2. item)
+- Headers o títulos (**Diagnóstico:**, **Recomendación:**, ## Título, ### Subtítulo)
+- Tablas markdown
+- Bullets anidados
+
+SIEMPRE escribe en prosa conversacional — párrafos fluidos como hablaría un advisor senior en una junta directiva.
+
+❌ NUNCA así:
+"**Diagnóstico:** Tu tasa de contacto es baja.
+- Causa 1: El 57% de llamadas no conecta
+- Causa 2: Pocos agentes en el mejor cuartil
+**Recomendación:** Mejorar el contacto."
+
+✅ SIEMPRE así:
+"Mirando tus números, el problema más claro es que casi 6 de cada 10 llamadas no conectan con nadie. Eso es lo que más está frenando tu operación. Las empresas que lideran en cobranzas en Latinoamérica conectan en más del 55% de sus llamadas — tú estás en 43%. Cerrar esa brecha generaría casi 17,000 promesas de pago adicionales al mes sin contratar un solo agente más. ¿Qué quieres atacar primero?"
+
+Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca para crear headers o introducir secciones.
+
+**Lo que nunca hace (adicional):**
 - No muestra fórmulas internas, variables, ni procesos de cálculo al CEO
-- No usa headers tipo "EL PROBLEMA REAL / LO QUE HACEN LOS MEJORES" — eso es estructura de slide, no conversación
-- No da listas de 5 puntos cuando una respuesta fluida de 3-4 párrafos funciona mejor
-- No empieza con "Diagnóstico:" como título
-- No dice "según los datos disponibles" — simplemente usa los datos
 - **Nunca usa jerga estadística con el CEO**: no dice "P25", "P50", "P75", "percentil 75". Dice "el mejor cuartil de la industria", "la mediana del sector", "las operaciones líderes en Latam", "el estándar que separa a los mejores del promedio". El CEO no tiene que conocer estadística para entender el insight.
 - **Evita tecnicismos operativos sin contexto**: no "AHT" a secas — dice "tiempo promedio por llamada". No "FCR" — dice "resolución en el primer contacto". Introduce las siglas solo si las explica de inmediato.
 
@@ -719,9 +775,9 @@ No sigue una plantilla rígida. Responde a la pregunta de manera fluida y natura
 
         if (!apiResp2.ok) throw new Error(`API error 2: ${apiResp2.status}`);
         const data2 = await apiResp2.json();
-        finalContent = data2.choices?.[0]?.message?.content || 'Sin respuesta';
+        finalContent = convertirMarkdownAProsa(data2.choices?.[0]?.message?.content || 'Sin respuesta');
       } else {
-        finalContent = choice?.message?.content || 'Sin respuesta';
+        finalContent = convertirMarkdownAProsa(choice?.message?.content || 'Sin respuesta');
       }
 
       resp = {
