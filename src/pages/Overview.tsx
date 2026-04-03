@@ -28,20 +28,20 @@ export default function Overview() {
 
   const briefs: Record<string, { short: string; full: string }> = {
     'CEO': {
-      short: 'Crediminuto / CrediSmart procesó 16,129 conversaciones el 30 de marzo — +8.3% vs día anterior. Cobranzas Colombia lidera con 9,174 llamadas. Teresa Meza es tu agente top con 261 contactos.',
-      full: 'La operación Colombia generó 12,430 llamadas (77.1%) y Perú 3,690 (22.9%). Los 81 agentes activos superaron el benchmark de productividad. Atención: 44.4% del volumen pasó por el dialer automático — monitorear calidad de contacto. 23 agentes activos sin sesión registrada en los últimos 7 días — validar disponibilidad real.',
+      short: 'Crediminuto / CrediSmart procesó 16,129 conversaciones el 30 de marzo. Cobranzas Colombia lidera con 9,174 llamadas (56.9%). Teresa Meza es tu agente top con 261 contactos. Variación vs. día anterior: N/D (se requiere CDR histórico).',
+      full: 'La operación Colombia generó 12,430 llamadas (77.1%) y Perú 3,690 (22.9%). 81 agentes humanos activos de 162 disponibles. 44.4% del volumen (7,162 llamadas) pasó por el dialer automático wekall — excluido del análisis de agentes humanos. Tasa de contacto efectivo: 43.1% — 2 puntos bajo la mediana Latam (COPC 2024). Comparación semanal: N/D (se requiere CDR de múltiples días).',
     },
     'VP Ventas': {
-      short: 'Cobranzas Colombia (9,174 llamadas) y Cobranzas Perú (3,550) concentran el 79% del volumen. Teresa Meza lidera con 261 contactos, +29% sobre el promedio.',
-      full: 'Top 5 agentes por volumen: Teresa Meza (261), Juan Gutierrez (211), Nelcy Contasti (194), Santiago Cano (183), Alejandra Perez (180). La operación Peru muestra crecimiento sostenido — considera escalar dotación 15% para Q2.',
+      short: 'Cobranzas Colombia (9,174 llamadas) y Cobranzas Perú (3,550) concentran el 79% del volumen. Teresa Meza lidera con 261 contactos — 2.4x el promedio del equipo (110.7). Tendencia vs. semana anterior: N/D.',
+      full: 'Top 5 agentes por volumen (CDR 30-Mar-2026): Teresa Meza (261), Juan Gutierrez (211), Nelcy Contasti (194), Santiago Cano (183), Alejandra Perez (180). El cuartil inferior (20 agentes) promedia 76 llamadas/día — brecha de 35 llamadas/agente vs. el promedio del equipo.',
     },
     'VP CX': {
-      short: 'Servicio al Cliente Colombia registró 3,256 llamadas — leve descenso de -1.4% vs día anterior. FCR en 74.2% con margen de mejora en canales digitales.',
-      full: 'Jennifer Loaiza y Alejandra Perez son las top performers en CX. Servicio al Cliente Perú (140 llamadas) tiene potencial de crecimiento. La ventana de mayor volumen de escalaciones debe monitorearse en turno tarde.',
+      short: 'Servicio al Cliente Colombia: 3,256 llamadas el 30 de marzo. Servicio al Cliente Perú: 140 llamadas. FCR por agente: N/D (requiere integración Engage360). Variación vs. día anterior: N/D.',
+      full: 'Jennifer Loaiza y Alejandra Perez son top performers en CX por volumen. Servicio Perú (140 llamadas) representa solo el 0.9% del total — desproporcionado vs. el 22% de volumen en cobranzas Perú. CSAT y FCR individual: N/D (requiere análisis adicional de transcripciones o datos Engage360).',
     },
     'COO': {
-      short: '81 agentes activos de 162 en plataforma — eficiencia del 50%. 7,162 llamadas gestionadas por el dialer automático (44.4%). AHT promedio en rango aceptable.',
-      full: '20 supervisores en operación durante el turno. 23 agentes con estado activo pero sin sesión reciente — revisar disponibilidad real. El dialer automático maneja el mayor volumen individual: optimizar script puede impactar positivamente en tasa de contacto efectivo.',
+      short: '81 agentes activos de 162 en plataforma — 50% de utilización del pool. 7,162 llamadas del dialer automático (44.4%). AHT: 8.1 min vs. benchmark Colombia 7.8 min (P50, CCContact 2024). Variación semana anterior: N/D.',
+      full: 'Cuartil inferior: 20 agentes con menos de 76 llamadas/día (bottom: Paola Joya 4, Yuleidy Gonzalez 7, Vannesa Sauce 9). El dialer automático maneja el mayor volumen individual — excluido del análisis de productividad humana. AHT brecha vs. P50: +0.3 min = COP ~$592,000/día de capacidad por encima del benchmark. Utilización de agentes: N/D (requiere datos de login/logout de Engage360).',
     },
   };
 

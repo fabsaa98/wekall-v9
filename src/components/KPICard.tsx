@@ -70,18 +70,24 @@ export function KPICard({ kpi, className, style }: KPICardProps) {
             : isPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />
           }
           <span>{kpi.changeLabel}</span>
-          <span className="font-normal text-muted-foreground ml-0.5">vs sem. ant.</span>
+          <span className="font-normal text-muted-foreground ml-0.5">vs sem. ant. (N/D)</span>
         </div>
 
         {/* vs Industria badge */}
-        <div className={cn(
-          'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border',
-          vsPositive
-            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-            : 'bg-red-500/10 text-red-400 border-red-500/20',
-        )}>
-          {vsPositive ? '+' : ''}{kpi.vsIndustry > 0 ? '+' : ''}{kpi.vsIndustry.toFixed(1)}% vs industria
-        </div>
+        {kpi.vsIndustry === 0 ? (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-500/10 text-slate-400 border-slate-500/20">
+            N/D vs industria
+          </div>
+        ) : (
+          <div className={cn(
+            'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border',
+            vsPositive
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+              : 'bg-red-500/10 text-red-400 border-red-500/20',
+          )}>
+            {kpi.vsIndustry > 0 ? '+' : ''}{kpi.vsIndustry.toFixed(1)}pp vs industria
+          </div>
+        )}
       </div>
     </div>
   );

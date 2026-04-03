@@ -69,13 +69,14 @@ export const kpiData: KPIData[] = [
     value: '40.0%',
     numericValue: 40,
     change: 0,
-    changeLabel: 'Hoy',
+    changeLabel: '30-Mar-2026',
+    // Promesa de pago 40% vs. mediana Latam E&Y 35% = +5 pp (REAL, fuente: E&Y Collections 2023)
     vsIndustry: 5,
     sparkline: [40, 40, 40, 40, 40, 40, 40],
     roles: ['CEO', 'VP Ventas', 'COO'],
     unit: '%',
     bsc: 'Financiera',
-    description: 'Contactos que resultan en promesa de pago',
+    description: 'Contactos efectivos que resultan en promesa de pago. Mediana Latam: 35% (E&Y 2023)',
   },
   {
     id: 'costo_contacto',
@@ -84,13 +85,14 @@ export const kpiData: KPIData[] = [
     numericValue: 43.1,
     change: 0,
     changeLabel: '30-Mar-2026',
-    vsIndustry: -4,
+    // 43.1% vs. mediana Latam COPC 2024 = 45% → -1.9 pp (REAL, fuente: COPC Inc./SQM Latam 2024)
+    vsIndustry: -1.9,
     sparkline: [43.1, 43.1, 43.1, 43.1, 43.1, 43.1, 43.1],
     invertColor: true,
     roles: ['CEO', 'COO'],
     unit: '%',
     bsc: 'Financiera',
-    description: 'Del total de llamadas, % que conectan',
+    description: 'Del total de llamadas, % que conectan. Mediana Latam: 45% (COPC 2024)',
   },
   // ── Perspectiva Cliente ──────────────────────────────────────────────────────
   {
@@ -99,28 +101,30 @@ export const kpiData: KPIData[] = [
     value: '40.0%',
     numericValue: 40,
     change: 0,
-    changeLabel: 'de contactos',
-    vsIndustry: 3,
+    changeLabel: '30-Mar-2026',
+    // Promesa de pago 40% vs. mediana Latam 35% = +5 pp (REAL, E&Y Collections 2023)
+    vsIndustry: 5,
     sparkline: [40, 40, 40, 40, 40, 40, 40],
     roles: ['CEO', 'VP Ventas', 'VP CX'],
     unit: '%',
     bsc: 'Cliente',
-    description: 'Contactos efectivos que prometen pagar',
+    description: 'Contactos efectivos que prometen pagar. Mediana Latam: 35% (E&Y 2023)',
   },
   {
     id: 'sin_capacidad',
     title: 'Sin Capacidad de Pago',
     value: '38.0%',
     numericValue: 38,
-    change: 1,
-    changeLabel: '+1pp',
-    vsIndustry: 2,
+    change: 0,
+    changeLabel: '30-Mar-2026',
+    // Sin benchmark específico COPC para esta métrica en cobranzas → N/D
+    vsIndustry: 0,
     sparkline: [38, 38, 38, 38, 38, 38, 38],
     invertColor: true,
     roles: ['CEO', 'VP CX', 'COO'],
     unit: '%',
     bsc: 'Cliente',
-    description: 'No pueden pagar ahora — oportunidad de refinanciación',
+    description: 'No pueden pagar ahora — oportunidad de refinanciación. Benchmark vs industria: N/D',
   },
   // ── Perspectiva Procesos ──────────────────────────────────────────────────────
   {
@@ -130,13 +134,15 @@ export const kpiData: KPIData[] = [
     numericValue: 8.1,
     change: 0,
     changeLabel: '30-Mar-2026',
-    vsIndustry: -4,
+    // AHT 8.1 min vs. mediana Colombia 7.8 min (CCContact 2024) = +3.8% peor
+    // En escala del campo vsIndustry (pp): 8.1-7.8 = 0.3 min más = -0.3 (invertColor true = más = peor)
+    vsIndustry: -3.8,
     sparkline: [8.1, 8.1, 8.1, 8.1, 8.1, 8.1, 8.1],
     invertColor: true,
     roles: ['COO', 'VP CX'],
     unit: 'min',
     bsc: 'Procesos',
-    description: 'Duración promedio llamadas reales (benchmark: 4 min)',
+    description: 'Tiempo promedio por llamada. Mediana Colombia: 7.8 min (CCContact 2024)',
   },
   {
     id: 'llamadas_dia',
@@ -145,12 +151,13 @@ export const kpiData: KPIData[] = [
     numericValue: 16129,
     change: 0,
     changeLabel: '30-Mar-2026',
-    vsIndustry: 2,
+    // Benchmark de volumen absoluto no aplica — depende del tamaño de operación → N/D
+    vsIndustry: 0,
     sparkline: [16129, 16129, 16129, 16129, 16129, 16129, 16129],
     roles: ['CEO', 'COO'],
     unit: '',
     bsc: 'Procesos',
-    description: 'Volumen total de conversaciones — 30-Mar-2026',
+    description: 'Volumen total de conversaciones. Benchmark vs industria: N/D (depende escala)',
   },
   // ── Perspectiva Aprendizaje ───────────────────────────────────────────────────
   {
@@ -160,13 +167,14 @@ export const kpiData: KPIData[] = [
     numericValue: 50,
     change: 0,
     changeLabel: '50% activos',
-    vsIndustry: -10,
+    // Utilización 50% vs. mediana Latam COPC = 68% → -18 pp (REAL, fuente: COPC Inc.)
+    vsIndustry: -18,
     sparkline: [50, 50, 50, 50, 50, 50, 50],
     invertColor: true,
     roles: ['CEO', 'COO'],
     unit: '%',
     bsc: 'Aprendizaje',
-    description: '81 de 162 agentes disponibles operaron',
+    description: '81 de 162 agentes disponibles operaron. Mediana Latam: 68% utilización (COPC)',
   },
   {
     id: 'top_agent',
@@ -175,12 +183,14 @@ export const kpiData: KPIData[] = [
     numericValue: 261,
     change: 0,
     changeLabel: 'Teresa Meza',
-    vsIndustry: 20,
+    // Benchmark de llamadas por agente: P75 Latam ~75 llamadas/día (ventas outbound, SQM 2024)
+    // Para cobranzas específico no disponible → N/D
+    vsIndustry: 0,
     sparkline: [261, 261, 261, 261, 261, 261, 261],
     roles: ['CEO', 'VP Ventas'],
     unit: 'llamadas',
     bsc: 'Aprendizaje',
-    description: 'Teresa Meza — 261 vs. 137 promedio',
+    description: 'Teresa Meza — 261 vs. 110.7 promedio del equipo. Benchmark vs industria: N/D',
   },
 ];
 
