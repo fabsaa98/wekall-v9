@@ -18,7 +18,7 @@ export function InfoTooltip({ text, size = 13, className = '', side = 'top' }: I
             <Info size={size} className="text-muted-foreground hover:text-primary transition-colors" />
           </span>
         </TooltipTrigger>
-        <TooltipContent side={side} className="max-w-xs text-xs leading-relaxed">
+        <TooltipContent side={side} className="max-w-[220px] text-xs leading-relaxed text-center" align="center" avoidCollisions={true}>
           {text}
         </TooltipContent>
       </Tooltip>

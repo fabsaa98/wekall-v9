@@ -894,14 +894,14 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 📁 Analizar Documento
                 <InfoTooltip
                   text="Sube cualquier documento — informe, presentación, audio, datos en Excel — y Vicky lo cruzará con los datos de tu operación para darte un análisis integrado."
-                  position="bottom"
+                  side="bottom"
                 />
               </TabsTrigger>
               <TabsTrigger value="decisions" className="text-xs gap-1">
                 📋 Decisiones
                 <InfoTooltip
-                  text="Registra las decisiones que tomas a partir de los insights de Vicky. Cierra el loop: Insight → Decisión → Responsable → Resultado. Como los acuerdos de junta directiva, pero dentro de la plataforma."
-                  position="bottom"
+                  text="Registra las decisiones que tomas a partir de los insights de Vicky. Cierra el loop: Insight → Decisión → Responsable → Resultado."
+                  side="bottom"
                 />
               </TabsTrigger>
             </TabsList>
