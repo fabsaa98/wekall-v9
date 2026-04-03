@@ -413,3 +413,10 @@ Vicky ahora conoce:
 - Nombres reales de agentes top con datos de productividad
 - Análisis de resultados de contacto (40% promesa de pago, etc.)
 - Insight clave: el problema es la tasa de contacto (43%), no la conversación
+
+### Cambio: V12.5 — Input de voz (Whisper OpenAI)
+- Botón de micrófono en el chat de Vicky
+- Grabación con MediaRecorder API del navegador
+- Transcripción via Whisper-1 (OpenAI) a través del proxy Cloudflare
+- Proxy actualizado: ruta /transcribe para audio, / para chat completions
+- Precisión: español nativo, ~$0.006/minuto de audio
