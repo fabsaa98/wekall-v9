@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -7,29 +8,55 @@ interface InfoTooltipProps {
   className?: string;
 }
 
-// Tooltip CSS puro — funciona en cualquier contexto, sin conflictos con shadcn/Radix
 export function InfoTooltip({ text, size = 13, className = '' }: InfoTooltipProps) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  // Cerrar al tocar fuera
+  useEffect(() => {
+    if (!visible) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setVisible(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [visible]);
+
   return (
     <span
-      className={cn('group relative inline-flex items-center cursor-help shrink-0', className)}
-      tabIndex={0}
+      ref={ref}
+      className={cn('relative inline-flex items-center cursor-pointer shrink-0', className)}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+      onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setVisible(v => !v); }}
+      onClick={(e) => { e.stopPropagation(); }}
     >
-      <Info size={size} className="text-muted-foreground group-hover:text-primary group-focus:text-primary transition-colors" />
-      <span
+      <Info
+        size={size}
         className={cn(
-          'pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[9999]',
-          'w-56 rounded-md border border-border bg-background text-foreground',
-          'px-3 py-2 text-[11px] leading-relaxed shadow-lg',
-          'opacity-0 group-hover:opacity-100 group-focus:opacity-100',
-          'transition-opacity duration-150',
-          'whitespace-normal break-words',
+          'transition-colors',
+          visible ? 'text-primary' : 'text-muted-foreground hover:text-primary',
         )}
-        role="tooltip"
-      >
-        {text}
-        {/* Flecha */}
-        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-border" />
-      </span>
+      />
+      {visible && (
+        <span
+          className={cn(
+            'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[9999]',
+            'w-52 rounded-lg border border-border bg-card text-card-foreground',
+            'px-3 py-2 text-[11px] leading-relaxed shadow-xl',
+            'whitespace-normal break-words pointer-events-none',
+          )}
+          role="tooltip"
+        >
+          {text}
+        </span>
+      )}
     </span>
   );
 }
