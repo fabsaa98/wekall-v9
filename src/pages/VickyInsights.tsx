@@ -1028,20 +1028,43 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {[
-            { icon: '📊', text: 'FCR cayó 3pp en Messenger Hub esta semana' },
-            { icon: '⚠️', text: 'CSAT de Cobranzas en zona de alerta (3.1/5)' },
-            { icon: '🏆', text: 'Carlos M. lidera conversión con 31.2%' },
-            { icon: '📈', text: 'Volumen proyectado +35% el viernes' },
-            { icon: '🎯', text: 'KPI prioritario para CEO: NPS +12% vs industria' },
+            {
+              icon: '🔴',
+              label: 'Atención inmediata',
+              text: 'Paola Joya: 4 llamadas el 30 de marzo. Promedio del equipo: 111. Requiere conversación de coaching esta semana.',
+            },
+            {
+              icon: '🟡',
+              label: 'Oportunidad del período',
+              text: 'Hoy es jueves — víspera de quincena. En cobranzas, los viernes de quincena tienen 30-40% más tasa de contacto. ¿Tu operación está preparada para escalar mañana?',
+            },
+            {
+              icon: '🟢',
+              label: 'Fortaleza del equipo',
+              text: 'Teresa Meza: 261 llamadas el 30 de marzo — 2.4x el promedio. Su protocolo de marcación puede replicarse en los 20 agentes del cuartil inferior.',
+            },
+            {
+              icon: '📊',
+              label: 'Benchmark del día',
+              text: 'Contacto efectivo: 43.1%. La mediana del sector en Latam (COPC 2024) es 45%. Estás 2 puntos bajo la mediana — y 12 puntos bajo los líderes del sector.',
+            },
+            {
+              icon: '✅',
+              label: 'Tarea sugerida',
+              text: 'Documenta el protocolo de Teresa Meza antes del 10 de abril. Potencial: +880 llamadas/día si el cuartil inferior sube a la mediana.',
+            },
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-secondary text-xs">
               <span className="text-sm shrink-0">{item.icon}</span>
-              <span className="text-muted-foreground leading-relaxed">{item.text}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-foreground text-[10px] uppercase tracking-wide">{item.label}</span>
+                <span className="text-muted-foreground leading-relaxed">{item.text}</span>
+              </div>
             </div>
           ))}
         </div>
         <div className="p-3 border-t border-border">
-          <p className="text-[10px] text-muted-foreground text-center">Contexto de sesión activo</p>
+          <p className="text-[10px] text-muted-foreground text-center">Datos: CDR 30-Mar-2026 · COPC 2024</p>
         </div>
       </div>
 
