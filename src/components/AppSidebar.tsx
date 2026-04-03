@@ -50,7 +50,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             <div className="overflow-hidden flex-1">
               <h1 className="text-sm font-bold text-foreground truncate">WeKall Intelligence</h1>
               <img
-                src="/wekall-v9/credismart-logo.png"
+                src="/credismart-logo.png"
                 alt="CrediSmart"
                 className="h-8 w-auto object-contain mt-0.5"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -110,7 +110,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           {!collapsed && (
             <div className="flex items-center justify-center px-2 py-1.5 rounded-lg bg-secondary/50">
               <img
-                src="/wekall-v9/credismart-logo.png"
+                src="/credismart-logo.png"
                 alt="CrediSmart"
                 className="h-7 w-auto object-contain"
                 onError={(e) => {

@@ -13,7 +13,7 @@ export default function App() {
   return (
     <TooltipProvider delayDuration={300}>
     <RoleProvider>
-      <BrowserRouter basename="/wekall-v9">
+      <BrowserRouter basename="/">
         <Routes>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Overview />} />

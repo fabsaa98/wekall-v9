@@ -913,7 +913,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
   const lastInsight = lastVickyMessage?.content ?? '';
 
   // Generate WhatsApp message
-  const whatsappMessage = `📊 Insight WeKall Intelligence:\n\n${lastInsight.slice(0, 300)}...\n\nVer más: https://fabsaa98.github.io/wekall-v9/`;
+  const whatsappMessage = `📊 Insight WeKall Intelligence:\n\n${lastInsight.slice(0, 300)}...\n\nVer más: https://wekall-intelligence.pages.dev`;
 
   const handleConfirmAction = () => {
     if (actionChoice === 'notify') {
