@@ -462,10 +462,21 @@ export default function VickyInsights() {
 
     // Try OpenAI API (via proxy if configured), fallback to local response engine
     const BASE_PROXY = import.meta.env.VITE_PROXY_URL?.replace(/\/$/, '') || '';
-    // Detectar si la pregunta es sobre un agente específico → usar RAG
-    // RAG: activar para cualquier pregunta sobre personas, llamadas, desempeño o calidad
-    const agentKeywords = /\b(Joel|Teresa|Paola|Nelcy|Clara|Wilson|Jennifer|Manuel|Carmen|Caren|Ana\s*Mar[íi]a|Imaru|Jose?\s*Gregorio|Angel|Carleinnys|Winderly|Loidys|Luis\s*Romero|Santiago|Ana\s*Mendoza|Jhoseanny|Alix|agente|asesor|supervisor|desempe[ñn]o|coaching|llamada|transcripci[oó]n|grabaci[oó]n|escucha|calidad|conversa|habla|dice|patr[oó]n|qu[eé]\s*(le\s*pasa|hace|dice)|c[oó]mo\s*(maneja|habla|responde|gestiona))\b/i;
-    const isAgentQuery = agentKeywords.test(text);
+
+    // Detectar agente en el mensaje actual O en el historial reciente del hilo
+    const agentNamePattern = /\b(Joel|Teresa|Paola|Nelcy|Clara|Wilson|Jennifer|Manuel|Carmen|Caren|Ana\s*Mar[íi]a|Imaru|Jose?\s*Gregorio|Angel|Carleinnys|Winderly|Loidys|Luis\s*Romero|Santiago|Ana\s*Mendoza|Jhoseanny|Alix)\b/i;
+    const agentContextPattern = /\b(agente|asesor|supervisor|desempe[ñn]o|coaching|llamada|transcripci[oó]n|grabaci[oó]n|escucha|calidad|conversa|habla|dice|patr[oó]n|qu[eé]\s*(le\s*pasa|hace|dice)|c[oó]mo\s*(maneja|habla|responde|gestiona)|estrategia\s+para|sugerir[le]?|recomendar[le]?|plan\s+de|mejorar)\b/i;
+
+    // Buscar agente mencionado en los últimos 6 mensajes del hilo
+    const recentMessages = messages.slice(-6);
+    const recentText = recentMessages.map(m => m.content).join(' ');
+    const agentInHistory = recentText.match(agentNamePattern)?.[0] || null;
+    const agentInCurrent = text.match(agentNamePattern)?.[0] || null;
+    const detectedAgent = agentInCurrent || agentInHistory;
+
+    // Activar RAG si hay agente detectado (actual o en hilo) + contexto de desempeño/estrategia
+    const isAgentQuery = !!(detectedAgent && (agentContextPattern.test(text) || agentContextPattern.test(recentText) || agentNamePattern.test(text)));
+
     const PROXY_URL = BASE_PROXY
       ? (isAgentQuery ? BASE_PROXY + '/rag-query' : BASE_PROXY + '/chat')
       : 'https://api.openai.com/v1/chat/completions';
