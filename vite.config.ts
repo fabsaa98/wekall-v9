@@ -5,7 +5,7 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/wekall-v9/',
+  base: '/wekall-intelligence/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
