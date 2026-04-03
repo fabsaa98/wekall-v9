@@ -51,7 +51,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               <img
                 src="/wekall-v9/credismart-logo.png"
                 alt="CrediSmart"
-                className="h-4 w-auto object-contain mt-0.5"
+                className="h-8 w-auto object-contain mt-0.5"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             </div>
