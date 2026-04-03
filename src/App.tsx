@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { RoleProvider } from '@/contexts/RoleContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/AppLayout';
 import Overview from '@/pages/Overview';
 import VickyInsights from '@/pages/VickyInsights';
@@ -9,6 +10,7 @@ import Configuracion from '@/pages/Configuracion';
 
 export default function App() {
   return (
+    <TooltipProvider delayDuration={300}>
     <RoleProvider>
       <BrowserRouter basename="/wekall-v9">
         <Routes>
@@ -22,5 +24,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </RoleProvider>
+    </TooltipProvider>
   );
 }

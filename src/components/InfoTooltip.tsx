@@ -1,5 +1,5 @@
 import { Info } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface InfoTooltipProps {
@@ -11,17 +11,20 @@ interface InfoTooltipProps {
 
 export function InfoTooltip({ text, size = 13, className = '', side = 'top' }: InfoTooltipProps) {
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={cn('inline-flex items-center cursor-help', className)}>
-            <Info size={size} className="text-muted-foreground hover:text-primary transition-colors" />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side={side} className="max-w-[220px] text-xs leading-relaxed text-center" align="center" avoidCollisions={true}>
-          {text}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={cn('inline-flex items-center cursor-help', className)}>
+          <Info size={size} className="text-muted-foreground hover:text-primary transition-colors" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent
+        side={side}
+        align="center"
+        avoidCollisions={true}
+        className="max-w-[220px] text-xs leading-relaxed"
+      >
+        {text}
+      </TooltipContent>
+    </Tooltip>
   );
 }
