@@ -888,19 +888,21 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
       <div className="flex-1 flex flex-col min-w-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
           <div className="border-b border-border px-4 py-2">
-            <div className="flex items-center gap-1">
-              <TabsList className="h-8">
-                <TabsTrigger value="chat" className="text-xs">💬 Chat</TabsTrigger>
-                <TabsTrigger value="upload" className="text-xs">📁 Analizar Documento</TabsTrigger>
-                <TabsTrigger value="decisions" className="text-xs">📋 Decisiones</TabsTrigger>
-              </TabsList>
-              {activeTab === 'upload' && (
-                <InfoTooltip text="Sube un informe, presentación, audio o Excel — Vicky lo cruzará con los datos de tu operación para darte análisis integrado." side="bottom" />
-              )}
-              {activeTab === 'decisions' && (
-                <InfoTooltip text="Convierte los insights de Vicky en decisiones con responsable y seguimiento. Cierra el loop: Insight → Decisión → Responsable → Resultado." side="bottom" />
-              )}
-            </div>
+            <TabsList className="h-8">
+              <TabsTrigger value="chat" className="text-xs">💬 Chat</TabsTrigger>
+              <TabsTrigger value="upload" className="text-xs">
+                <span className="flex items-center gap-1">
+                  📁 Analizar Documento
+                  <InfoTooltip text="Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado." />
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="decisions" className="text-xs">
+                <span className="flex items-center gap-1">
+                  📋 Decisiones
+                  <InfoTooltip text="Convierte los insights de Vicky en decisiones con responsable y seguimiento. Cierra el loop: Insight → Decisión → Responsable → Resultado." />
+                </span>
+              </TabsTrigger>
+            </TabsList>
           </div>
 
           <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
