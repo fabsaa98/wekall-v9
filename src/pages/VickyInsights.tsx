@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { calcularImpactoAHT, calcularImpactoContactRate, calcularImpactoAgentes, getEstadoOperativo } from '@/lib/vickyCalculations';
 import type { ChatMessage } from '@/data/mockData';
+import { InfoTooltip } from '@/components/InfoTooltip';
 import { initialVickyMessages, decisionLog } from '@/data/mockData';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
 import {
@@ -889,8 +890,20 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <div className="border-b border-border px-4 py-2">
             <TabsList className="h-8">
               <TabsTrigger value="chat" className="text-xs">💬 Chat</TabsTrigger>
-              <TabsTrigger value="upload" className="text-xs">📁 Analizar Documento</TabsTrigger>
-              <TabsTrigger value="decisions" className="text-xs">📋 Decisiones</TabsTrigger>
+              <TabsTrigger value="upload" className="text-xs gap-1">
+                📁 Analizar Documento
+                <InfoTooltip
+                  text="Sube cualquier documento — informe, presentación, audio, datos en Excel — y Vicky lo cruzará con los datos de tu operación para darte un análisis integrado."
+                  position="bottom"
+                />
+              </TabsTrigger>
+              <TabsTrigger value="decisions" className="text-xs gap-1">
+                📋 Decisiones
+                <InfoTooltip
+                  text="Registra las decisiones que tomas a partir de los insights de Vicky. Cierra el loop: Insight → Decisión → Responsable → Resultado. Como los acuerdos de junta directiva, pero dentro de la plataforma."
+                  position="bottom"
+                />
+              </TabsTrigger>
             </TabsList>
           </div>
 

@@ -2,6 +2,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import type { KPIData } from '@/data/mockData';
+import { InfoTooltip } from '@/components/InfoTooltip';
 
 interface KPICardProps {
   kpi: KPIData;
@@ -27,8 +28,11 @@ export function KPICard({ kpi, className, style }: KPICardProps) {
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest truncate">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest truncate flex items-center gap-1">
             {kpi.title}
+            {kpi.description && (
+              <InfoTooltip text={kpi.description} size={11} position="top" />
+            )}
           </p>
           <p className="mt-1.5 text-[28px] font-bold text-foreground leading-none tracking-tight">
             {kpi.value}
