@@ -463,7 +463,8 @@ export default function VickyInsights() {
     // Try OpenAI API (via proxy if configured), fallback to local response engine
     const BASE_PROXY = import.meta.env.VITE_PROXY_URL?.replace(/\/$/, '') || '';
     // Detectar si la pregunta es sobre un agente específico → usar RAG
-    const agentKeywords = /\b(Joel|Teresa|Paola|Nelcy|Clara|Wilson|Jennifer|Manuel|Carmen|Caren|Ana Maria|Imaru|Jose Gregorio|Angel|Carleinnys|Winderly|Loidys|Luis Romero|Santiago|Ana Mendoza|Jhoseanny|Alix|agente|asesor|desempeño|coaching|llamada|transcripción|grabación)\b/i;
+    // RAG: activar para cualquier pregunta sobre personas, llamadas, desempeño o calidad
+    const agentKeywords = /\b(Joel|Teresa|Paola|Nelcy|Clara|Wilson|Jennifer|Manuel|Carmen|Caren|Ana\s*Mar[íi]a|Imaru|Jose?\s*Gregorio|Angel|Carleinnys|Winderly|Loidys|Luis\s*Romero|Santiago|Ana\s*Mendoza|Jhoseanny|Alix|agente|asesor|supervisor|desempe[ñn]o|coaching|llamada|transcripci[oó]n|grabaci[oó]n|escucha|calidad|conversa|habla|dice|patr[oó]n|qu[eé]\s*(le\s*pasa|hace|dice)|c[oó]mo\s*(maneja|habla|responde|gestiona))\b/i;
     const isAgentQuery = agentKeywords.test(text);
     const PROXY_URL = BASE_PROXY
       ? (isAgentQuery ? BASE_PROXY + '/rag-query' : BASE_PROXY + '/chat')
