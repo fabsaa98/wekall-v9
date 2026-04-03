@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
@@ -892,8 +892,8 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
               {([
                 { value: 'chat', label: 'Chat', icon: <MessageSquare size={15} /> },
                 { value: 'upload', label: 'Analizar Documento', icon: <FileText size={15} />, tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
-                { value: 'decisions', label: 'Decisiones', icon: <ClipboardList size={15} />, tooltip: 'Convierte los insights de Vicky en decisiones con responsable y seguimiento. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
-              ] as const).map(tab => (
+                { value: 'decisions', label: 'Decisiones', icon: <ClipboardList size={15} />, tooltip: 'Convierte los insights de Vicky en decisiones. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
+              ] as Array<{ value: string; label: string; icon: React.ReactNode; tooltip?: string }>).map(tab => (
                 <button
                   key={tab.value}
                   onClick={() => setActiveTab(tab.value)}

@@ -1,4 +1,6 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { PageTabs, PageTabsBar } from '@/components/PageTabs';
 import { agentsData, type Agent } from '@/data/mockData';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -185,6 +187,7 @@ function AreaPanel({ area }: { area: Area }) {
 }
 
 export default function Equipos() {
+  const [areaTab, setAreaTab] = useState('Ventas');
   return (
     <div className="p-6 max-w-[1200px] mx-auto space-y-6">
       <div>
@@ -194,14 +197,14 @@ export default function Equipos() {
         </p>
       </div>
 
-      <Tabs defaultValue="Ventas">
-        <TabsList className="h-9">
-          {AREAS.map(area => (
-            <TabsTrigger key={area} value={area} className="text-sm">
-              {area}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs value={areaTab} onValueChange={setAreaTab}>
+        <PageTabsBar>
+          <PageTabs
+            activeTab={areaTab}
+            onChange={setAreaTab}
+            tabs={AREAS.map(area => ({ value: area, label: area }))}
+          />
+        </PageTabsBar>
         {AREAS.map(area => (
           <TabsContent key={area} value={area} className="mt-6">
             <AreaPanel area={area} />

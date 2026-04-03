@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AlertTriangle, Info, XCircle, Plus, X } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { PageTabs, PageTabsBar } from '@/components/PageTabs';
+import { Bell, BellOff } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { alertsData as initialAlerts, type Alert } from '@/data/mockData';
 import { cn } from '@/lib/utils';
@@ -89,6 +91,7 @@ function AlertCard({ alert, onToggle }: { alert: Alert; onToggle: (id: string) =
 
 export default function Alertas() {
   const [alerts, setAlerts] = useState(initialAlerts);
+  const [alertTab, setAlertTab] = useState('active');
   const [nlInput, setNlInput] = useState('');
   const [addedMsg, setAddedMsg] = useState('');
 
@@ -171,20 +174,26 @@ export default function Alertas() {
 
       {/* Alerts list */}
       <Tabs defaultValue="active">
-        <TabsList>
-          <TabsTrigger value="active">
-            Activas
-            <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
-              {activeAlerts.length}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="fired">
-            Disparadas / Inactivas
-            <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[10px] font-bold">
-              {firedAlerts.length}
-            </span>
-          </TabsTrigger>
-        </TabsList>
+        <PageTabsBar>
+          <PageTabs
+            activeTab={alertTab}
+            onChange={setAlertTab}
+            tabs={[
+              {
+                value: 'active',
+                label: 'Activas',
+                icon: <Bell size={15} />,
+                badge: <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">{activeAlerts.length}</span>,
+              },
+              {
+                value: 'fired',
+                label: 'Inactivas',
+                icon: <BellOff size={15} />,
+                badge: <span className="px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[10px] font-bold">{firedAlerts.length}</span>,
+              },
+            ]}
+          />
+        </PageTabsBar>
 
         <TabsContent value="active" className="mt-4 space-y-3">
           {activeAlerts.length === 0 ? (
