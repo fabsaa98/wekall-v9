@@ -119,7 +119,7 @@ export default function Alertas() {
   const firedAlerts = alerts.filter(a => !a.active);
 
   return (
-    <div className="p-6 max-w-[900px] mx-auto space-y-6">
+    <div className="p-6 max-w-[900px] mx-auto space-y-6 overflow-y-auto flex-1">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Alertas Inteligentes</h1>
