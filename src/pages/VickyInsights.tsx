@@ -461,8 +461,14 @@ export default function VickyInsights() {
     setLoading(true);
 
     // Try OpenAI API (via proxy if configured), fallback to local response engine
-    const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://api.openai.com/v1/chat/completions';
-    const USE_PROXY = !!import.meta.env.VITE_PROXY_URL;
+    const BASE_PROXY = import.meta.env.VITE_PROXY_URL?.replace(/\/$/, '') || '';
+    // Detectar si la pregunta es sobre un agente específico → usar RAG
+    const agentKeywords = /\b(Joel|Teresa|Paola|Nelcy|Clara|Wilson|Jennifer|Manuel|Carmen|Caren|Ana Maria|Imaru|Jose Gregorio|Angel|Carleinnys|Winderly|Loidys|Luis Romero|Santiago|Ana Mendoza|Jhoseanny|Alix|agente|asesor|desempeño|coaching|llamada|transcripción|grabación)\b/i;
+    const isAgentQuery = agentKeywords.test(text);
+    const PROXY_URL = BASE_PROXY
+      ? (isAgentQuery ? BASE_PROXY + '/rag-query' : BASE_PROXY + '/chat')
+      : 'https://api.openai.com/v1/chat/completions';
+    const USE_PROXY = !!BASE_PROXY;
 
     let resp: ChatMessage;
     try {
@@ -798,7 +804,11 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           'Content-Type': 'application/json',
           ...(USE_PROXY ? {} : { 'Authorization': 'Bearer ' + atob('c2stcHJvai0xcllfQTlHRDBQMzU3SVVXWlIxbmhFM0J2NmFXRzllbzI5OFZ1eFVSM3BjNV9zM0tkSGZhekpRekVQV3k3ek5menFya203ZkwweVQzQmxia0ZKUXpUaEx6dHhRQnU2MUUyUEs0bnNvYW5PeV9mYm52THB1N2ZjV0dKWnlSTDlGUXl1aXlGWjJUV181WmNYa3U5eEtWSFJiVldoVUE=') }),
         },
-        body: JSON.stringify({
+        body: JSON.stringify(isAgentQuery && USE_PROXY ? {
+          // RAG query: el worker inyecta transcripciones relevantes
+          messages: [{ role: 'user', content: text }],
+          systemPrompt: CONTEXT,
+        } : {
           model: 'gpt-4o',
           messages: [
             { role: 'system', content: CONTEXT },
