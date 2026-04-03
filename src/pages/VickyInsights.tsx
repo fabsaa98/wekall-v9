@@ -900,11 +900,11 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   className={cn(
                     'flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-all',
                     activeTab === tab.value
-                      ? 'bg-background border-border text-foreground shadow-sm -mb-px z-10'
+                      ? 'bg-background border-primary/60 text-foreground shadow-sm -mb-px z-10'
                       : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
                   )}
                 >
-                  <span className={activeTab === tab.value ? 'text-primary' : ''}>{tab.icon}</span>
+                  <span className="text-primary">{tab.icon}</span>
                   <span>{tab.label}</span>
                   {'tooltip' in tab && <InfoTooltip text={tab.tooltip as string} size={12} />}
                 </button>
