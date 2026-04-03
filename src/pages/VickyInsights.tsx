@@ -370,10 +370,16 @@ export default function VickyInsights() {
 
   // Handle navigation with preset question
   useEffect(() => {
-    const q = (location.state as { question?: string })?.question;
+    // Soporte para deep link via URL param: /vicky?q=pregunta
+    const params = new URLSearchParams(window.location.search);
+    const qParam = params.get('q');
+    const qState = (location.state as { question?: string })?.question;
+    const q = qParam || qState;
     if (q) {
-      sendMessage(q);
-      window.history.replaceState({}, '');
+      // Limpiar el param de la URL sin recargar
+      window.history.replaceState({}, '', window.location.pathname);
+      // Pequeño delay para que el componente esté listo
+      setTimeout(() => sendMessage(decodeURIComponent(q)), 300);
     }
   }, []);
 
@@ -918,8 +924,11 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
   // Generate WhatsApp message — pregunta del CEO + respuesta de Vicky + CTA
   const whatsappMessage = lastUserQuestion
-    ? `🧠 *Pregunta del CEO a WeKall Intelligence:*\n"${lastUserQuestion.slice(0, 150)}${lastUserQuestion.length > 150 ? '...' : ''}"\n\n💡 *Vicky responde:*\n${lastInsight.slice(0, 280)}${lastInsight.length > 280 ? '...' : ''}\n\n👉 ¿Cómo lo resolvemos? Ver análisis completo:\nhttps://wekall-intelligence.pages.dev`
-    : `📊 *WeKall Intelligence — Insight ejecutivo:*\n\n${lastInsight.slice(0, 300)}${lastInsight.length > 300 ? '...' : ''}\n\n👉 Ver análisis completo:\nhttps://wekall-intelligence.pages.dev`;
+    ? (() => {
+        const deepLink = `https://wekall-intelligence.pages.dev/vicky?q=${encodeURIComponent(lastUserQuestion.slice(0, 150))}`;
+        return `🧠 *Pregunta del CEO a WeKall Intelligence:*\n"${lastUserQuestion.slice(0, 150)}${lastUserQuestion.length > 150 ? '...' : ''}"\n\n💡 *Vicky responde:*\n${lastInsight.slice(0, 280)}${lastInsight.length > 280 ? '...' : ''}\n\n👉 ¿Cómo lo resolvemos? Ver el análisis completo:\n${deepLink}`;
+      })()
+    : `📊 *WeKall Intelligence — Insight ejecutivo:*\n\n${lastInsight.slice(0, 300)}${lastInsight.length > 300 ? '...' : ''}\n\n👉 Ver análisis completo:\nhttps://wekall-intelligence.pages.dev/vicky`;
 
   const handleConfirmAction = () => {
     if (actionChoice === 'notify') {
@@ -1139,26 +1148,71 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
               </div>
               <div className="space-y-2">
                 {decisionLog.map(d => (
-                  <div key={d.id} className="rounded-lg border border-border bg-card p-4">
+                  <div key={d.id} className="rounded-lg border border-border bg-card p-4 group">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <p className="text-xs text-muted-foreground mb-1">{d.insight}</p>
+                        <p className="text-xs text-muted-foreground mb-1 line-clamp-2">{d.insight}</p>
                         <p className="text-sm font-medium text-foreground">{d.decision}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                           <span>👤 {d.responsible}</span>
                           <span><Clock size={10} className="inline mr-0.5" />{d.date}</span>
-                          <span className="text-emerald-400">{d.impact}</span>
+                          {d.impact !== '—' && <span className="text-emerald-400">{d.impact}</span>}
                         </div>
                       </div>
-                      <span className={cn(
-                        'shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold border',
-                        statusMap[d.status],
-                      )}>
-                        {d.status}
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full text-[10px] font-semibold border',
+                          statusMap[d.status],
+                        )}>
+                          {d.status}
+                        </span>
+                        {/* Acciones inline */}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {d.status === 'Pendiente' && (
+                            <button
+                              onClick={() => {
+                                const updated = decisionLog.map(x => x.id === d.id ? { ...x, status: 'En progreso' } : x);
+                                setDecisionLog(updated);
+                                const stored = JSON.parse(localStorage.getItem('wekall_decision_log') || '[]');
+                                localStorage.setItem('wekall_decision_log', JSON.stringify(stored.map((x: {id: string}) => x.id === d.id ? { ...x, estado: 'En progreso' } : x)));
+                              }}
+                              className="text-[10px] px-1.5 py-0.5 rounded border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+                            >
+                              Iniciar
+                            </button>
+                          )}
+                          {(d.status === 'Pendiente' || d.status === 'En progreso') && (
+                            <button
+                              onClick={() => {
+                                const updated = decisionLog.map(x => x.id === d.id ? { ...x, status: 'Resuelto' } : x);
+                                setDecisionLog(updated);
+                                const stored = JSON.parse(localStorage.getItem('wekall_decision_log') || '[]');
+                                localStorage.setItem('wekall_decision_log', JSON.stringify(stored.map((x: {id: string}) => x.id === d.id ? { ...x, estado: 'Resuelto' } : x)));
+                              }}
+                              className="text-[10px] px-1.5 py-0.5 rounded border border-green-500/40 text-green-400 hover:bg-green-500/10 transition-colors"
+                            >
+                              Resolver ✓
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              const updated = decisionLog.filter(x => x.id !== d.id);
+                              setDecisionLog(updated);
+                              const stored = JSON.parse(localStorage.getItem('wekall_decision_log') || '[]');
+                              localStorage.setItem('wekall_decision_log', JSON.stringify(stored.filter((x: {id: string}) => x.id !== d.id)));
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
+                {decisionLog.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-6">No hay decisiones registradas aún. Usa "Crear Acción → Decision Log" en cualquier respuesta de Vicky.</p>
+                )}
               </div>
             </div>
           </TabsContent>
