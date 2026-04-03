@@ -907,7 +907,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             </TabsList>
           </div>
 
-          <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden"
+          <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1">
               {messages.map(msg => (
@@ -992,11 +992,11 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             </div>
           </TabsContent>
 
-          <TabsContent value="upload" className="flex-1 overflow-y-auto mt-0 data-[state=inactive]:hidden"
+          <TabsContent value="upload" className="flex-1 overflow-y-auto mt-0 data-[state=inactive]:hidden">
             <UploadTab />
           </TabsContent>
 
-          <TabsContent value="decisions" className="flex-1 overflow-y-auto mt-0 p-3 data-[state=inactive]:hidden"
+          <TabsContent value="decisions" className="flex-1 overflow-y-auto mt-0 p-3 data-[state=inactive]:hidden">
             <div>
               <div className="flex items-start gap-2 mb-3 p-2.5 rounded-lg bg-muted/40 border border-border">
                 <Info size={13} className="text-muted-foreground mt-0.5 shrink-0" />
