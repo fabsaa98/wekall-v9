@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, X, Menu } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 
 const navItems = [
   { label: 'Overview', path: '/', icon: LayoutDashboard },
   { label: 'Vicky Insights', path: '/vicky', icon: Zap },
+  { label: 'Análisis Docs', path: '/document-analysis', icon: Brain },
   { label: 'Alertas', path: '/alertas', icon: Bell },
   { label: 'Equipos', path: '/equipos', icon: Users },
   { label: 'Configuración', path: '/config', icon: Settings },

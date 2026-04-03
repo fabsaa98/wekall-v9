@@ -7,6 +7,7 @@ import VickyInsights from '@/pages/VickyInsights';
 import Alertas from '@/pages/Alertas';
 import Equipos from '@/pages/Equipos';
 import Configuracion from '@/pages/Configuracion';
+import DocumentAnalysis from '@/pages/DocumentAnalysis';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Overview />} />
             <Route path="/vicky" element={<VickyInsights />} />
+            <Route path="/document-analysis" element={<DocumentAnalysis />} />
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/equipos" element={<Equipos />} />
             <Route path="/config" element={<Configuracion />} />

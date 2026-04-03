@@ -890,23 +890,23 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <div className="border-b border-border bg-card/50 px-4 pt-3 pb-0">
             <div className="flex items-end gap-1">
               {([
-                { value: 'chat', label: 'Chat', icon: <MessageSquare size={15} /> },
-                { value: 'upload', label: 'Analizar Documento', icon: <FileText size={15} />, tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
-                { value: 'decisions', label: 'Decisiones', icon: <ClipboardList size={15} />, tooltip: 'Convierte los insights de Vicky en decisiones. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
-              ] as Array<{ value: string; label: string; icon: React.ReactNode; tooltip?: string }>).map(tab => (
+                { value: 'chat',      label: 'Chat',              icon: <MessageSquare size={15} />, color: 'text-blue-500',    colorMuted: 'text-blue-300' },
+                { value: 'upload',    label: 'Analizar Documento', icon: <FileText size={15} />,      color: 'text-amber-500',   colorMuted: 'text-amber-300',   tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
+                { value: 'decisions', label: 'Decisiones',         icon: <ClipboardList size={15} />, color: 'text-emerald-500', colorMuted: 'text-emerald-300', tooltip: 'Convierte los insights de Vicky en decisiones. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
+              ] as Array<{ value: string; label: string; icon: React.ReactNode; color: string; colorMuted: string; tooltip?: string }>).map(tab => (
                 <button
                   key={tab.value}
                   onClick={() => setActiveTab(tab.value)}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-all',
+                    'group flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-all',
                     activeTab === tab.value
                       ? 'bg-background border-primary/60 text-foreground shadow-sm -mb-px z-10'
                       : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
                   )}
                 >
-                  <span className={cn('transition-colors', activeTab === tab.value ? 'text-primary' : 'text-primary/50 group-hover:text-primary/80')}>{tab.icon}</span>
+                  <span className={cn('transition-colors', activeTab === tab.value ? tab.color : tab.colorMuted)}>{tab.icon}</span>
                   <span>{tab.label}</span>
-                  {'tooltip' in tab && <InfoTooltip text={tab.tooltip as string} size={12} />}
+                  {tab.tooltip && <InfoTooltip text={tab.tooltip} size={12} />}
                 </button>
               ))}
             </div>

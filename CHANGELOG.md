@@ -15,6 +15,27 @@
 
 ---
 
+## [V13.0.0] — 2026-04-03 — Document Intelligence
+
+### Feature: Análisis de Documentos con Vicky
+
+Nueva página `/document-analysis` accesible desde el sidebar. Permite al CEO subir cualquier tipo de documento y recibir análisis estratégico integrado cruzado con los datos del CDR.
+
+**Tipos de documento soportados:**
+- **Audio (MP3/WAV/M4A/WebM):** Transcripción via Whisper (proxy Cloudflare) + análisis contextual
+- **PDF:** Extracción de texto con pdfjs-dist (hasta 20 páginas) en el browser
+- **Excel/CSV:** Parsing con SheetJS (xlsx) — convierte hojas a texto tabular
+- **Word (.docx):** Extracción de texto XML interno
+- **Imágenes (JPG/PNG/GIF/WebP):** Base64 → GPT-4o Vision para análisis visual
+
+**Arquitectura:** Extracción 100% en browser → texto extraído + contexto CDR → GPT-4o via proxy Cloudflare (/chat) → respuesta ejecutiva en prosa.
+
+**Dependencias agregadas:** pdfjs-dist@3.11.174, xlsx
+
+**Sidebar:** Nuevo item "Análisis Docs" con ícono Brain entre Vicky Insights y Alertas.
+
+---
+
 ## [V12.0.0] — 2026-04-02 — Arquitectura Function Calling
 
 ### Cambio: V12.4 — Prosa estructural garantizada (dos capas)
