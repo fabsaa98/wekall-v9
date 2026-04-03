@@ -11,7 +11,7 @@ interface InfoTooltipProps {
 
 export function InfoTooltip({ text, size = 13, className = '' }: InfoTooltipProps) {
   const [visible, setVisible] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const [pos, setPos] = useState({ top: 0, left: 0, below: false });
   const iconRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -32,9 +32,15 @@ export function InfoTooltip({ text, size = 13, className = '' }: InfoTooltipProp
   function show() {
     if (!iconRef.current) return;
     const rect = iconRef.current.getBoundingClientRect();
+    const tooltipH = 100; // altura estimada del tooltip
+    const spaceAbove = rect.top;
+    const goBelow = spaceAbove < tooltipH + 20;
     setPos({
-      top: rect.top + window.scrollY - 8, // arriba del ícono
+      top: goBelow
+        ? rect.bottom + window.scrollY + 8  // abajo del ícono
+        : rect.top + window.scrollY - 8,    // arriba del ícono
       left: rect.left + window.scrollX + rect.width / 2,
+      below: goBelow,
     });
     setVisible(true);
   }
@@ -61,17 +67,24 @@ export function InfoTooltip({ text, size = 13, className = '' }: InfoTooltipProp
             position: 'absolute',
             top: pos.top,
             left: pos.left,
-            transform: 'translate(-50%, -100%)',
+            transform: pos.below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
             zIndex: 99999,
           }}
           className="pointer-events-none"
         >
-          <div className="w-52 rounded-lg border border-border bg-card text-card-foreground px-3 py-2 text-[11px] leading-relaxed shadow-xl">
+          {pos.below && (
+            <div className="flex justify-center mb-0">
+              <div className="w-2 h-2 rotate-45 bg-card border-t border-l border-border mt-1" />
+            </div>
+          )}
+          <div className="w-64 rounded-lg border border-border bg-card text-card-foreground px-3 py-2.5 text-[11px] leading-relaxed shadow-xl">
             {text}
           </div>
-          <div className="flex justify-center">
-            <div className="w-2 h-2 rotate-45 bg-card border-b border-r border-border -mt-1" />
-          </div>
+          {!pos.below && (
+            <div className="flex justify-center">
+              <div className="w-2 h-2 rotate-45 bg-card border-b border-r border-border -mt-1" />
+            </div>
+          )}
         </div>,
         document.body
       )}
