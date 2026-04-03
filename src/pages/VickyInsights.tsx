@@ -908,12 +908,18 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
     'Pendiente': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   };
 
-  // Get last Vicky/assistant message
+  // Get last Vicky/assistant message and the user question before it
   const lastVickyMessage = [...messages].reverse().find(m => m.role === 'assistant' || m.role === 'vicky');
   const lastInsight = lastVickyMessage?.content ?? '';
+  const lastVickyIndex = lastVickyMessage ? [...messages].lastIndexOf(lastVickyMessage) : -1;
+  const lastUserQuestion = lastVickyIndex > 0
+    ? [...messages].slice(0, lastVickyIndex).reverse().find(m => m.role === 'user')?.content ?? ''
+    : '';
 
-  // Generate WhatsApp message
-  const whatsappMessage = `📊 Insight WeKall Intelligence:\n\n${lastInsight.slice(0, 300)}...\n\nVer más: https://wekall-intelligence.pages.dev`;
+  // Generate WhatsApp message — pregunta del CEO + respuesta de Vicky + CTA
+  const whatsappMessage = lastUserQuestion
+    ? `🧠 *Pregunta del CEO a WeKall Intelligence:*\n"${lastUserQuestion.slice(0, 150)}${lastUserQuestion.length > 150 ? '...' : ''}"\n\n💡 *Vicky responde:*\n${lastInsight.slice(0, 280)}${lastInsight.length > 280 ? '...' : ''}\n\n👉 ¿Cómo lo resolvemos? Ver análisis completo:\nhttps://wekall-intelligence.pages.dev`
+    : `📊 *WeKall Intelligence — Insight ejecutivo:*\n\n${lastInsight.slice(0, 300)}${lastInsight.length > 300 ? '...' : ''}\n\n👉 Ver análisis completo:\nhttps://wekall-intelligence.pages.dev`;
 
   const handleConfirmAction = () => {
     if (actionChoice === 'notify') {
