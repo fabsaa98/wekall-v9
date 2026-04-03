@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
   FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText, Info,
+  Mic, MicOff, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { calcularImpactoAHT, calcularImpactoContactRate, calcularImpactoAgentes, getEstadoOperativo } from '@/lib/vickyCalculations';
@@ -335,6 +336,10 @@ export default function VickyInsights() {
   const [actionOpen, setActionOpen] = useState(false);
   const [actionChoice, setActionChoice] = useState('');
   const [activeTab, setActiveTab] = useState('chat');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Handle navigation with preset question
@@ -351,6 +356,65 @@ export default function VickyInsights() {
   }
 
   useEffect(() => { scrollToBottom(); }, [messages]);
+
+  const TRANSCRIBE_URL = (import.meta.env.VITE_PROXY_URL 
+    ? import.meta.env.VITE_PROXY_URL.replace(/\/$/, '') + '/transcribe'
+    : null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error accediendo al micrófono:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    if (!TRANSCRIBE_URL) return;
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'recording.webm');
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'es');
+
+      const response = await fetch(TRANSCRIBE_URL, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.text) {
+        setInput(data.text);
+      }
+    } catch (err) {
+      console.error('Error transcribiendo:', err);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
 
   async function sendMessage(text: string) {
     if (!text.trim()) return;
@@ -881,6 +945,24 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors">
                     <Paperclip size={15} />
+                  </button>
+                  <button
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={isTranscribing}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isRecording 
+                        ? 'bg-red-500 text-white animate-pulse' 
+                        : 'text-slate-400 hover:text-primary hover:bg-primary/10'
+                    }`}
+                    title={isRecording ? 'Detener grabación' : 'Hablar con Vicky'}
+                  >
+                    {isTranscribing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isRecording ? (
+                      <MicOff className="w-4 h-4" />
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
                   </button>
                   <button
                     onClick={() => sendMessage(input)}
