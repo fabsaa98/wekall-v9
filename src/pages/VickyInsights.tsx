@@ -904,7 +904,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                       : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
                   )}
                 >
-                  <span className="text-primary">{tab.icon}</span>
+                  <span className={cn('transition-colors', activeTab === tab.value ? 'text-primary' : 'text-primary/50 group-hover:text-primary/80')}>{tab.icon}</span>
                   <span>{tab.label}</span>
                   {'tooltip' in tab && <InfoTooltip text={tab.tooltip as string} size={12} />}
                 </button>

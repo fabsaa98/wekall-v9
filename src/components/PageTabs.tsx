@@ -28,14 +28,19 @@ export function PageTabs({ tabs, activeTab, onChange, className }: PageTabsProps
           key={tab.value}
           onClick={() => onChange(tab.value)}
           className={cn(
-            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-all whitespace-nowrap',
+            'group flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-all whitespace-nowrap',
             activeTab === tab.value
               ? 'bg-background border-primary/60 text-foreground shadow-sm -mb-px z-10'
               : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
           )}
         >
           {tab.icon && (
-            <span className="text-primary shrink-0">{tab.icon}</span>
+            <span className={cn(
+              'shrink-0 transition-colors',
+              activeTab === tab.value ? 'text-primary' : 'text-primary/50 group-hover:text-primary/80',
+            )}>
+              {tab.icon}
+            </span>
           )}
           <span>{tab.label}</span>
           {tab.badge && tab.badge}
