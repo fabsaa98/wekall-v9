@@ -3,13 +3,13 @@ import { useLocation } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
   FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText, Info,
-  Mic, MicOff, Loader2, MessageSquare, ClipboardList,
+  Mic, MicOff, Loader2, MessageSquare, ClipboardList, Bell, BookOpen, CalendarPlus, CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { calcularImpactoAHT, calcularImpactoContactRate, calcularImpactoAgentes, getEstadoOperativo } from '@/lib/vickyCalculations';
 import type { ChatMessage } from '@/data/mockData';
 import { InfoTooltip } from '@/components/InfoTooltip';
-import { initialVickyMessages, decisionLog } from '@/data/mockData';
+import { initialVickyMessages, decisionLog as staticDecisionLog } from '@/data/mockData';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -17,6 +17,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
 
@@ -336,7 +337,31 @@ export default function VickyInsights() {
   const [loading, setLoading] = useState(false);
   const [actionOpen, setActionOpen] = useState(false);
   const [actionChoice, setActionChoice] = useState('');
+  const [actionStep, setActionStep] = useState<'choose' | 'notify'>('choose');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [copiedMessage, setCopiedMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('chat');
+
+  // Load decision log from localStorage + static data
+  const [decisionLog, setDecisionLog] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wekall_decision_log');
+      const localItems = stored ? JSON.parse(stored) : [];
+      // Map local items to display format
+      const mappedLocal = localItems.map((item: { id: string; timestamp: string; insight: string; accion: string; responsable: string; estado: string; fecha: string }) => ({
+        id: item.id,
+        insight: item.insight,
+        decision: item.accion,
+        responsible: item.responsable,
+        status: item.estado,
+        date: item.fecha.split('T')[0],
+        impact: '—',
+      }));
+      return [...staticDecisionLog, ...mappedLocal];
+    } catch {
+      return staticDecisionLog;
+    }
+  });
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -880,6 +905,103 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
     'En progreso': 'text-amber-800 bg-amber-100 border-amber-300',
     'Completada': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     'Planificada': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    'Pendiente': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  };
+
+  // Get last Vicky/assistant message
+  const lastVickyMessage = [...messages].reverse().find(m => m.role === 'assistant' || m.role === 'vicky');
+  const lastInsight = lastVickyMessage?.content ?? '';
+
+  // Generate WhatsApp message
+  const whatsappMessage = `📊 Insight WeKall Intelligence:\n\n${lastInsight.slice(0, 300)}...\n\nVer más: https://fabsaa98.github.io/wekall-v9/`;
+
+  const handleConfirmAction = () => {
+    if (actionChoice === 'notify') {
+      setActionStep('notify');
+      return;
+    }
+    if (actionChoice === 'log') {
+      const insight = lastInsight.slice(0, 200) + (lastInsight.length > 200 ? '...' : '');
+      const newEntry = {
+        id: `local-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        insight,
+        accion: 'Decisión registrada desde WeKall Intelligence',
+        responsable: 'CEO',
+        estado: 'Pendiente',
+        fecha: new Date().toISOString(),
+      };
+      try {
+        const stored = localStorage.getItem('wekall_decision_log');
+        const existing = stored ? JSON.parse(stored) : [];
+        existing.push(newEntry);
+        localStorage.setItem('wekall_decision_log', JSON.stringify(existing));
+      } catch {
+        // ignore
+      }
+      // Update local state
+      setDecisionLog(prev => [...prev, {
+        id: newEntry.id,
+        insight: newEntry.insight,
+        decision: newEntry.accion,
+        responsible: newEntry.responsable,
+        status: newEntry.estado,
+        date: newEntry.fecha.split('T')[0],
+        impact: '—',
+      }]);
+      toast.success('✅ Decisión registrada en el log');
+      setActionOpen(false);
+      setActionChoice('');
+      return;
+    }
+    if (actionChoice === 'meeting') {
+      const title = encodeURIComponent('WeKall Intelligence — Acción de seguimiento');
+      const description = encodeURIComponent(lastInsight.slice(0, 200));
+      // Calculate next Monday
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+      const daysUntilMonday = dayOfWeek === 1 ? 7 : (8 - dayOfWeek) % 7 || 7;
+      const nextMonday = new Date(now);
+      nextMonday.setDate(now.getDate() + daysUntilMonday);
+      nextMonday.setHours(9, 0, 0, 0);
+      const endTime = new Date(nextMonday);
+      endTime.setHours(10, 0, 0, 0);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const formatDate = (d: Date) =>
+        `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+      // Use local time formatted
+      const formatLocal = (d: Date) =>
+        `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+      const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${description}&dates=${formatLocal(nextMonday)}/${formatLocal(endTime)}`;
+      window.open(calUrl, '_blank');
+      toast.success('📅 Abriendo Google Calendar...');
+      setActionOpen(false);
+      setActionChoice('');
+      return;
+    }
+  };
+
+  const handleCopyWhatsApp = async () => {
+    try {
+      await navigator.clipboard.writeText(whatsappMessage);
+      setCopiedMessage(true);
+      setTimeout(() => setCopiedMessage(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleOpenWhatsApp = () => {
+    const url = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappMessage)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleCloseActionDialog = () => {
+    setActionOpen(false);
+    setActionChoice('');
+    setActionStep('choose');
+    setWhatsappNumber('');
+    setCopiedMessage(false);
   };
 
   return (
@@ -1087,40 +1209,147 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
       </div>
 
       {/* Action Dialog */}
-      <Dialog open={actionOpen} onOpenChange={setActionOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Crear Acción</DialogTitle>
-            <DialogDescription>Convierte este insight en una acción concreta</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {[
-              { id: 'crm', label: '📋 Registrar en CRM', desc: 'Crear tarea de seguimiento' },
-              { id: 'notify', label: '🔔 Notificar al equipo', desc: 'Enviar alerta a responsables' },
-              { id: 'log', label: '📊 Agregar a Decision Log', desc: 'Registrar decisión + responsable' },
-              { id: 'meeting', label: '📅 Agendar reunión', desc: 'Crear evento con contexto' },
-            ].map(opt => (
-              <button
-                key={opt.id}
-                onClick={() => setActionChoice(opt.id)}
-                className={cn(
-                  'w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-all',
-                  actionChoice === opt.id
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:border-primary/30',
-                )}
-              >
-                <span className="text-sm font-medium text-foreground">{opt.label}</span>
-                <span className="text-xs text-muted-foreground ml-1">— {opt.desc}</span>
-              </button>
-            ))}
-            <button
-              onClick={() => setActionOpen(false)}
-              className="w-full mt-2 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/80 transition-colors"
-            >
-              Confirmar acción
-            </button>
-          </div>
+      <Dialog open={actionOpen} onOpenChange={handleCloseActionDialog}>
+        <DialogContent className="sm:max-w-lg">
+          {actionStep === 'choose' ? (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
+                    <Zap className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg font-bold">Crear Acción</DialogTitle>
+                    <DialogDescription className="text-sm text-muted-foreground">Convierte este insight en una tarea concreta</DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-3 py-2">
+                {/* CRM — Próximamente */}
+                <div className="relative border rounded-xl p-4 flex flex-col items-center gap-2 text-center opacity-60 cursor-not-allowed pointer-events-none border-border">
+                  <Database className="w-10 h-10 text-muted-foreground" />
+                  <span className="text-sm font-semibold">Registrar en CRM</span>
+                  <span className="text-xs text-muted-foreground">Crear tarea de seguimiento</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">PRÓXIMAMENTE</span>
+                </div>
+                {/* Notificar */}
+                <button
+                  onClick={() => setActionChoice('notify')}
+                  className={cn(
+                    'relative border rounded-xl p-4 flex flex-col items-center gap-2 text-center transition-all hover:border-primary/50',
+                    actionChoice === 'notify' ? 'border-primary bg-primary/10' : 'border-border',
+                  )}
+                >
+                  {actionChoice === 'notify' && <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-primary" />}
+                  <Bell className="w-10 h-10 text-primary" />
+                  <span className="text-sm font-semibold">Notificar al equipo</span>
+                  <span className="text-xs text-muted-foreground">Enviar alerta a responsables</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">DISPONIBLE</span>
+                </button>
+                {/* Decision Log */}
+                <button
+                  onClick={() => setActionChoice('log')}
+                  className={cn(
+                    'relative border rounded-xl p-4 flex flex-col items-center gap-2 text-center transition-all hover:border-primary/50',
+                    actionChoice === 'log' ? 'border-primary bg-primary/10' : 'border-border',
+                  )}
+                >
+                  {actionChoice === 'log' && <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-primary" />}
+                  <BookOpen className="w-10 h-10 text-emerald-500" />
+                  <span className="text-sm font-semibold">Agregar a Decision Log</span>
+                  <span className="text-xs text-muted-foreground">Registrar decisión + responsable</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">DISPONIBLE</span>
+                </button>
+                {/* Reunión */}
+                <button
+                  onClick={() => setActionChoice('meeting')}
+                  className={cn(
+                    'relative border rounded-xl p-4 flex flex-col items-center gap-2 text-center transition-all hover:border-primary/50',
+                    actionChoice === 'meeting' ? 'border-primary bg-primary/10' : 'border-border',
+                  )}
+                >
+                  {actionChoice === 'meeting' && <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-primary" />}
+                  <CalendarPlus className="w-10 h-10 text-blue-500" />
+                  <span className="text-sm font-semibold">Agendar reunión</span>
+                  <span className="text-xs text-muted-foreground">Crear evento con contexto</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">DISPONIBLE</span>
+                </button>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleCloseActionDialog}
+                  className="flex-1 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmAction}
+                  disabled={actionChoice === ''}
+                  className="flex-1 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
+                    <Bell className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg font-bold">Notificar al equipo</DialogTitle>
+                    <DialogDescription className="text-sm text-muted-foreground">Envía el insight por WhatsApp</DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Número WhatsApp del destinatario</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: 573001234567"
+                    value={whatsappNumber}
+                    onChange={e => setWhatsappNumber(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Mensaje generado</label>
+                  <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-foreground whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+                    {whatsappMessage}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCopyWhatsApp}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg border text-sm font-medium transition-colors',
+                      copiedMessage
+                        ? 'border-green-500 text-green-600 bg-green-50'
+                        : 'border-border text-foreground hover:bg-secondary',
+                    )}
+                  >
+                    {copiedMessage ? '✅ Copiado' : 'Copiar mensaje'}
+                  </button>
+                  <button
+                    onClick={handleOpenWhatsApp}
+                    disabled={!whatsappNumber.trim()}
+                    className="flex-1 py-2 rounded-lg bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Abrir WhatsApp Web
+                  </button>
+                </div>
+                <button
+                  onClick={() => { setActionStep('choose'); }}
+                  className="w-full py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+                >
+                  ← Volver
+                </button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
