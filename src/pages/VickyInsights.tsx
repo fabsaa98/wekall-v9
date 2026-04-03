@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
   FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText, Info,
-  Mic, MicOff, Loader2,
+  Mic, MicOff, Loader2, MessageSquare, ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { calcularImpactoAHT, calcularImpactoContactRate, calcularImpactoAgentes, getEstadoOperativo } from '@/lib/vickyCalculations';
@@ -887,22 +887,29 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
       {/* Chat main */}
       <div className="flex-1 flex flex-col min-w-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <div className="border-b border-border px-4 py-2">
-            <TabsList className="h-8">
-              <TabsTrigger value="chat" className="text-xs">💬 Chat</TabsTrigger>
-              <TabsTrigger value="upload" className="text-xs">
-                <span className="flex items-center gap-1">
-                  📁 Analizar Documento
-                  <InfoTooltip text="Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado." />
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="decisions" className="text-xs">
-                <span className="flex items-center gap-1">
-                  📋 Decisiones
-                  <InfoTooltip text="Convierte los insights de Vicky en decisiones con responsable y seguimiento. Cierra el loop: Insight → Decisión → Responsable → Resultado." />
-                </span>
-              </TabsTrigger>
-            </TabsList>
+          <div className="border-b border-border bg-card/50 px-4 pt-3 pb-0">
+            <div className="flex items-end gap-1">
+              {([
+                { value: 'chat', label: 'Chat', icon: <MessageSquare size={15} /> },
+                { value: 'upload', label: 'Analizar Documento', icon: <FileText size={15} />, tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
+                { value: 'decisions', label: 'Decisiones', icon: <ClipboardList size={15} />, tooltip: 'Convierte los insights de Vicky en decisiones con responsable y seguimiento. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
+              ] as const).map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => setActiveTab(tab.value)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-all',
+                    activeTab === tab.value
+                      ? 'bg-background border-border text-foreground shadow-sm -mb-px z-10'
+                      : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                  )}
+                >
+                  <span className={activeTab === tab.value ? 'text-primary' : ''}>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                  {'tooltip' in tab && <InfoTooltip text={tab.tooltip as string} size={12} />}
+                </button>
+              ))}
+            </div>
           </div>
 
           <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
