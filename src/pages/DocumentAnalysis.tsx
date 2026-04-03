@@ -322,9 +322,9 @@ export default function DocumentAnalysis() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Left panel: Upload + History */}
-        <div className="flex flex-col w-80 shrink-0 border-r border-border overflow-y-auto">
+        <div className="flex flex-col md:w-80 w-full shrink-0 border-b md:border-b-0 md:border-r border-border overflow-y-auto max-h-[45vh] md:max-h-none">
           <div className="p-4">
             <div
               onDrop={onDrop}
