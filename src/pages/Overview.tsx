@@ -19,11 +19,14 @@ export default function Overview() {
 
   const [briefExpanded, setBriefExpanded] = useState(false);
 
+  const hora = new Date().getHours();
+  const saludo = hora >= 6 && hora < 12 ? 'Buenos días' : hora >= 12 && hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+
   const greetings: Record<string, string> = {
-    'CEO': 'Buenos días, CEO.',
-    'VP Ventas': 'Buenos días, VP de Ventas.',
-    'VP CX': 'Buenos días, VP de CX.',
-    'COO': 'Buenos días, COO.',
+    'CEO': `${saludo}, CEO.`,
+    'VP Ventas': `${saludo}, VP de Ventas.`,
+    'VP CX': `${saludo}, VP de CX.`,
+    'COO': `${saludo}, COO.`,
   };
 
   const briefs: Record<string, { short: string; full: string }> = {
