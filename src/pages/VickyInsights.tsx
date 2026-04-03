@@ -889,12 +889,12 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <div className="border-b border-border px-4 py-2">
             <TabsList className="h-8">
               <TabsTrigger value="chat" className="text-xs">💬 Chat</TabsTrigger>
-              <TabsTrigger value="upload" className="text-xs">🎙️ Analizar Grabación</TabsTrigger>
-              <TabsTrigger value="decisions" className="text-xs">📋 Decision Log</TabsTrigger>
+              <TabsTrigger value="upload" className="text-xs">📁 Analizar Documento</TabsTrigger>
+              <TabsTrigger value="decisions" className="text-xs">📋 Decisiones</TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0">
+          <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1">
               {messages.map(msg => (
@@ -979,11 +979,11 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             </div>
           </TabsContent>
 
-          <TabsContent value="upload" className="flex-1 overflow-y-auto mt-0">
+          <TabsContent value="upload" className="flex-1 overflow-y-auto mt-0 data-[state=inactive]:hidden>
             <UploadTab />
           </TabsContent>
 
-          <TabsContent value="decisions" className="flex-1 overflow-y-auto mt-0 p-3">
+          <TabsContent value="decisions" className="flex-1 overflow-y-auto mt-0 p-3 data-[state=inactive]:hidden>
             <div>
               <div className="flex items-start gap-2 mb-3 p-2.5 rounded-lg bg-muted/40 border border-border">
                 <Info size={13} className="text-muted-foreground mt-0.5 shrink-0" />
