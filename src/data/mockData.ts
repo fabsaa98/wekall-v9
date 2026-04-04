@@ -348,36 +348,16 @@ export const initialVickyMessages: ChatMessage[] = [
 ];
 
 // ─── Decision Log ─────────────────────────────────────────────────────────────
-
-export const decisionLog = [
-  {
-    id: 'd1',
-    insight: '44.4% del volumen pasa por el dialer automático (wekall Dialer: 7,162 llamadas el 30-Mar)',
-    decision: 'Implementar escucha aleatoria del 5% de llamadas del dialer — validar calidad de contacto',
-    responsible: 'COO Crediminuto',
-    status: 'En progreso' as const,
-    date: '2026-03-30',
-    impact: 'Mejora en calidad de contacto — pendiente cuantificar',
-  },
-  {
-    id: 'd2',
-    insight: 'Tasa de contacto efectivo: 43.1% — 2 puntos bajo la mediana Latam (COPC 2024: 45%)',
-    decision: 'Solicitar CDR con timestamp por llamada para analizar franjas horarias de mayor contacto',
-    responsible: 'CEO',
-    status: 'Planificada' as const,
-    date: '2026-04-02',
-    impact: 'Potencial +280 promesas adicionales/mes si contacto sube al 55%',
-  },
-  {
-    id: 'd3',
-    insight: 'Cuartil inferior (20 agentes): promedio 76 llamadas/día vs. 110.7 del equipo. Bottom 3: Paola Joya (4), Yuleidy Gonzalez (7), Vannesa Sauce (9)',
-    decision: 'Documentar protocolo de Teresa Meza (261 llamadas) y replicar en agentes del cuartil inferior',
-    responsible: 'VP Operaciones',
-    status: 'Planificada' as const,
-    date: '2026-04-10',
-    impact: '+880 llamadas/día si cuartil inferior sube a la mediana (120 llamadas/agente)',
-  },
-];
+// Inicia vacío — el CEO registra decisiones desde Vicky con "Crear Acción → Decision Log"
+export const decisionLog: {
+  id: string;
+  insight: string;
+  decision: string;
+  responsible: string;
+  status: 'Pendiente' | 'En progreso' | 'Planificada' | 'Resuelto';
+  date: string;
+  impact: string;
+}[] = [];
 
 // ─── Surprise Questions ───────────────────────────────────────────────────────
 
