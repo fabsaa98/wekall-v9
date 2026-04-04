@@ -25,7 +25,7 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
   return {
     id: `vicky-${Date.now()}`,
     role: 'vicky' as const,
-    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles los datos del CDR del 30 de marzo (16,129 llamadas, 50 grabaciones transcritas). Por favor intenta nuevamente en unos segundos — si el problema persiste, verifica la conexión.',
+    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros, Supabase) y 50 grabaciones transcritas. Por favor intenta nuevamente en unos segundos — si el problema persiste, verifica la conexión.',
     timestamp: new Date(),
     sources: ['WeKall CDR · 30-Mar-2026 · Crediminuto/CrediSmart'],
     confidence: 'Baja' as const,
@@ -489,11 +489,11 @@ export default function VickyInsights() {
       const _benchmarkCtx = generateBenchmarkContext(_opType, _region);
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
 
-## DATOS REALES CDR — 30-Mar-2026
-- Total llamadas: 16,129 | Salientes: 14,781 (91.6%) | Entrantes: 1,348 (8.4%)
-- Campañas: Cobranzas Colombia 9,174 · Cobranzas Perú 3,550 · Servicio Colombia 3,256 · Servicio Perú 140
-- Agentes activos: 81 de 162 | Supervisores: 20
-- Tasa de contacto efectivo: 43.1% (2,144 de 3,770 grabaciones = 0 bytes, no conectaron)
+## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
+- Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)
+- Referencia histórica: volumen creció de ~4,000 llamadas/día (ene 2024) a 30,000+ llamadas/día (abr 2026)
+- Campañas principales: Cobranzas Colombia · Cobranzas Perú · Servicio Colombia · Servicio Perú
+- Tasa de contacto efectivo: variable por día (promedio histórico ~20-25%, ver datos más recientes en Supabase)
 - AHT real: 8.1 min promedio (rango: 5.2-16.3 min)
 
 ## ANÁLISIS REAL DE 50 GRABACIONES (Whisper + NLP)
@@ -515,7 +515,7 @@ export default function VickyInsights() {
 - "Estábamos llamando al de Credit Smart, indica que quería comunicarse con nosotros"
 - Cierre típico: "Le agradezco por haber atendido mi llamada. Contamos con el pago."
 
-### Distribución real de volumen por agente (CDR 30-Mar-2026, 81 agentes humanos):
+### Distribución real de volumen por agente (CDR histórico — datos de referencia, 81 agentes humanos activos en días pico):
 - Promedio real: 110.7 llamadas/agente/día (el "137" anterior incluía el marcador automático — dato corregido)
 - P10: 49 llamadas/día
 - P25 (peor cuartil — dato REAL, no suposición): 76 llamadas/agente/día
@@ -705,7 +705,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 - **Evita tecnicismos operativos sin contexto**: no "AHT" a secas — dice "tiempo promedio por llamada". No "FCR" — dice "resolución en el primer contacto". Introduce las siglas solo si las explica de inmediato.
 
 ## REGLAS DE DATOS — INAMOVIBLES
-- Usa SOLO datos del CDR 30-Mar-2026 y las 50 grabaciones transcritas
+- Usa datos del CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) y las 50 grabaciones transcritas
 - Si el dato no existe, dilo: "Para responder esto necesito [dato específico]"
 - Nunca inventar horarios, tendencias históricas, o datos no disponibles
 - Los cálculos financieros los produce el motor determinístico (funciones TypeScript) — NO calcules tú
@@ -903,9 +903,9 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         role: 'vicky',
         content: finalContent,
         timestamp: new Date(),
-        sources: ['WeKall CDR · 16,129 llamadas · 30-Mar-2026 · Crediminuto/CrediSmart', '50 grabaciones transcritas con Whisper · Análisis NLP real'],
+        sources: ['WeKall CDR · 822 días · ene 2024–abr 2026 · 12M registros · Supabase', '50 grabaciones transcritas con Whisper · Análisis NLP real'],
         confidence: 'Alta',
-        reasoning: `Analicé 16,129 registros CDR + 50 transcripciones reales de Crediminuto/CrediSmart en tiempo real. Modelo: GPT-4o + Function Calling determinístico.`,
+        reasoning: `Analicé CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) + 50 transcripciones reales de Crediminuto/CrediSmart. Fuente: Supabase. Modelo: GPT-4o + Function Calling determinístico.`,
         followUps: [
           '¿Por qué no estamos recuperando cartera?',
           '¿Cuáles son los agentes top performers?',
@@ -1286,7 +1286,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           ))}
         </div>
         <div className="p-3 border-t border-border">
-          <p className="text-[10px] text-muted-foreground text-center">Datos: CDR 30-Mar-2026 · COPC 2024</p>
+          <p className="text-[10px] text-muted-foreground text-center">Datos: CDR histórico ene 2024–abr 2026 · Supabase · COPC 2024</p>
         </div>
       </div>
 

@@ -1,21 +1,20 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, BarChart2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, BarChart2, Loader2 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { KPICard } from '@/components/KPICard';
 import { KPICardCompact } from '@/components/KPICardCompact';
 import { useRole } from '@/contexts/RoleContext';
-import { getKPIsForRole, kpiData, conversationTrend, proactiveInsights } from '@/data/mockData';
+import { proactiveInsights, buildKPIsFromCDR, buildConversationTrend } from '@/data/mockData';
+import { useCDRData } from '@/hooks/useCDRData';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 export default function Overview() {
   const { role } = useRole();
   const navigate = useNavigate();
-  const roleKPIs = getKPIsForRole(role);
-  const primaryKPIs = roleKPIs.slice(0, 4);
-  const secondaryKPIs = kpiData.filter(k => !primaryKPIs.includes(k)).slice(0, 6);
+  const cdr = useCDRData();
 
   const [briefExpanded, setBriefExpanded] = useState(false);
 
@@ -29,22 +28,35 @@ export default function Overview() {
     'COO': `${saludo}, COO.`,
   };
 
+  // Brief dinámico desde datos Supabase
+  const latestFecha = cdr.latestDay?.fecha ?? '...';
+  const latestLlamadas = cdr.latestDay?.total_llamadas?.toLocaleString('es-CO') ?? '...';
+  const latestTasa = cdr.latestDay?.tasa_contacto_pct ?? 0;
+
   const briefs: Record<string, { short: string; full: string }> = {
     'CEO': {
-      short: 'Crediminuto / CrediSmart procesó 16,129 conversaciones el 30 de marzo. Cobranzas Colombia lidera con 9,174 llamadas (56.9%). Teresa Meza es tu agente top con 261 contactos. Variación vs. día anterior: N/D (se requiere CDR histórico).',
-      full: 'La operación Colombia generó 12,430 llamadas (77.1%) y Perú 3,690 (22.9%). 81 agentes humanos activos de 162 disponibles. 44.4% del volumen (7,162 llamadas) pasó por el dialer automático wekall — excluido del análisis de agentes humanos. Tasa de contacto efectivo: 43.1% — 2 puntos bajo la mediana Latam (COPC 2024). Comparación semanal: N/D (se requiere CDR de múltiples días).',
+      short: cdr.loading
+        ? 'Cargando datos en tiempo real desde Supabase...'
+        : `Crediminuto / CrediSmart procesó ${latestLlamadas} llamadas el ${latestFecha}. Tasa de contacto efectivo: ${latestTasa}% (promedio 7d: ${cdr.promedio7dTasa}%, promedio 30d: ${cdr.promedio30dTasa}%). Datos: CDR histórico 822 días, ene 2024 - abr 2026.`,
+      full: `Contactos efectivos: ${cdr.latestDay?.contactos_efectivos?.toLocaleString('es-CO') ?? '...'} (${latestTasa}% del total). Delta vs promedio 7d: ${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp. Fuente: Supabase — cdr_daily_metrics, 12 millones de registros.`,
     },
     'VP Ventas': {
-      short: 'Cobranzas Colombia (9,174 llamadas) y Cobranzas Perú (3,550) concentran el 79% del volumen. Teresa Meza lidera con 261 contactos — 2.4x el promedio del equipo (110.7). Tendencia vs. semana anterior: N/D.',
-      full: 'Top 5 agentes por volumen (CDR 30-Mar-2026): Teresa Meza (261), Juan Gutierrez (211), Nelcy Contasti (194), Santiago Cano (183), Alejandra Perez (180). El cuartil inferior (20 agentes) promedia 76 llamadas/día — brecha de 35 llamadas/agente vs. el promedio del equipo.',
+      short: cdr.loading
+        ? 'Cargando datos en tiempo real...'
+        : `Volumen ${latestFecha}: ${latestLlamadas} llamadas. Tasa de contacto: ${latestTasa}% (promedio 7d: ${cdr.promedio7dTasa}%). Delta: ${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp.`,
+      full: `Promedio 30d: ${cdr.promedio30dTasa}% | Promedio 7d: ${cdr.promedio7dTasa}%. Datos reales desde Supabase — 822 días de CDR histórico.`,
     },
     'VP CX': {
-      short: 'Servicio al Cliente Colombia: 3,256 llamadas el 30 de marzo. Servicio al Cliente Perú: 140 llamadas. FCR por agente: N/D (requiere integración Engage360). Variación vs. día anterior: N/D.',
-      full: 'Jennifer Loaiza y Alejandra Perez son top performers en CX por volumen. Servicio Perú (140 llamadas) representa solo el 0.9% del total — desproporcionado vs. el 22% de volumen en cobranzas Perú. CSAT y FCR individual: N/D (requiere análisis adicional de transcripciones o datos Engage360).',
+      short: cdr.loading
+        ? 'Cargando datos en tiempo real...'
+        : `Contactos efectivos el ${latestFecha}: ${cdr.latestDay?.contactos_efectivos?.toLocaleString('es-CO') ?? '...'} de ${latestLlamadas} llamadas (${latestTasa}%). Datos: Supabase en tiempo real.`,
+      full: `Promedio 7d tasa contacto: ${cdr.promedio7dTasa}% | Promedio 30d: ${cdr.promedio30dTasa}%. FCR y CSAT por agente requieren integración Engage360.`,
     },
     'COO': {
-      short: '81 agentes activos de 162 en plataforma — 50% de utilización del pool. 7,162 llamadas del dialer automático (44.4%). AHT: 8.1 min vs. benchmark Colombia 7.8 min (P50, CCContact 2024). Variación semana anterior: N/D.',
-      full: 'Cuartil inferior: 20 agentes con menos de 76 llamadas/día (bottom: Paola Joya 4, Yuleidy Gonzalez 7, Vannesa Sauce 9). El dialer automático maneja el mayor volumen individual — excluido del análisis de productividad humana. AHT brecha vs. P50: +0.3 min = COP ~$592,000/día de capacidad por encima del benchmark. Utilización de agentes: N/D (requiere datos de login/logout de Engage360).',
+      short: cdr.loading
+        ? 'Cargando datos en tiempo real...'
+        : `Operación ${latestFecha}: ${latestLlamadas} llamadas. Tasa de contacto: ${latestTasa}% (${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp vs promedio 7d de ${cdr.promedio7dTasa}%). AHT referencia: 8.1 min (benchmark Colombia: 7.8 min).`,
+      full: `Datos en tiempo real desde Supabase — cdr_daily_metrics (822 días). Delta tasa 30d: ${cdr.promedio30dTasa}%. Utilización de agentes por día requiere datos Engage360.`,
     },
   };
 
@@ -62,6 +74,41 @@ export default function Overview() {
     info: 'border-blue-500/20 bg-blue-500/5',
   };
 
+  // KPIs dinámicos desde Supabase
+  const allKPIs = buildKPIsFromCDR(cdr.latestDay, cdr.sparklineTasa, cdr.sparklineVolumen, cdr.promedio7dTasa);
+  const primaryKPIs = allKPIs.slice(0, 4);
+  const secondaryKPIs = allKPIs.slice(4);
+
+  // Trend chart desde datos Supabase
+  const conversationTrend = buildConversationTrend(cdr.last7Days);
+
+  // Loading skeleton
+  if (cdr.loading) {
+    return (
+      <div className="p-6 flex-1 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <Loader2 size={32} className="text-primary animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Cargando datos desde Supabase...</p>
+          <p className="text-xs text-muted-foreground">CDR histórico 822 días · ene 2024 – abr 2026</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (cdr.error) {
+    return (
+      <div className="p-6 flex-1 flex items-center justify-center">
+        <div className="text-center space-y-3 max-w-md">
+          <AlertTriangle size={32} className="text-red-400 mx-auto" />
+          <p className="text-sm font-semibold text-foreground">Error al conectar con Supabase</p>
+          <p className="text-xs text-muted-foreground">{cdr.error}</p>
+          <p className="text-xs text-muted-foreground">Verifica la conexión e intenta nuevamente.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1">
 
@@ -74,7 +121,7 @@ export default function Overview() {
             </div>
             <div className="flex-1">
               <p className="text-xs text-primary font-semibold uppercase tracking-widest mb-1">
-                Executive Brief · Hoy
+                Executive Brief · {latestFecha} · Supabase en tiempo real
               </p>
               <p className="text-sm font-semibold text-foreground mb-1">{greetings[role]}</p>
               <p className="text-sm text-muted-foreground leading-relaxed">{brief.short}</p>
@@ -101,7 +148,7 @@ export default function Overview() {
       {/* Primary KPIs */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-          KPIs Principales — Vista {role}
+          KPIs Principales — Vista {role} · Datos Supabase en tiempo real
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {primaryKPIs.map((kpi, i) => (
@@ -121,8 +168,7 @@ export default function Overview() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Tendencia de Conversaciones</h2>
-              <p className="text-xs text-muted-foreground">Últimos 7 días</p>
-              <p className="text-xs text-amber-600 mt-1">* Estimado · ✓ Dato real CDR 30-Mar-2026</p>
+              <p className="text-xs text-muted-foreground">Últimos 7 días hábiles · Supabase en tiempo real</p>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
@@ -131,11 +177,7 @@ export default function Overview() {
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-0.5 bg-emerald-500 rounded-full inline-block" />
-                Resueltas
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-red-500 rounded-full inline-block" />
-                Escaladas
+                Contactos efectivos
               </span>
             </div>
           </div>
@@ -159,8 +201,7 @@ export default function Overview() {
                 labelStyle={{ color: '#12172A' }}
               />
               <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" />
-              <Area type="monotone" dataKey="resolved" name="Resueltas" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" />
-              <Area type="monotone" dataKey="escalated" name="Escaladas" stroke="#EF4444" strokeWidth={1.5} fill="none" strokeDasharray="4 2" />
+              <Area type="monotone" dataKey="resolved" name="Contactos" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -190,20 +231,22 @@ export default function Overview() {
       </div>
 
       {/* Secondary KPIs */}
-      <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-          Métricas Secundarias
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {secondaryKPIs.map((kpi, i) => (
-            <KPICardCompact
-              key={kpi.id}
-              kpi={kpi}
-              className={`animate-fade-slide-up animate-stagger-${i + 1}`}
-            />
-          ))}
+      {secondaryKPIs.length > 0 && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            Métricas Secundarias
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {secondaryKPIs.map((kpi, i) => (
+              <KPICardCompact
+                key={kpi.id}
+                kpi={kpi}
+                className={`animate-fade-slide-up animate-stagger-${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

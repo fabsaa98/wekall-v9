@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { AlertTriangle, Info, XCircle, Plus, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, Info, XCircle, Plus, X, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
 import { Bell, BellOff } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { alertsData as initialAlerts, type Alert } from '@/data/mockData';
+import { buildAlertsFromCDR, type Alert } from '@/data/mockData';
+import { useCDRData } from '@/hooks/useCDRData';
 import { cn } from '@/lib/utils';
 
 const exampleChips = [
@@ -90,10 +91,24 @@ function AlertCard({ alert, onToggle }: { alert: Alert; onToggle: (id: string) =
 }
 
 export default function Alertas() {
-  const [alerts, setAlerts] = useState(initialAlerts);
+  const cdr = useCDRData();
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertTab, setAlertTab] = useState('active');
   const [nlInput, setNlInput] = useState('');
   const [addedMsg, setAddedMsg] = useState('');
+
+  // Cargar alertas dinámicas desde Supabase cuando llegan los datos CDR
+  useEffect(() => {
+    if (!cdr.loading && !cdr.error) {
+      const dynamicAlerts = buildAlertsFromCDR(
+        cdr.latestDay,
+        cdr.promedio7dTasa,
+        cdr.promedio30dTasa,
+        cdr.deltaTasa,
+      );
+      setAlerts(dynamicAlerts);
+    }
+  }, [cdr.loading, cdr.error, cdr.latestDay, cdr.promedio7dTasa, cdr.promedio30dTasa, cdr.deltaTasa]);
 
   function toggleAlert(id: string) {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, active: !a.active } : a));
@@ -126,8 +141,14 @@ export default function Alertas() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Alertas Inteligentes</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Monitoreo en tiempo real de tus KPIs · {activeAlerts.length} activas
+        <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
+          {cdr.loading ? (
+            <><Loader2 size={12} className="animate-spin" /> Cargando datos desde Supabase...</>
+          ) : cdr.error ? (
+            <span className="text-red-400">Error Supabase: {cdr.error}</span>
+          ) : (
+            <>Datos en tiempo real desde Supabase · {activeAlerts.length} activas · CDR {cdr.latestDay?.fecha}</>
+          )}
         </p>
       </div>
 
