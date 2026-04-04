@@ -1,6 +1,11 @@
 // vickyCalculations.ts
 // Motor de cálculo determinístico para Vicky Insights
 // Todos los cálculos financieros viven aquí — nunca en el LLM
+//
+// ⚠️ REGLA: Los parámetros financieros (costo agente, headcount, nómina)
+// NO son constantes hardcodeadas. Se leen de Supabase tabla client_config.
+// Los valores de OPS son solo el fallback de inicialización hasta que
+// Supabase responda — se sobreescriben en runtime.
 
 export interface CalcResult {
   formula: string;
@@ -12,16 +17,18 @@ export interface CalcResult {
   scenarios?: Record<string, string>;
 }
 
-// ─── Constantes operativas reales (CDR 30-Mar-2026) ────────────────────────────
-export const OPS = {
-  // Volúmenes
+// ─── Parámetros operativos — SE CARGAN DESDE SUPABASE (client_config) ────────
+// Valores iniciales = fallback temporal mientras Supabase responde.
+// Actualizar siempre via Supabase, nunca editando este archivo.
+export let OPS = {
+  // Volúmenes — se actualizan desde CDR Supabase
   llamadasTotales: 16129,
   contactosEfectivos: 6951,
   tasaContacto: 0.431,
   promesasPago: 2780,
   tasaPromesa: 0.40,
 
-  // Agentes
+  // Agentes — se actualiza desde client_config en Supabase
   agentesActivos: 81,
   promedioLlamadasAgente: 110.7,
   p10Agentes: 49,
@@ -29,21 +36,52 @@ export const OPS = {
   p50Agentes: 120,
   p75Agentes: 143,
   p90Agentes: 154,
-  topAgente: 261, // Teresa Meza
+  topAgente: 261,
 
   // Tiempos
   ahtMinutos: 8.1,
   horasTrabajo: 8,
   diasLaborales: 22,
 
-  // Costos Colombia
-  costoAgenteMes: 3_000_000,
-  nominaActivaMes: 243_000_000,
-  costoAgentePorMinuto: 284, // 3M / 22 días / 8h / 60min
+  // Costos — SE CARGAN DESDE client_config EN SUPABASE
+  // ⚠️ NO hardcodear aquí. Si el salario mínimo cambia o el cliente
+  // es de otro país, actualizar en Supabase tabla client_config.
+  costoAgenteMes: 3_000_000,      // cargado desde client_config.costo_agente_mes
+  nominaActivaMes: 243_000_000,   // cargado desde client_config.nomina_total_mes
+  costoAgentePorMinuto: 284,      // calculado: costoAgenteMes / (diasLaborales * horasTrabajo * 60)
+  currency: 'COP',                // cargado desde client_config.currency
+  country: 'colombia',            // cargado desde client_config.country
 
   // TRM referencia
   trmCopUsd: 4100,
-} as const;
+};
+
+// ─── Función para cargar configuración desde Supabase ─────────────────────────
+// Llamar al iniciar la app o al cambiar de cliente.
+export async function loadClientConfig(clientId = 'credismart'): Promise<boolean> {
+  try {
+    const { getActiveClientConfig } = await import('./supabase');
+    const config = await getActiveClientConfig();
+    if (!config) return false;
+
+    // Actualizar OPS con datos reales del cliente
+    OPS = {
+      ...OPS,
+      agentesActivos: config.agentes_activos,
+      costoAgenteMes: config.costo_agente_mes,
+      nominaActivaMes: config.nomina_total_mes,
+      costoAgentePorMinuto: Math.round(
+        config.costo_agente_mes / (OPS.diasLaborales * OPS.horasTrabajo * 60)
+      ),
+      currency: config.currency,
+      country: config.country,
+    };
+    return true;
+  } catch {
+    // Fallback silencioso — usa valores de inicialización
+    return false;
+  }
+}
 
 // ─── Datos laborales por país (fuentes oficiales) ─────────────────────────────
 export const LABOR_COSTS = {

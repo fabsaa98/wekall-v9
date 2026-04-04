@@ -75,3 +75,39 @@ export async function getHourlyDistribution(fecha: string): Promise<CDRHourlyMet
   if (error) throw error;
   return data || [];
 }
+
+// ─── Configuración de cliente (parámetros EBITDA por cliente) ─────────────────
+export interface ClientConfig {
+  client_id: string;
+  client_name: string;
+  country: string;           // 'colombia' | 'peru' | 'mexico' | ...
+  currency: string;          // 'COP' | 'PEN' | 'MXN' | ...
+  costo_agente_mes: number;  // costo real empresa por agente/mes en moneda local
+  agentes_activos: number;   // headcount actual
+  nomina_total_mes: number;  // nómina total = costo_agente_mes × agentes_activos
+  trm_cop?: number;          // TRM si la moneda no es COP
+  notas?: string;
+  updated_at?: string;
+}
+
+export async function getClientConfig(clientId: string): Promise<ClientConfig | null> {
+  const { data, error } = await supabase
+    .from('client_config')
+    .select('*')
+    .eq('client_id', clientId)
+    .single();
+  if (error) return null;
+  return data;
+}
+
+export async function getActiveClientConfig(): Promise<ClientConfig | null> {
+  // Trae el cliente activo (el más reciente o el único configurado)
+  const { data, error } = await supabase
+    .from('client_config')
+    .select('*')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (error) return null;
+  return data;
+}
