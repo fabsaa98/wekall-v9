@@ -1,15 +1,20 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   Upload, FileAudio, FileText, FileSpreadsheet, Image as ImageIcon,
-  Loader2, Zap, CheckCircle, AlertCircle, X, Brain,
+  Loader2, Zap, CheckCircle, AlertCircle, X, Brain, MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
-type FileType = 'audio' | 'pdf' | 'excel' | 'csv' | 'word' | 'image' | 'unknown';
+type FileType = 'audio' | 'pdf' | 'excel' | 'csv' | 'word' | 'image' | 'whatsapp' | 'unknown';
 type ProcessStatus = 'idle' | 'extracting' | 'analyzing' | 'done' | 'error';
+
+interface WhatsAppMeta {
+  participants: string[];
+  messageCount: number;
+}
 
 interface ProcessedDoc {
   fileName: string;
@@ -18,6 +23,7 @@ interface ProcessedDoc {
   analysis: string;
   sources?: string[];
   error?: string;
+  whatsappMeta?: WhatsAppMeta;
 }
 
 function detectFileType(file: File): FileType {
@@ -29,7 +35,34 @@ function detectFileType(file: File): FileType {
   if (type === 'text/csv' || name.endsWith('.csv')) return 'csv';
   if (type.includes('wordprocessingml') || name.endsWith('.docx') || name.endsWith('.doc')) return 'word';
   if (type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/.test(name)) return 'image';
+  // .txt files — WhatsApp detection happens after reading content
+  if (name.endsWith('.txt') || name.endsWith('.json')) return 'whatsapp';
   return 'unknown';
+}
+
+function isWhatsAppChat(text: string): boolean {
+  return /\[\d{1,2}\/\d{1,2}\/\d{2,4},\s*\d{1,2}:\d{2}:\d{2}\]/.test(text);
+}
+
+function parseWhatsAppChat(text: string): { parsed: string; participants: string[]; messageCount: number } {
+  const lines = text.split('\n').filter(l => l.trim());
+  const pattern = /\[[\d\/,\s:]+\]\s([^:]+):\s(.+)/;
+  const participants = new Set<string>();
+  const messages: string[] = [];
+
+  for (const line of lines) {
+    const match = line.match(pattern);
+    if (match) {
+      participants.add(match[1].trim());
+      messages.push(`${match[1].trim()}: ${match[2].trim()}`);
+    }
+  }
+
+  return {
+    parsed: messages.join('\n'),
+    participants: Array.from(participants),
+    messageCount: messages.length,
+  };
 }
 
 function fileTypeIcon(ft: FileType) {
@@ -40,6 +73,7 @@ function fileTypeIcon(ft: FileType) {
     case 'csv': return <FileSpreadsheet size={20} className="text-green-400" />;
     case 'word': return <FileText size={20} className="text-blue-500" />;
     case 'image': return <ImageIcon size={20} className="text-yellow-400" />;
+    case 'whatsapp': return <MessageCircle size={20} className="text-green-500" />;
     default: return <FileText size={20} className="text-muted-foreground" />;
   }
 }
@@ -52,6 +86,7 @@ function fileTypeLabel(ft: FileType): string {
     case 'csv': return 'CSV → Tabla';
     case 'word': return 'Word → Texto';
     case 'image': return 'Imagen → GPT-4o Vision';
+    case 'whatsapp': return 'Chat WhatsApp → Parser';
     default: return 'Documento';
   }
 }
@@ -144,6 +179,7 @@ async function analyzeWithVicky(
   extractedContent: string,
   fileType: FileType,
   fileName: string,
+  whatsappMeta?: WhatsAppMeta,
 ): Promise<{ analysis: string; sources: string[] }> {
   if (!PROXY_URL) {
     return {
@@ -153,9 +189,14 @@ async function analyzeWithVicky(
   }
 
   const isImage = fileType === 'image';
+  const isWhatsApp = fileType === 'whatsapp';
   const opType = detectOperationType('cobranzas colombia crediminuto promesa pago deuda');
   const region = detectRegion('cobranzas colombia crediminuto promesa pago deuda');
   const benchmarkCtx = generateBenchmarkContext(opType, region);
+
+  const whatsappExtra = isWhatsApp
+    ? `\nEste es un chat de WhatsApp exportado. Analiza: tono de la conversación, problemas mencionados por el cliente, cómo respondió el agente, si se resolvió el problema, y recomendaciones para el agente.`
+    : '';
 
   const systemPrompt = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
 
@@ -164,7 +205,7 @@ Tu misión es analizar documentos que el CEO sube y cruzarlos con los datos oper
 ${CDR_CONTEXT}
 
 ${benchmarkCtx}
-
+${whatsappExtra}
 INSTRUCCIONES:
 1. Analiza el contenido del documento adjunto
 2. Identifica elementos relevantes para la operación de cobranzas o servicio
@@ -191,7 +232,9 @@ INSTRUCCIONES:
               image_url: { url: extractedContent, detail: 'high' },
             },
           ]
-        : `El CEO subió "${fileName}" (${fileType}). Contenido extraído:\n\n---\n${extractedContent.slice(0, 8000)}\n---\n\nAnaliza y cruza con datos del CDR. Insights y recomendaciones accionables.`,
+        : isWhatsApp && whatsappMeta
+          ? `El CEO subió el chat de WhatsApp "${fileName}". Chat de WhatsApp entre: ${whatsappMeta.participants.join(', ')}. ${whatsappMeta.messageCount} mensajes.\n\n---\n${extractedContent.slice(0, 8000)}\n---\n\nAnaliza y cruza con datos del CDR. Insights y recomendaciones accionables.`
+          : `El CEO subió "${fileName}" (${fileType}). Contenido extraído:\n\n---\n${extractedContent.slice(0, 8000)}\n---\n\nAnaliza y cruza con datos del CDR. Insights y recomendaciones accionables.`,
     },
   ];
 
@@ -231,6 +274,8 @@ const ACCEPTED_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/msword',
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'text/plain',
+  'application/json',
 ].join(',');
 
 export default function DocumentAnalysis() {
@@ -247,8 +292,9 @@ export default function DocumentAnalysis() {
     setCurrentFile(file.name);
     setError('');
 
-    const fileType = detectFileType(file);
+    let fileType = detectFileType(file);
     let extractedText = '';
+    let whatsappMeta: WhatsAppMeta | undefined;
 
     try {
       switch (fileType) {
@@ -268,12 +314,25 @@ export default function DocumentAnalysis() {
         case 'image':
           extractedText = await extractImage(file);
           break;
+        case 'whatsapp': {
+          const rawText = await file.text();
+          if (isWhatsAppChat(rawText)) {
+            const parsed = parseWhatsAppChat(rawText);
+            extractedText = parsed.parsed;
+            whatsappMeta = { participants: parsed.participants, messageCount: parsed.messageCount };
+          } else {
+            // Plain text file, not a WhatsApp chat — treat as generic text
+            fileType = 'unknown';
+            extractedText = rawText.slice(0, 15000);
+          }
+          break;
+        }
         default:
-          throw new Error('Tipo de archivo no soportado. Usa: Audio, PDF, Excel, CSV, Word o Imagen.');
+          throw new Error('Tipo de archivo no soportado. Usa: Audio, PDF, Excel, CSV, Word, Imagen o Chat WhatsApp (.txt).');
       }
 
       setStatus('analyzing');
-      const { analysis, sources } = await analyzeWithVicky(extractedText, fileType, file.name);
+      const { analysis, sources } = await analyzeWithVicky(extractedText, fileType, file.name, whatsappMeta);
 
       const doc: ProcessedDoc = {
         fileName: file.name,
@@ -281,6 +340,7 @@ export default function DocumentAnalysis() {
         extractedText: fileType === 'image' ? '[Imagen procesada por GPT-4o Vision]' : extractedText,
         analysis,
         sources,
+        whatsappMeta,
       };
 
       setDocs(prev => [doc, ...prev]);
@@ -356,10 +416,10 @@ export default function DocumentAnalysis() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">Arrastra o haz clic</p>
-                    <p className="text-xs text-muted-foreground mt-1">Audio · PDF · Excel · CSV · Word · Imagen</p>
+                    <p className="text-xs text-muted-foreground mt-1">Audio · PDF · Excel · CSV · Word · Imagen · Chat WhatsApp</p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-1 mt-1">
-                    {['MP3', 'PDF', 'XLSX', 'CSV', 'DOCX', 'PNG'].map(fmt => (
+                    {['MP3', 'PDF', 'XLSX', 'CSV', 'DOCX', 'PNG', 'TXT'].map(fmt => (
                       <span key={fmt} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-secondary border border-border text-muted-foreground">
                         {fmt}
                       </span>
@@ -389,18 +449,24 @@ export default function DocumentAnalysis() {
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Formatos soportados</p>
             <div className="space-y-1.5">
               {[
-                { icon: <FileAudio size={13} className="text-blue-400" />, label: 'Audio', desc: 'MP3, WAV, M4A → Whisper AI' },
-                { icon: <FileText size={13} className="text-red-400" />, label: 'PDF', desc: 'Extracción automática de texto' },
-                { icon: <FileSpreadsheet size={13} className="text-green-400" />, label: 'Excel / CSV', desc: 'Análisis de datos y tablas' },
-                { icon: <FileText size={13} className="text-blue-500" />, label: 'Word', desc: 'Documentos .docx' },
-                { icon: <ImageIcon size={13} className="text-yellow-400" />, label: 'Imágenes', desc: 'JPG, PNG → GPT-4o Vision' },
-              ].map(({ icon, label, desc }) => (
+                { icon: <FileAudio size={13} className="text-blue-400" />, label: 'Audio', desc: 'MP3, WAV, M4A → Whisper AI', available: true },
+                { icon: <FileText size={13} className="text-red-400" />, label: 'PDF', desc: 'Extracción automática de texto', available: true },
+                { icon: <FileSpreadsheet size={13} className="text-green-400" />, label: 'Excel / CSV', desc: 'Análisis de datos y tablas', available: true },
+                { icon: <FileText size={13} className="text-blue-500" />, label: 'Word', desc: 'Documentos .docx', available: true },
+                { icon: <ImageIcon size={13} className="text-yellow-400" />, label: 'Imágenes', desc: 'JPG, PNG → GPT-4o Vision', available: true },
+                { icon: <MessageCircle size={13} className="text-green-500" />, label: 'Chat WhatsApp', desc: 'Exportación .txt de conversaciones', available: true },
+              ].map(({ icon, label, desc, available }) => (
                 <div key={label} className="flex items-center gap-2">
                   <span className="shrink-0">{icon}</span>
-                  <div>
+                  <div className="flex-1">
                     <span className="text-[11px] font-semibold text-foreground">{label}: </span>
                     <span className="text-[11px] text-muted-foreground">{desc}</span>
                   </div>
+                  {available && (
+                    <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-500/15 text-green-500 border border-green-500/30">
+                      DISPONIBLE
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -505,6 +571,23 @@ export default function DocumentAnalysis() {
                   <span className="text-[11px] font-semibold text-green-400">Análisis completo</span>
                 </div>
               </div>
+
+              {selectedDoc.whatsappMeta && (
+                <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={14} className="text-green-500" />
+                    <span className="text-xs font-semibold text-green-500">Chat WhatsApp</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">Participantes: </span>
+                    {selectedDoc.whatsappMeta.participants.join(', ')}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">Mensajes: </span>
+                    {selectedDoc.whatsappMeta.messageCount}
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
                 <div className="flex items-center gap-2 mb-3">
