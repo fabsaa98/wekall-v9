@@ -441,3 +441,100 @@ Vicky ahora conoce:
 - Transcripción via Whisper-1 (OpenAI) a través del proxy Cloudflare
 - Proxy actualizado: ruta /transcribe para audio, / para chat completions
 - Precisión: español nativo, ~$0.006/minuto de audio
+
+---
+
+## [V14.0.0] — 2026-04-03 — RAG Pipeline con Supabase
+
+### Feature: Retrieval-Augmented Generation (RAG)
+
+**Arquitectura:**
+- Supabase pgvector: tabla `transcriptions` + función `search_transcriptions` (cosine similarity)
+- 50 transcripciones cargadas con embeddings `text-embedding-3-small`
+- Cloudflare Worker: ruta `/rag-query` busca en pgvector antes de responder
+- VickyInsights: detecta palabras clave de agentes → `/rag-query`, resto → `/chat`
+
+**Supabase:**
+- Proyecto: wekall-intelligence
+- Región: São Paulo (menor latencia desde Colombia)
+- Schema: tabla `transcriptions` + función `search_transcriptions`
+
+**Decisión:** Supabase sobre Pinecone/Weaviate — plan gratuito, pgvector nativo, región LATAM.
+
+---
+
+## [V14.1.0] — 2026-04-03 — Webhook /ingest (Pipeline Automático)
+
+### Feature: Ingesta automática post-llamada
+
+**Endpoint:** `POST https://wekall-vicky-proxy.fabsaa98.workers.dev/ingest`
+
+**Payload:**
+```json
+{ "audio_url": "...", "agent_id": "...", "agent_name": "...", "campaign_id": "...", "call_date": "...", "call_type": "..." }
+```
+
+**Flujo automático:** Descarga audio → Whisper-1 → Resumen GPT-4o-mini → Embedding text-embedding-3-small → Supabase
+
+**Para activar en WeKall:** Configurar webhook post-llamada apuntando al endpoint con header `X-WeKall-Token`.
+
+---
+
+## [V15.0.0] — 2026-04-03 — Diarización Estéreo (pyannote)
+
+### Feature: Identificación automática de hablantes
+
+**Modelo:** pyannote/speaker-diarization-3.1  
+**Host:** Mac Mini de Celeru (puerto 8765)  
+**Acceso:** Cloudflare Tunnel → Worker `/diarize`
+
+**Instalación completada:**
+- pyannote.audio 4.0.4 + torch 2.11.0
+- Cuenta HuggingFace: fabsaa98 — 3 modelos con términos aceptados
+- LaunchAgent `com.wekall.diarization` — auto-arranque en reinicios
+- Script `start-diarization.sh` — actualiza automáticamente la URL del tunnel en CF secret
+
+**Endpoint:** `POST /diarize` — audio binario → JSON con segmentos por hablante
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "segments": [
+    {"speaker": "SPEAKER_00", "start": 0.065, "end": 1.145, "duration": 1.08}
+  ],
+  "num_speakers": 2,
+  "total_duration": 5.2
+}
+```
+
+**Decisión:** Mac Mini sobre CF Workers — CF Workers tiene límite 128MB RAM; pyannote necesita ~2-4GB. Cloudflare Tunnel para exposición pública sin IP fija.
+
+---
+
+## [V15.1.0] — 2026-04-04 — Cloudflare Worker Completo
+
+### Rutas activas en wekall-vicky-proxy
+
+| Ruta | Método | Descripción |
+|------|--------|-------------|
+| `/health` | GET | Status del proxy |
+| `/chat` o `/` | POST | Chat con GPT-4o |
+| `/transcribe` | POST | Whisper STT ($0.006/min) |
+| `/diarize` | POST | Diarización → Mac Mini pyannote |
+| `/rag-query` | POST | RAG sobre transcripciones Supabase |
+| `/ingest` | POST | Pipeline auto: audio → Whisper → embedding → Supabase |
+
+**CORS:** Actualizado para aceptar `wekall-intelligence.pages.dev` y `fabsaa98.github.io`
+
+---
+
+## REGLA PERMANENTE — Cero Hardcodeo (2026-04-03)
+
+> **"NUNCA más datos de negocio hardcodeados en el código."**
+
+- Todo dato de operación en Supabase, leído dinámicamente
+- Pipeline CDR nuevo: script → Supabase → app lee automáticamente  
+- Pipeline grabación: `/ingest` → Whisper → embedding → Supabase → Vicky disponible
+- Aplica a: KPIs, tasas, agentes, alertas, sparklines, promedios, transcripciones
+
