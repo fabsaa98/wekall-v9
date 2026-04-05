@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, BarChart2, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, TrendingDown, BarChart2, Loader2, Zap } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -109,8 +109,66 @@ export default function Overview() {
     );
   }
 
+  // ─── Banner de anomalía ─────────────────────────────────────────────────────
+  const anomaly = cdr.anomaly;
+  const anomalyVickyQuestion = anomaly?.detected
+    ? encodeURIComponent(
+        anomaly.direction === 'down'
+          ? `La tasa de contacto hoy (${anomaly.valorHoy}%) cayó ${anomaly.magnitude}pp por debajo del promedio 30 días (${anomaly.promedio30d}%). ¿Cuál es el diagnóstico y qué debemos hacer?`
+          : `La tasa de contacto hoy (${anomaly.valorHoy}%) subió ${anomaly.magnitude}pp por encima del promedio 30 días (${anomaly.promedio30d}%). ¿Qué está generando esta mejora y cómo la sostenemos?`,
+      )
+    : '';
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1">
+
+      {/* Banner de anomalía (si detectada) */}
+      {anomaly?.detected && (
+        <div className={cn(
+          'animate-fade-slide-down rounded-xl border p-4 flex items-start gap-3',
+          anomaly.direction === 'down'
+            ? 'border-red-500/30 bg-red-500/10'
+            : 'border-emerald-500/30 bg-emerald-500/10',
+        )}>
+          <div className={cn(
+            'p-2 rounded-lg shrink-0',
+            anomaly.direction === 'down' ? 'bg-red-500/20' : 'bg-emerald-500/20',
+          )}>
+            {anomaly.direction === 'down'
+              ? <TrendingDown size={18} className="text-red-400" />
+              : <TrendingUp size={18} className="text-emerald-400" />
+            }
+          </div>
+          <div className="flex-1">
+            <p className={cn(
+              'text-sm font-bold',
+              anomaly.direction === 'down' ? 'text-red-400' : 'text-emerald-400',
+            )}>
+              {anomaly.direction === 'down' ? '⚠️ Anomalía detectada' : '📈 Pico positivo detectado'}
+              {' '}— Tasa de contacto {anomaly.direction === 'down' ? 'inusualmente baja' : 'inusualmente alta'}
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">
+              Hoy: <strong className="text-foreground">{anomaly.valorHoy}%</strong> vs promedio 30d: {anomaly.promedio30d}%.
+              Diferencia: <strong className="text-foreground">{anomaly.direction === 'down' ? '-' : '+'}{anomaly.magnitude}pp</strong> ({Math.abs(anomaly.zScore)} desviaciones estándar).
+              {anomaly.direction === 'down'
+                ? ' Posible incidencia operativa, falla de marcador o baja por día no hábil.'
+                : ' La operación muestra un desempeño excepcional hoy.'}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate(`/vicky?q=${anomalyVickyQuestion}`)}
+            className={cn(
+              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
+              anomaly.direction === 'down'
+                ? 'border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                : 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20',
+            )}
+          >
+            <Zap size={13} />
+            Ver en Vicky
+          </button>
+        </div>
+      )}
 
       {/* Executive Brief */}
       <div className="animate-fade-slide-down rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-5">
