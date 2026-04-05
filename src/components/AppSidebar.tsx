@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
+import { useClient } from '@/contexts/ClientContext';
 
 const navItems = [
   { label: 'Overview', path: '/', icon: LayoutDashboard },
@@ -21,6 +22,8 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
   const { role } = useRole();
+  const { clientConfig, clientBranding } = useClient();
+  const clientDisplayName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
 
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
 
@@ -51,7 +54,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               <h1 className="text-sm font-bold text-foreground truncate">WeKall Intelligence</h1>
               <img
                 src="/credismart-logo.png"
-                alt="CrediSmart"
+                alt={clientDisplayName}
                 className="h-8 w-auto object-contain mt-0.5"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
@@ -111,7 +114,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             <div className="flex items-center justify-center px-2 py-1.5 rounded-lg bg-secondary/50">
               <img
                 src="/credismart-logo.png"
-                alt="CrediSmart"
+                alt={clientDisplayName}
                 className="h-7 w-auto object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
@@ -127,7 +130,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             {!collapsed && (
               <div className="overflow-hidden">
                 <p className="text-sm font-medium text-foreground truncate">{role}</p>
-                <p className="text-[10px] text-muted-foreground truncate">Crediminuto / CrediSmart</p>
+                <p className="text-[10px] text-muted-foreground truncate">{clientDisplayName}</p>
               </div>
             )}
           </div>

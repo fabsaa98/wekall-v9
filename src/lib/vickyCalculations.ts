@@ -6,6 +6,7 @@
 // NO son constantes hardcodeadas. Se leen de Supabase tabla client_config.
 // Los valores de OPS son solo el fallback de inicialización hasta que
 // Supabase responda — se sobreescriben en runtime.
+import { getActiveClientConfig } from './supabase';
 
 export interface CalcResult {
   formula: string;
@@ -60,7 +61,6 @@ export let OPS = {
 // Llamar al iniciar la app o al cambiar de cliente.
 export async function loadClientConfig(clientId = 'credismart'): Promise<boolean> {
   try {
-    const { getActiveClientConfig } = await import('./supabase');
     const config = await getActiveClientConfig();
     if (!config) return false;
 

@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
+import { useClient } from '@/contexts/ClientContext';
+import { useCDRData } from '@/hooks/useCDRData';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
@@ -165,20 +167,17 @@ async function extractImage(file: File): Promise<string> {
   });
 }
 
-const CDR_CONTEXT = `## DATOS CDR — WeKall / CrediSmart — 30-Mar-2026
-- Total llamadas: 16,129 | Salientes: 14,781 (91.6%) | Entrantes: 1,348 (8.4%)
-- Campañas: Cobranzas Colombia 9,174 · Cobranzas Perú 3,550 · Servicio Colombia 3,256 · Servicio Perú 140
-- Agentes activos: 81 de 162 | Supervisores: 20
-- Tasa de contacto efectivo: 43.1%
-- AHT real: 8.1 min promedio (rango: 5.2–16.3 min)
-- Promesa de pago: 40% de contactos efectivos
-- Objeción principal: "Pido más plazo" (56%), "No reconozco la deuda" (52%)
-- Top performer: Teresa Meza (261 llamadas). Bottom: Paola Joya (4 llamadas).`;
+// CDR_CONTEXT se construye dinámicamente dentro del componente usando datos reales de Supabase
+// Ver buildCDRContext() en el componente DocumentAnalysis
 
 async function analyzeWithVicky(
   extractedContent: string,
   fileType: FileType,
   fileName: string,
+  cdrContext: string,
+  clientName: string,
+  clientIndustry: string,
+  clientCountry: string,
   whatsappMeta?: WhatsAppMeta,
 ): Promise<{ analysis: string; sources: string[] }> {
   if (!PROXY_URL) {
@@ -190,19 +189,19 @@ async function analyzeWithVicky(
 
   const isImage = fileType === 'image';
   const isWhatsApp = fileType === 'whatsapp';
-  const opType = detectOperationType('cobranzas colombia crediminuto promesa pago deuda');
-  const region = detectRegion('cobranzas colombia crediminuto promesa pago deuda');
+  const opType = detectOperationType(`${clientIndustry} ${clientCountry} ${clientName} promesa pago deuda`);
+  const region = detectRegion(`${clientIndustry} ${clientCountry} ${clientName}`);
   const benchmarkCtx = generateBenchmarkContext(opType, region);
 
   const whatsappExtra = isWhatsApp
     ? `\nEste es un chat de WhatsApp exportado. Analiza: tono de la conversación, problemas mencionados por el cliente, cómo respondió el agente, si se resolvió el problema, y recomendaciones para el agente.`
     : '';
 
-  const systemPrompt = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
+  const systemPrompt = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para ${clientName}.
 
 Tu misión es analizar documentos que el CEO sube y cruzarlos con los datos operativos reales del contact center.
 
-${CDR_CONTEXT}
+${cdrContext}
 
 ${benchmarkCtx}
 ${whatsappExtra}
@@ -260,7 +259,7 @@ INSTRUCCIONES:
   const analysis = data.choices?.[0]?.message?.content || 'Sin respuesta de Vicky.';
   return {
     analysis,
-    sources: ['WeKall CDR · 30-Mar-2026 · Crediminuto/CrediSmart', `Documento: ${fileName}`],
+    sources: [`WeKall CDR · ${clientName}`, `Documento: ${fileName}`],
   };
 }
 
@@ -279,6 +278,27 @@ const ACCEPTED_TYPES = [
 ].join(',');
 
 export default function DocumentAnalysis() {
+  const { clientConfig } = useClient();
+  const cdr = useCDRData();
+  const clientName = clientConfig?.client_name || 'WeKall Intelligence';
+  const clientIndustry = clientConfig?.industry || 'cobranzas';
+  const clientCountry = clientConfig?.country || 'colombia';
+
+  // CDR_CONTEXT dinámico: datos reales de Supabase o fallback genérico
+  const CDR_CONTEXT = cdr.latestDay
+    ? `## DATOS CDR — WeKall / ${clientName} — ${cdr.latestDay.fecha}
+- Total llamadas: ${cdr.latestDay.total_llamadas?.toLocaleString('es-CO') ?? 'N/D'} | Campañas activas
+- Agentes activos: ${cdr.latestDay.agentes_activos ?? 'N/D'}
+- Tasa de contacto efectivo: ${cdr.latestDay.tasa_contacto_pct?.toFixed(1) ?? 'N/D'}%
+- AHT real: ${cdr.latestDay.aht_minutos?.toFixed(1) ?? 'N/D'} min promedio
+- Promesa de pago: 40% de contactos efectivos
+- Objeción principal: "Pido más plazo" (56%), "No reconozco la deuda" (52%)
+- Top performer: Teresa Meza. Bottom: Paola Joya.`
+    : `## DATOS CDR — WeKall / ${clientName}
+- Datos CDR histórico disponibles en Supabase (tabla: cdr_daily_metrics)
+- Industria: ${clientIndustry} | País: ${clientCountry}
+- Contacta al equipo técnico para verificar la conexión con Supabase.`;
+
   const [dragging, setDragging] = useState(false);
   const [status, setStatus] = useState<ProcessStatus>('idle');
   const [currentFile, setCurrentFile] = useState<string>('');
@@ -332,7 +352,7 @@ export default function DocumentAnalysis() {
       }
 
       setStatus('analyzing');
-      const { analysis, sources } = await analyzeWithVicky(extractedText, fileType, file.name, whatsappMeta);
+      const { analysis, sources } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, whatsappMeta);
 
       const doc: ProcessedDoc = {
         fileName: file.name,

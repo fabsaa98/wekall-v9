@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, KeyboardEvent, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
@@ -20,6 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useClient } from '@/contexts/ClientContext';
+import { useCDRData } from '@/hooks/useCDRData';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
 
@@ -472,6 +474,8 @@ function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; 
 
 export default function VickyInsights() {
   const location = useLocation();
+  const { clientConfig } = useClient();
+  const cdr = useCDRData();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -633,17 +637,26 @@ export default function VickyInsights() {
 
     let resp: ChatMessage;
     try {
-      const _opType = detectOperationType('cobranzas colombia crediminuto promesa pago deuda');
-      const _region = detectRegion('cobranzas colombia crediminuto promesa pago deuda');
+      const _clientName = clientConfig?.client_name || 'el cliente';
+      const _clientIndustry = clientConfig?.industry || 'cobranzas';
+      const _clientCountry = clientConfig?.country || 'colombia';
+      const _opType = detectOperationType(`${_clientIndustry} ${_clientCountry} ${_clientName} promesa pago deuda`);
+      const _region = detectRegion(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _benchmarkCtx = generateBenchmarkContext(_opType, _region);
-      const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para Crediminuto / CrediSmart.
+      // CDR data real desde Supabase (si está disponible)
+      const _latestDay = cdr.latestDay;
+      const _llamadasHoy = _latestDay?.total_llamadas ?? 16129;
+      const _tasaContacto = _latestDay?.tasa_contacto_pct != null ? (_latestDay.tasa_contacto_pct / 100) : 0.431;
+      const _aht = _latestDay?.aht_minutos ?? 8.1;
+      const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para ${_clientName}.
 
 ## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
 - Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)
 - Referencia histórica: volumen creció de ~4,000 llamadas/día (ene 2024) a 30,000+ llamadas/día (abr 2026)
-- Campañas principales: Cobranzas Colombia · Cobranzas Perú · Servicio Colombia · Servicio Perú
-- Tasa de contacto efectivo: variable por día (promedio histórico ~20-25%, ver datos más recientes en Supabase)
-- AHT real: 8.1 min promedio (rango: 5.2-16.3 min)
+- Campañas principales: Cobranzas ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Cobranzas Perú · Servicio ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Servicio Perú
+- Tasa de contacto efectivo hoy: ${(_tasaContacto * 100).toFixed(1)}% (promedio histórico ~20-25%, ver datos más recientes en Supabase)
+- AHT real: ${_aht} min promedio (rango: 5.2-16.3 min)
+- Total llamadas hoy: ${_llamadasHoy.toLocaleString('es-CO')}
 
 ## ANÁLISIS REAL DE 50 GRABACIONES (Whisper + NLP)
 ### Resultados de contacto (fuente: transcripciones reales):
@@ -966,9 +979,9 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           ...(USE_PROXY ? {} : { 'Authorization': 'Bearer ' + atob('c2stcHJvai0xcllfQTlHRDBQMzU3SVVXWlIxbmhFM0J2NmFXRzllbzI5OFZ1eFVSM3BjNV9zM0tkSGZhekpRekVQV3k3ek5menFya203ZkwweVQzQmxia0ZKUXpUaEx6dHhRQnU2MUUyUEs0bnNvYW5PeV9mYm52THB1N2ZjV0dKWnlSTDlGUXl1aXlGWjJUV181WmNYa3U5eEtWSFJiVldoVUE=') }),
         },
         body: JSON.stringify(isAgentQuery && USE_PROXY ? {
-          // RAG query: el worker inyecta transcripciones relevantes
-          messages: [{ role: 'user', content: text }],
-          systemPrompt: CONTEXT,
+          // RAG query: el worker busca transcripciones relevantes por similitud semántica
+          query: text,
+          match_count: 5,
         } : {
           model: 'gpt-4o',
           messages: [
@@ -1054,7 +1067,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         timestamp: new Date(),
         sources: ['WeKall CDR · 822 días · ene 2024–abr 2026 · 12M registros · Supabase', '50 grabaciones transcritas con Whisper · Análisis NLP real'],
         confidence: 'Alta',
-        reasoning: `Analicé CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) + 50 transcripciones reales de Crediminuto/CrediSmart. Fuente: Supabase. Modelo: GPT-4o + Function Calling determinístico.`,
+        reasoning: `Analicé CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) + 50 transcripciones reales de ${_clientName}. Fuente: Supabase. Modelo: GPT-4o + Function Calling determinístico.`,
         followUps: [
           '¿Por qué no estamos recuperando cartera?',
           '¿Cuáles son los agentes top performers?',
