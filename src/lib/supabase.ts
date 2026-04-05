@@ -149,3 +149,47 @@ export async function getRecentAlertLog(limit = 10): Promise<AlertLogEntry[]> {
   if (error) throw error;
   return (data || []) as AlertLogEntry[];
 }
+
+// ─── Vicky Conversations ──────────────────────────────────────────────────────
+
+export interface VickyConversation {
+  id?: number;
+  session_id: string;
+  created_at?: string;
+  client_id?: string;
+  question: string;
+  answer: string;
+  confidence?: 'Alta' | 'Media' | 'Baja';
+  sources?: string[];
+  follow_ups?: string[];
+  model_used?: string;
+  tokens_used?: number;
+  latency_ms?: number;
+}
+
+export async function saveVickyConversation(entry: VickyConversation): Promise<void> {
+  const { error } = await supabase
+    .from('vicky_conversations')
+    .insert({
+      ...entry,
+      client_id: entry.client_id ?? 'credismart',
+      model_used: entry.model_used ?? 'gpt-4o',
+    });
+  if (error) throw error;
+}
+
+export async function getVickyHistory(sessionId?: string, limit = 20): Promise<VickyConversation[]> {
+  let query = supabase
+    .from('vicky_conversations')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (sessionId) {
+    query = query.eq('session_id', sessionId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []) as VickyConversation[];
+}

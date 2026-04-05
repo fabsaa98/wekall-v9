@@ -4,7 +4,9 @@ import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
   FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText, Info,
   Mic, MicOff, Loader2, MessageSquare, ClipboardList, Bell, BookOpen, CalendarPlus, CheckCircle2,
+  History,
 } from 'lucide-react';
+import { saveVickyConversation, getVickyHistory, type VickyConversation } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { calcularImpactoAHT, calcularImpactoContactRate, calcularImpactoAgentes, getEstadoOperativo } from '@/lib/vickyCalculations';
 import type { ChatMessage } from '@/data/mockData';
@@ -330,6 +332,144 @@ function convertirMarkdownAProsa(texto: string): string {
   return resultado.trim();
 }
 
+// ─── Historial Tab ─────────────────────────────────────────────────────────────
+
+function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; sessionId: string }) {
+  const [history, setHistory] = useState<VickyConversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getVickyHistory(undefined, 20);
+        setHistory(data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Error cargando historial');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [sessionId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-32">
+        <Loader2 size={20} className="animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 space-y-2 text-center">
+        <p className="text-sm text-red-400 font-medium">Error cargando historial</p>
+        <p className="text-xs text-muted-foreground">{error}</p>
+        <p className="text-xs text-muted-foreground">
+          La tabla <code className="bg-secondary px-1 rounded">vicky_conversations</code> puede no existir aún.
+          Ejecuta el script SQL en Supabase Dashboard.
+        </p>
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="p-6 text-center space-y-2">
+        <History size={28} className="mx-auto text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Sin conversaciones guardadas aún</p>
+        <p className="text-xs text-muted-foreground">
+          Las preguntas exitosas a Vicky se guardarán automáticamente aquí.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 space-y-2">
+      <p className="text-xs text-muted-foreground mb-3">
+        Últimas {history.length} conversaciones · tabla <code className="bg-secondary px-1 rounded">vicky_conversations</code>
+      </p>
+      {history.map((conv, i) => {
+        const ts = conv.created_at ? new Date(conv.created_at) : null;
+        const timeStr = ts
+          ? ts.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '—';
+        const isOpen = openId === (conv.id ?? i);
+
+        return (
+          <div
+            key={conv.id ?? i}
+            className="rounded-lg border border-border bg-card overflow-hidden"
+          >
+            {/* Header colapsable */}
+            <button
+              onClick={() => setOpenId(isOpen ? null : (conv.id ?? i))}
+              className="w-full flex items-start gap-3 p-3 text-left hover:bg-secondary/50 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground line-clamp-1">{conv.question}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[11px] text-muted-foreground">{timeStr}</span>
+                  {conv.confidence && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${
+                      conv.confidence === 'Alta'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    }`}>
+                      {conv.confidence}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onReload(conv.question); }}
+                  className="text-[10px] px-2 py-1 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                  title="Recargar pregunta en el chat"
+                >
+                  Recargar
+                </button>
+                {isOpen ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
+              </div>
+            </button>
+
+            {/* Contenido colapsable */}
+            {isOpen && (
+              <div className="border-t border-border p-3 space-y-2 animate-fade-in">
+                {/* Pregunta */}
+                <div className="flex gap-2">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase shrink-0 mt-0.5">Pregunta</span>
+                  <p className="text-xs text-foreground leading-relaxed">{conv.question}</p>
+                </div>
+                {/* Respuesta */}
+                <div className="flex gap-2">
+                  <span className="text-[10px] font-semibold text-primary uppercase shrink-0 mt-0.5">Vicky</span>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-6">{conv.answer}</p>
+                </div>
+                {/* Fuentes */}
+                {conv.sources && conv.sources.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {conv.sources.map((s, si) => (
+                      <span key={si} className="px-1.5 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground border border-border">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function VickyInsights() {
   const location = useLocation();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
@@ -341,6 +481,15 @@ export default function VickyInsights() {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('chat');
+
+  // Session ID estable por sesión de browser
+  const [sessionId] = useState(() => {
+    const stored = sessionStorage.getItem('vicky_session_id');
+    if (stored) return stored;
+    const id = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    sessionStorage.setItem('vicky_session_id', id);
+    return id;
+  });
 
   // Load decision log from localStorage + static data
   const [decisionLog, setDecisionLog] = useState(() => {
@@ -920,6 +1069,19 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
     setMessages(prev => [...prev, resp]);
     setLoading(false);
+
+    // Guardar Q&A exitoso en Supabase (vicky_conversations)
+    if (resp.role === 'vicky' && resp.confidence !== 'Baja') {
+      saveVickyConversation({
+        session_id: sessionId,
+        question: text,
+        answer: resp.content,
+        confidence: resp.confidence,
+        sources: resp.sources,
+        follow_ups: resp.followUps,
+        model_used: 'gpt-4o',
+      }).catch(err => console.warn('No se pudo guardar conversación en Supabase:', err));
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -1052,6 +1214,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 { value: 'chat',      label: 'Chat',              icon: <MessageSquare size={15} />, color: 'text-blue-500',    colorMuted: 'text-blue-300' },
                 { value: 'upload',    label: 'Analizar Documento', icon: <FileText size={15} />,      color: 'text-amber-500',   colorMuted: 'text-amber-300',   tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
                 { value: 'decisions', label: 'Decisiones',         icon: <ClipboardList size={15} />, color: 'text-emerald-500', colorMuted: 'text-emerald-300', tooltip: 'Convierte los insights de Vicky en decisiones. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
+                { value: 'history',   label: 'Historial',           icon: <History size={15} />,       color: 'text-violet-400',  colorMuted: 'text-violet-300',  tooltip: 'Historial de conversaciones guardadas en Supabase. Clic en una para recargarla en el chat.' },
               ] as Array<{ value: string; label: string; icon: React.ReactNode; color: string; colorMuted: string; tooltip?: string }>).map(tab => (
                 <button
                   key={tab.value}
@@ -1237,6 +1400,16 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 )}
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="flex-1 overflow-y-auto mt-0 data-[state=inactive]:hidden">
+            <HistorialTab
+              sessionId={sessionId}
+              onReload={(q) => {
+                setActiveTab('chat');
+                setTimeout(() => sendMessage(q), 100);
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>
