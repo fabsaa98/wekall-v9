@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useClient } from '@/contexts/ClientContext';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,8 @@ function aggregateAgent(records: AgentDayRecord[]): AgentSummary {
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useAgentsData(): AgentsDataState {
+  const { clientId } = useClient();
+
   const [state, setState] = useState<AgentsDataState>({
     loading: true,
     error: null,
@@ -136,6 +139,7 @@ export function useAgentsData(): AgentsDataState {
         const { data, error } = await supabase
           .from('agents_performance')
           .select('*')
+          .eq('client_id', clientId)
           .gte('fecha', cutoffStr)
           .order('fecha', { ascending: true });
 
@@ -191,7 +195,7 @@ export function useAgentsData(): AgentsDataState {
     }
 
     load();
-  }, []);
+  }, [clientId]);
 
   return state;
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug } from 'lucide-react';
+import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug, Building2, LogOut, Globe, DollarSign } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { useClient } from '@/contexts/ClientContext';
+import { useNavigate } from 'react-router-dom';
 
 interface DataSource {
   id: string;
@@ -91,6 +93,18 @@ export default function Configuracion() {
   const [emailAlerts, setEmailAlerts] = useState(false);
   const [slackAlerts, setSlackAlerts] = useState(true);
 
+  const { clientConfig, clientBranding, currentUser, setClientId, setCurrentUser } = useClient();
+  const navigate = useNavigate();
+
+  function handleChangeCompany() {
+    // Limpiar sesión y redirigir a login
+    setCurrentUser(null);
+    setClientId('credismart'); // reset default
+    localStorage.removeItem('wki_client_id');
+    localStorage.removeItem('wki_current_user');
+    navigate('/login', { replace: true });
+  }
+
   return (
     <div className="p-6 max-w-[900px] mx-auto space-y-6">
       <div>
@@ -98,8 +112,11 @@ export default function Configuracion() {
         <p className="text-sm text-muted-foreground mt-0.5">Fuentes de datos, integraciones y preferencias</p>
       </div>
 
-      <Tabs defaultValue="sources">
+      <Tabs defaultValue="empresa">
         <TabsList className="h-9">
+          <TabsTrigger value="empresa" className="text-sm">
+            <Building2 size={13} className="mr-1.5" />Mi Empresa
+          </TabsTrigger>
           <TabsTrigger value="sources" className="text-sm">
             <Database size={13} className="mr-1.5" />Fuentes
           </TabsTrigger>
@@ -113,6 +130,121 @@ export default function Configuracion() {
             <Palette size={13} className="mr-1.5" />Tema
           </TabsTrigger>
         </TabsList>
+
+        {/* ─── Mi Empresa ─────────────────────────────────────────────── */}
+        <TabsContent value="empresa" className="mt-6 space-y-4">
+
+          {/* Header empresa */}
+          <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="p-3 rounded-xl bg-primary/15 text-primary shrink-0">
+                  <Building2 size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">
+                    {clientBranding?.company_name || clientConfig?.client_name || 'Mi Empresa'}
+                  </h3>
+                  {clientBranding?.tagline && (
+                    <p className="text-sm text-muted-foreground mt-0.5">{clientBranding.tagline}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-[10px] font-semibold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                      {clientConfig?.client_id || 'credismart'}
+                    </span>
+                    {currentUser?.role && (
+                      <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        {currentUser.role}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleChangeCompany}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+              >
+                <LogOut size={13} />
+                Cambiar empresa
+              </button>
+            </div>
+          </div>
+
+          {/* Datos del cliente */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">Información de la empresa</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { label: 'Empresa', value: clientConfig?.client_name || '—', icon: <Building2 size={13} /> },
+                { label: 'Industria', value: clientConfig?.industry || '—', icon: <Database size={13} /> },
+                { label: 'País', value: clientConfig?.country || '—', icon: <Globe size={13} /> },
+                { label: 'Moneda', value: clientConfig?.currency || '—', icon: <DollarSign size={13} /> },
+                { label: 'Zona horaria', value: clientConfig?.timezone || '—', icon: null },
+                { label: 'Plan', value: 'WeKall Intelligence Pro', icon: <Zap size={13} /> },
+              ].map(field => (
+                <div key={field.label}>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    {field.label}
+                  </p>
+                  <p className="text-sm text-foreground flex items-center gap-1.5">
+                    {field.icon && <span className="text-muted-foreground">{field.icon}</span>}
+                    {field.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Branding */}
+          {clientBranding && (
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-foreground">Branding</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Color primario</p>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded-full border border-white/10"
+                      style={{ background: clientBranding.primary_color || '#6334C0' }}
+                    />
+                    <p className="text-sm text-foreground font-mono">{clientBranding.primary_color || '#6334C0'}</p>
+                  </div>
+                </div>
+                {clientBranding.logo_url && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Logo</p>
+                    <img src={clientBranding.logo_url} alt="Logo empresa" className="h-8 object-contain" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Usuario actual */}
+          {currentUser && (
+            <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Sesión activa</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Usuario</p>
+                  <p className="text-sm text-foreground">{currentUser.name || currentUser.email}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email</p>
+                  <p className="text-sm text-foreground">{currentUser.email}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Rol</p>
+                  <p className="text-sm text-foreground">{currentUser.role}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Empresa</p>
+                  <p className="text-sm text-foreground font-mono">{currentUser.client_id}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </TabsContent>
 
         {/* Data Sources */}
         <TabsContent value="sources" className="mt-6 space-y-4">
@@ -193,9 +325,9 @@ export default function Configuracion() {
             <h3 className="text-sm font-semibold text-foreground">Información de la empresa</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: 'Empresa', value: 'Crediminuto / CrediSmart' },
-                { label: 'Industria', value: 'Servicios empresariales' },
-                { label: 'País', value: 'Colombia' },
+                { label: 'Empresa', value: clientConfig?.client_name || 'Crediminuto / CrediSmart' },
+                { label: 'Industria', value: clientConfig?.industry || 'Servicios empresariales' },
+                { label: 'País', value: clientConfig?.country || 'Colombia' },
                 { label: 'Plan', value: 'WeKall Intelligence Pro' },
               ].map(field => (
                 <div key={field.label}>

@@ -28,10 +28,11 @@ export interface CDRHourlyMetric {
 }
 
 // Queries
-export async function getLastNDays(n: number): Promise<CDRDayMetric[]> {
+export async function getLastNDays(n: number, clientId = 'credismart'): Promise<CDRDayMetric[]> {
   const { data, error } = await supabase
     .from('cdr_daily_metrics')
     .select('fecha, total_llamadas, contactos_efectivos, tasa_contacto_pct')
+    .eq('client_id', clientId)
     .gte('total_llamadas', 5000) // solo días hábiles
     .order('fecha', { ascending: false })
     .limit(n);
@@ -39,18 +40,18 @@ export async function getLastNDays(n: number): Promise<CDRDayMetric[]> {
   return (data || []).reverse();
 }
 
-export async function getLatestDay(): Promise<CDRDayMetric | null> {
-  const days = await getLastNDays(1);
+export async function getLatestDay(clientId = 'credismart'): Promise<CDRDayMetric | null> {
+  const days = await getLastNDays(1, clientId);
   return days[0] || null;
 }
 
-export async function getSparkline(days: number): Promise<number[]> {
-  const data = await getLastNDays(days);
+export async function getSparkline(days: number, clientId = 'credismart'): Promise<number[]> {
+  const data = await getLastNDays(days, clientId);
   return data.map(d => d.tasa_contacto_pct);
 }
 
-export async function getVolumeSparkline(days: number): Promise<number[]> {
-  const data = await getLastNDays(days);
+export async function getVolumeSparkline(days: number, clientId = 'credismart'): Promise<number[]> {
+  const data = await getLastNDays(days, clientId);
   return data.map(d => d.total_llamadas);
 }
 
@@ -80,13 +81,17 @@ export async function getHourlyDistribution(fecha: string): Promise<CDRHourlyMet
 export interface ClientConfig {
   client_id: string;
   client_name: string;
-  country: string;           // 'colombia' | 'peru' | 'mexico' | ...
-  currency: string;          // 'COP' | 'PEN' | 'MXN' | ...
-  costo_agente_mes: number;  // costo real empresa por agente/mes en moneda local
-  agentes_activos: number;   // headcount actual
-  nomina_total_mes: number;  // nómina total = costo_agente_mes × agentes_activos
-  trm_cop?: number;          // TRM si la moneda no es COP
+  industry?: string;
+  country?: string;           // 'colombia' | 'peru' | 'mexico' | ...
+  currency?: string;          // 'COP' | 'PEN' | 'MXN' | ...
+  timezone?: string;
+  active?: boolean;
+  costo_agente_mes?: number;  // costo real empresa por agente/mes en moneda local
+  agentes_activos?: number;   // headcount actual
+  nomina_total_mes?: number;  // nómina total = costo_agente_mes × agentes_activos
+  trm_cop?: number;           // TRM si la moneda no es COP
   notas?: string;
+  created_at?: string;
   updated_at?: string;
 }
 

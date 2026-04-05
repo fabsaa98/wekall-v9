@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getLastNDays, getLatestDay, CDRDayMetric } from '@/lib/supabase';
+import { useClient } from '@/contexts/ClientContext';
 
 // ─── Anomalía detectada ───────────────────────────────────────────────────────
 
@@ -79,6 +80,8 @@ function detectAnomaly(last30: CDRDayMetric[], latestDay: CDRDayMetric | null): 
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useCDRData(): CDRState {
+  const { clientId } = useClient();
+
   const [state, setState] = useState<CDRState>({
     loading: true,
     error: null,
@@ -97,8 +100,8 @@ export function useCDRData(): CDRState {
     async function load() {
       try {
         const [last30, lastDay] = await Promise.all([
-          getLastNDays(30),
-          getLatestDay()
+          getLastNDays(30, clientId),
+          getLatestDay(clientId)
         ]);
 
         const last7 = last30.slice(-7);
@@ -126,7 +129,7 @@ export function useCDRData(): CDRState {
       }
     }
     load();
-  }, []);
+  }, [clientId]);
 
   return state;
 }

@@ -6,6 +6,7 @@ import {
 import { KPICard } from '@/components/KPICard';
 import { KPICardCompact } from '@/components/KPICardCompact';
 import { useRole } from '@/contexts/RoleContext';
+import { useClient } from '@/contexts/ClientContext';
 import { proactiveInsights, buildKPIsFromCDR, buildConversationTrend } from '@/data/mockData';
 import { useCDRData } from '@/hooks/useCDRData';
 import { useNavigate } from 'react-router-dom';
@@ -13,8 +14,12 @@ import { cn } from '@/lib/utils';
 
 export default function Overview() {
   const { role } = useRole();
+  const { clientConfig, clientBranding } = useClient();
   const navigate = useNavigate();
   const cdr = useCDRData();
+
+  // Nombre del cliente dinámico
+  const clientName = clientBranding?.company_name || clientConfig?.client_name || 'Crediminuto';
 
   const [briefExpanded, setBriefExpanded] = useState(false);
 
@@ -37,7 +42,7 @@ export default function Overview() {
     'CEO': {
       short: cdr.loading
         ? 'Cargando datos en tiempo real desde Supabase...'
-        : `Crediminuto / CrediSmart procesó ${latestLlamadas} llamadas el ${latestFecha}. Tasa de contacto efectivo: ${latestTasa}% (promedio 7d: ${cdr.promedio7dTasa}%, promedio 30d: ${cdr.promedio30dTasa}%). Datos: CDR histórico 822 días, ene 2024 - abr 2026.`,
+        : `${clientName} procesó ${latestLlamadas} llamadas el ${latestFecha}. Tasa de contacto efectivo: ${latestTasa}% (promedio 7d: ${cdr.promedio7dTasa}%, promedio 30d: ${cdr.promedio30dTasa}%). Datos: CDR histórico 822 días, ene 2024 - abr 2026.`,
       full: `Contactos efectivos: ${cdr.latestDay?.contactos_efectivos?.toLocaleString('es-CO') ?? '...'} (${latestTasa}% del total). Delta vs promedio 7d: ${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp. Fuente: Supabase — cdr_daily_metrics, 12 millones de registros.`,
     },
     'VP Ventas': {
@@ -179,7 +184,7 @@ export default function Overview() {
             </div>
             <div className="flex-1">
               <p className="text-xs text-primary font-semibold uppercase tracking-widest mb-1">
-                Executive Brief · {latestFecha} · Supabase en tiempo real
+                Executive Brief · {clientName} · {latestFecha} · Supabase en tiempo real
               </p>
               <p className="text-sm font-semibold text-foreground mb-1">{greetings[role]}</p>
               <p className="text-sm text-muted-foreground leading-relaxed">{brief.short}</p>
