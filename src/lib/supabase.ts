@@ -111,3 +111,41 @@ export async function getActiveClientConfig(): Promise<ClientConfig | null> {
   if (error) return null;
   return data;
 }
+
+// ─── Alert Log ────────────────────────────────────────────────────────────────
+
+export interface AlertLogEntry {
+  id?: number;
+  fired_at?: string;
+  severity: 'critical' | 'warning' | 'info';
+  metric: string;
+  title: string;
+  description?: string;
+  threshold?: number;
+  actual_value?: number;
+  source?: string;
+  client_id?: string;
+  notified?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export async function insertAlertLog(entry: AlertLogEntry): Promise<void> {
+  const { error } = await supabase
+    .from('alert_log')
+    .insert({
+      ...entry,
+      source: entry.source ?? 'cdr_daily_metrics',
+      client_id: entry.client_id ?? 'credismart',
+    });
+  if (error) throw error;
+}
+
+export async function getRecentAlertLog(limit = 10): Promise<AlertLogEntry[]> {
+  const { data, error } = await supabase
+    .from('alert_log')
+    .select('*')
+    .order('fired_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data || []) as AlertLogEntry[];
+}

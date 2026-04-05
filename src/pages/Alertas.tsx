@@ -1,12 +1,23 @@
-import { useState, useEffect } from 'react';
-import { AlertTriangle, Info, XCircle, Plus, X, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { AlertTriangle, Info, XCircle, Plus, Loader2, Bell, BellOff, History, Zap } from 'lucide-react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
-import { Bell, BellOff } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { buildAlertsFromCDR, type Alert } from '@/data/mockData';
 import { useCDRData } from '@/hooks/useCDRData';
+import { insertAlertLog, getRecentAlertLog, type AlertLogEntry } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+
+// ─── Umbrales de alerta configurados ─────────────────────────────────────────
+// Fuente de verdad: si los KPIs del último CDR superan estos umbrales, se dispara una alerta
+
+const ALERT_THRESHOLDS = {
+  tasa_contacto_critica: 30,    // % — por debajo = crítico
+  tasa_contacto_warning: 38,    // % — por debajo = advertencia
+  delta_tasa_critico: -5,       // pp — caída vs promedio 7d = crítico
+  delta_tasa_warning: -2.5,     // pp — caída vs promedio 7d = advertencia
+  volumen_minimo: 5000,         // llamadas — por debajo = advertencia (día no hábil probable)
+} as const;
 
 const exampleChips = [
   'CSAT baje de 3.5',
@@ -37,6 +48,8 @@ const severityConfig = {
   },
 };
 
+// ─── Componente AlertCard ─────────────────────────────────────────────────────
+
 function AlertCard({ alert, onToggle }: { alert: Alert; onToggle: (id: string) => void }) {
   const config = severityConfig[alert.severity];
 
@@ -45,21 +58,16 @@ function AlertCard({ alert, onToggle }: { alert: Alert; onToggle: (id: string) =
       'rounded-xl border bg-card p-4 flex items-start gap-4 transition-all',
       alert.active ? 'border-border' : 'border-border/50 opacity-60',
     )}>
-      {/* Severity icon */}
       <div className={cn('p-2 rounded-lg border shrink-0', config.classes)}>
         {config.icon}
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-semibold text-foreground">{alert.title}</p>
-              <span className={cn(
-                'px-1.5 py-0.5 rounded-full text-[10px] font-semibold border',
-                config.classes,
-              )}>
+              <span className={cn('px-1.5 py-0.5 rounded-full text-[10px] font-semibold border', config.classes)}>
                 {config.label}
               </span>
             </div>
@@ -90,6 +98,116 @@ function AlertCard({ alert, onToggle }: { alert: Alert; onToggle: (id: string) =
   );
 }
 
+// ─── Componente HistorialCard ─────────────────────────────────────────────────
+
+function HistorialCard({ entry }: { entry: AlertLogEntry }) {
+  const config = severityConfig[entry.severity];
+  const ts = entry.fired_at ? new Date(entry.fired_at) : null;
+  const timeStr = ts
+    ? ts.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 flex items-start gap-3">
+      <div className={cn('p-1.5 rounded-lg border shrink-0 mt-0.5', config.classes)}>
+        {config.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-medium text-foreground leading-snug">{entry.title}</p>
+          <span className={cn('px-1.5 py-0.5 rounded-full text-[10px] font-semibold border shrink-0', config.classes)}>
+            {config.label}
+          </span>
+        </div>
+        {entry.description && (
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{entry.description}</p>
+        )}
+        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span>{timeStr}</span>
+          {entry.actual_value !== undefined && entry.threshold !== undefined && (
+            <>
+              <span>Umbral: {entry.threshold}</span>
+              <span className={cn('font-medium', entry.actual_value < entry.threshold ? 'text-red-400' : 'text-emerald-400')}>
+                Valor: {entry.actual_value}
+              </span>
+            </>
+          )}
+          <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded">{entry.metric}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Lógica de evaluación de KPIs vs umbrales ─────────────────────────────────
+
+function evaluateKPIAlerts(
+  latestDay: { fecha: string; total_llamadas: number; contactos_efectivos: number; tasa_contacto_pct: number } | null,
+  promedio7d: number,
+  deltaTasa: number,
+): AlertLogEntry[] {
+  if (!latestDay) return [];
+  const toFire: AlertLogEntry[] = [];
+
+  // 1. Tasa de contacto crítica
+  if (latestDay.tasa_contacto_pct < ALERT_THRESHOLDS.tasa_contacto_critica) {
+    toFire.push({
+      severity: 'critical',
+      metric: 'tasa_contacto_pct',
+      title: `⚠️ Tasa de contacto crítica: ${latestDay.tasa_contacto_pct}%`,
+      description: `La tasa de contacto cayó a ${latestDay.tasa_contacto_pct}% el ${latestDay.fecha}, por debajo del umbral crítico de ${ALERT_THRESHOLDS.tasa_contacto_critica}%. Promedio 7d: ${promedio7d}%.`,
+      threshold: ALERT_THRESHOLDS.tasa_contacto_critica,
+      actual_value: latestDay.tasa_contacto_pct,
+    });
+  } else if (latestDay.tasa_contacto_pct < ALERT_THRESHOLDS.tasa_contacto_warning) {
+    toFire.push({
+      severity: 'warning',
+      metric: 'tasa_contacto_pct',
+      title: `Tasa de contacto baja: ${latestDay.tasa_contacto_pct}%`,
+      description: `La tasa de contacto del ${latestDay.fecha} (${latestDay.tasa_contacto_pct}%) está por debajo del umbral de ${ALERT_THRESHOLDS.tasa_contacto_warning}%. Monitorear.`,
+      threshold: ALERT_THRESHOLDS.tasa_contacto_warning,
+      actual_value: latestDay.tasa_contacto_pct,
+    });
+  }
+
+  // 2. Caída brusca vs promedio 7d
+  if (deltaTasa < ALERT_THRESHOLDS.delta_tasa_critico) {
+    toFire.push({
+      severity: 'critical',
+      metric: 'delta_tasa_contacto_7d',
+      title: `Caída brusca de contacto: ${deltaTasa > 0 ? '+' : ''}${deltaTasa}pp vs promedio 7d`,
+      description: `El ${latestDay.fecha} la tasa cayó ${Math.abs(deltaTasa)}pp respecto al promedio 7d (${promedio7d}%). Posible incidencia operativa o problema de marcador.`,
+      threshold: ALERT_THRESHOLDS.delta_tasa_critico,
+      actual_value: deltaTasa,
+    });
+  } else if (deltaTasa < ALERT_THRESHOLDS.delta_tasa_warning) {
+    toFire.push({
+      severity: 'warning',
+      metric: 'delta_tasa_contacto_7d',
+      title: `Tendencia negativa: ${deltaTasa > 0 ? '+' : ''}${deltaTasa}pp vs promedio 7d`,
+      description: `La tasa de contacto del ${latestDay.fecha} cayó ${Math.abs(deltaTasa)}pp respecto al promedio 7d (${promedio7d}%).`,
+      threshold: ALERT_THRESHOLDS.delta_tasa_warning,
+      actual_value: deltaTasa,
+    });
+  }
+
+  // 3. Volumen bajo (posible día no hábil o problema de marcador)
+  if (latestDay.total_llamadas < ALERT_THRESHOLDS.volumen_minimo) {
+    toFire.push({
+      severity: 'warning',
+      metric: 'total_llamadas',
+      title: `Volumen inusualmente bajo: ${latestDay.total_llamadas.toLocaleString('es-CO')} llamadas`,
+      description: `El ${latestDay.fecha} se procesaron ${latestDay.total_llamadas.toLocaleString()} llamadas, por debajo del mínimo esperado de ${ALERT_THRESHOLDS.volumen_minimo.toLocaleString()}. ¿Es un día no hábil o hay un problema con el marcador?`,
+      threshold: ALERT_THRESHOLDS.volumen_minimo,
+      actual_value: latestDay.total_llamadas,
+    });
+  }
+
+  return toFire;
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function Alertas() {
   const cdr = useCDRData();
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -97,7 +215,32 @@ export default function Alertas() {
   const [nlInput, setNlInput] = useState('');
   const [addedMsg, setAddedMsg] = useState('');
 
-  // Cargar alertas dinámicas desde Supabase cuando llegan los datos CDR
+  // Estado del historial de alert_log en Supabase
+  const [alertHistory, setAlertHistory] = useState<AlertLogEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [firing, setFiring] = useState(false);
+  const [fireMsg, setFireMsg] = useState('');
+
+  // Cargar historial de alertas desde Supabase
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const entries = await getRecentAlertLog(10);
+      setAlertHistory(entries);
+    } catch (err) {
+      setHistoryError(err instanceof Error ? err.message : 'Error cargando historial');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  // Construir alertas locales desde CDR
   useEffect(() => {
     if (!cdr.loading && !cdr.error) {
       const dynamicAlerts = buildAlertsFromCDR(
@@ -109,6 +252,58 @@ export default function Alertas() {
       setAlerts(dynamicAlerts);
     }
   }, [cdr.loading, cdr.error, cdr.latestDay, cdr.promedio7dTasa, cdr.promedio30dTasa, cdr.deltaTasa]);
+
+  // Evaluar KPIs y disparar alertas a Supabase si superan umbrales
+  const evaluateAndFireAlerts = useCallback(async (isManual = false) => {
+    if (cdr.loading || cdr.error || !cdr.latestDay) {
+      setFireMsg('❌ Sin datos CDR disponibles para evaluar');
+      setTimeout(() => setFireMsg(''), 3000);
+      return;
+    }
+    setFiring(true);
+    setFireMsg('');
+
+    const toFire = isManual
+      ? [{
+          severity: 'info' as const,
+          metric: 'prueba_manual',
+          title: `🧪 Alerta de prueba — ${new Date().toLocaleString('es-CO')}`,
+          description: `Prueba manual disparada desde WeKall Intelligence. CDR fecha: ${cdr.latestDay.fecha}. Tasa: ${cdr.latestDay.tasa_contacto_pct}%. Volumen: ${cdr.latestDay.total_llamadas.toLocaleString()}.`,
+          threshold: 0,
+          actual_value: cdr.latestDay.tasa_contacto_pct,
+        }]
+      : evaluateKPIAlerts(cdr.latestDay, cdr.promedio7dTasa, cdr.deltaTasa);
+
+    if (toFire.length === 0) {
+      setFireMsg('✅ Todos los KPIs dentro del rango normal — sin alertas que disparar');
+      setFiring(false);
+      setTimeout(() => setFireMsg(''), 4000);
+      return;
+    }
+
+    let ok = 0;
+    let fail = 0;
+    for (const entry of toFire) {
+      try {
+        await insertAlertLog(entry);
+        ok++;
+      } catch (e) {
+        console.error('Error insertando alerta:', e);
+        fail++;
+      }
+    }
+
+    setFireMsg(
+      fail === 0
+        ? `✅ ${ok} alerta(s) registrada(s) en Supabase. GlorIA notificará vía cron.`
+        : `⚠️ ${ok} OK · ${fail} fallaron (RLS — ver consola)`,
+    );
+    setFiring(false);
+    setTimeout(() => setFireMsg(''), 5000);
+
+    // Recargar historial
+    loadHistory();
+  }, [cdr, loadHistory]);
 
   function toggleAlert(id: string) {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, active: !a.active } : a));
@@ -139,18 +334,63 @@ export default function Alertas() {
   return (
     <div className="p-6 max-w-[900px] mx-auto space-y-6 overflow-y-auto flex-1">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Alertas Inteligentes</h1>
-        <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
-          {cdr.loading ? (
-            <><Loader2 size={12} className="animate-spin" /> Cargando datos desde Supabase...</>
-          ) : cdr.error ? (
-            <span className="text-red-400">Error Supabase: {cdr.error}</span>
-          ) : (
-            <>Datos en tiempo real desde Supabase · {activeAlerts.length} activas · CDR {cdr.latestDay?.fecha}</>
-          )}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Alertas Inteligentes</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
+            {cdr.loading ? (
+              <><Loader2 size={12} className="animate-spin" /> Cargando datos desde Supabase...</>
+            ) : cdr.error ? (
+              <span className="text-red-400">Error Supabase: {cdr.error}</span>
+            ) : (
+              <>Datos en tiempo real desde Supabase · {activeAlerts.length} activas · CDR {cdr.latestDay?.fecha}</>
+            )}
+          </p>
+        </div>
+
+        {/* Botón Probar alerta */}
+        <button
+          onClick={() => evaluateAndFireAlerts(true)}
+          disabled={firing || cdr.loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/20 transition-all disabled:opacity-50"
+        >
+          {firing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+          Probar alerta
+        </button>
       </div>
+
+      {/* Feedback de disparo */}
+      {fireMsg && (
+        <div className={cn(
+          'rounded-lg border px-4 py-2.5 text-sm font-medium animate-fade-in',
+          fireMsg.startsWith('✅') ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
+          fireMsg.startsWith('⚠️') ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
+          'border-red-500/30 bg-red-500/10 text-red-400',
+        )}>
+          {fireMsg}
+        </div>
+      )}
+
+      {/* Botón Evaluar KPIs ahora */}
+      {!cdr.loading && !cdr.error && cdr.latestDay && (
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Evaluación automática de KPIs</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Compara KPIs del último CDR ({cdr.latestDay.fecha}) vs umbrales y registra en Supabase.
+              GlorIA procesa el alert_log vía cron para notificar.
+            </p>
+          </div>
+          <button
+            onClick={() => evaluateAndFireAlerts(false)}
+            disabled={firing}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/80 transition-colors disabled:opacity-50"
+          >
+            {firing ? <Loader2 size={14} className="animate-spin" /> : <AlertTriangle size={14} />}
+            Evaluar ahora
+          </button>
+        </div>
+      )}
 
       {/* NL Alert Creator */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
@@ -175,7 +415,6 @@ export default function Alertas() {
           </button>
         </div>
 
-        {/* Example chips */}
         <div className="flex flex-wrap gap-2">
           {exampleChips.map(chip => (
             <button
@@ -193,7 +432,7 @@ export default function Alertas() {
         )}
       </div>
 
-      {/* Alerts list */}
+      {/* Tabs: Activas / Inactivas / Historial */}
       <Tabs defaultValue="active">
         <PageTabsBar>
           <PageTabs
@@ -211,6 +450,12 @@ export default function Alertas() {
                 label: 'Inactivas',
                 icon: <BellOff size={15} />,
                 badge: <span className="px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[10px] font-bold">{firedAlerts.length}</span>,
+              },
+              {
+                value: 'history',
+                label: 'Historial Supabase',
+                icon: <History size={15} />,
+                badge: <span className="px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground text-[10px] font-bold">{alertHistory.length}</span>,
               },
             ]}
           />
@@ -231,11 +476,53 @@ export default function Alertas() {
         <TabsContent value="fired" className="mt-4 space-y-3">
           {firedAlerts.length === 0 ? (
             <div className="rounded-xl border border-border bg-card p-8 text-center">
-              <p className="text-muted-foreground text-sm">Sin alertas disparadas</p>
+              <p className="text-muted-foreground text-sm">Sin alertas inactivas</p>
             </div>
           ) : (
             firedAlerts.map(a => (
               <AlertCard key={a.id} alert={a} onToggle={toggleAlert} />
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4 space-y-3">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-muted-foreground">
+              Últimas 10 alertas registradas en Supabase · tabla <code className="bg-secondary px-1 rounded">alert_log</code>
+            </p>
+            <button
+              onClick={loadHistory}
+              disabled={historyLoading}
+              className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+            >
+              {historyLoading ? <Loader2 size={11} className="animate-spin" /> : null}
+              Actualizar
+            </button>
+          </div>
+
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-muted-foreground" />
+            </div>
+          ) : historyError ? (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-center space-y-2">
+              <p className="text-sm text-red-400 font-medium">Error cargando historial</p>
+              <p className="text-xs text-muted-foreground">{historyError}</p>
+              <p className="text-xs text-muted-foreground">
+                La tabla <code>alert_log</code> puede no existir aún. Ejecuta el script SQL en Supabase Dashboard.
+              </p>
+            </div>
+          ) : alertHistory.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-8 text-center space-y-2">
+              <History size={28} className="mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground text-sm">Sin alertas registradas en Supabase</p>
+              <p className="text-xs text-muted-foreground">
+                Usa "Evaluar ahora" o "Probar alerta" para generar el primer registro.
+              </p>
+            </div>
+          ) : (
+            alertHistory.map((entry, i) => (
+              <HistorialCard key={entry.id ?? i} entry={entry} />
             ))
           )}
         </TabsContent>
