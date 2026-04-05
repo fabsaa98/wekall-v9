@@ -1,69 +1,106 @@
 import { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
-import { agentsData, type Agent } from '@/data/mockData';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAgentsData, type AgentSummary } from '@/hooks/useAgentsData';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Loader2, AlertTriangle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Area = 'Ventas' | 'CX' | 'Cobranzas' | 'Ops';
+// ─── Configuración por área ───────────────────────────────────────────────────
 
-const AREAS: Area[] = ['Ventas', 'CX', 'Cobranzas', 'Ops'];
+type AreaKPIKey = 'avg_tasa_contacto' | 'avg_tasa_promesa' | 'avg_csat' | 'avg_aht_segundos' | 'avg_fcr' | 'avg_escalaciones';
 
-const areaConfig: Record<Area, {
-  kpis: { label: string; key: keyof Agent; format: (v: number) => string; benchmark: number; invertGood?: boolean }[];
+interface AreaKPIConfig {
+  label: string;
+  key: AreaKPIKey;
+  format: (v: number) => string;
+  benchmark: number;
+  invertGood?: boolean;
+}
+
+const areaConfig: Record<string, {
+  kpis: AreaKPIConfig[];
   description: string;
 }> = {
+  'Cobranzas': {
+    description: 'Recuperación de cartera — efectividad y compliance · Crediminuto Colombia',
+    kpis: [
+      { label: 'Tasa Contacto', key: 'avg_tasa_contacto', format: v => `${v.toFixed(1)}%`, benchmark: 43 },
+      { label: 'Tasa Promesa', key: 'avg_tasa_promesa', format: v => `${v.toFixed(1)}%`, benchmark: 40 },
+      { label: 'CSAT Promedio', key: 'avg_csat', format: v => `${v.toFixed(1)}/5`, benchmark: 3.8 },
+      { label: 'Escalaciones', key: 'avg_escalaciones', format: v => `${v.toFixed(1)}%`, benchmark: 8, invertGood: true },
+    ],
+  },
   'Ventas': {
     description: 'Equipo comercial — conversión y calidad de venta',
     kpis: [
-      { label: 'Conversión Promedio', key: 'conversions', format: v => `${v.toFixed(1)}%`, benchmark: 20 },
-      { label: 'CSAT Promedio', key: 'csat', format: v => `${v.toFixed(1)}/5`, benchmark: 4.0 },
-      { label: 'FCR Promedio', key: 'fcr', format: v => `${v.toFixed(0)}%`, benchmark: 72 },
-      { label: 'AHT Promedio', key: 'aht', format: v => `${Math.floor(v / 60)}m ${v % 60}s`, benchmark: 300, invertGood: true },
+      { label: 'Tasa Contacto', key: 'avg_tasa_contacto', format: v => `${v.toFixed(1)}%`, benchmark: 40 },
+      { label: 'CSAT Promedio', key: 'avg_csat', format: v => `${v.toFixed(1)}/5`, benchmark: 4.0 },
+      { label: 'FCR Promedio', key: 'avg_fcr', format: v => `${v.toFixed(0)}%`, benchmark: 72 },
+      { label: 'AHT Promedio', key: 'avg_aht_segundos', format: v => `${Math.floor(v / 60)}m ${Math.round(v % 60)}s`, benchmark: 300, invertGood: true },
     ],
   },
   'CX': {
     description: 'Servicio al cliente — satisfacción y resolución',
     kpis: [
-      { label: 'FCR Promedio', key: 'fcr', format: v => `${v.toFixed(0)}%`, benchmark: 75 },
-      { label: 'CSAT Promedio', key: 'csat', format: v => `${v.toFixed(1)}/5`, benchmark: 4.2 },
-      { label: 'Escalaciones', key: 'escalations', format: v => `${v.toFixed(1)}%`, benchmark: 6, invertGood: true },
-      { label: 'AHT Promedio', key: 'aht', format: v => `${Math.floor(v / 60)}m ${v % 60}s`, benchmark: 280, invertGood: true },
-    ],
-  },
-  'Cobranzas': {
-    description: 'Recuperación de cartera — efectividad y compliance',
-    kpis: [
-      { label: 'Efectividad Cobro', key: 'conversions', format: v => `${v.toFixed(1)}%`, benchmark: 35 },
-      { label: 'CSAT Promedio', key: 'csat', format: v => `${v.toFixed(1)}/5`, benchmark: 3.5 },
-      { label: 'FCR Promedio', key: 'fcr', format: v => `${v.toFixed(0)}%`, benchmark: 65 },
-      { label: 'Escalaciones', key: 'escalations', format: v => `${v.toFixed(1)}%`, benchmark: 10, invertGood: true },
+      { label: 'FCR Promedio', key: 'avg_fcr', format: v => `${v.toFixed(0)}%`, benchmark: 75 },
+      { label: 'CSAT Promedio', key: 'avg_csat', format: v => `${v.toFixed(1)}/5`, benchmark: 4.2 },
+      { label: 'Escalaciones', key: 'avg_escalaciones', format: v => `${v.toFixed(1)}%`, benchmark: 6, invertGood: true },
+      { label: 'AHT Promedio', key: 'avg_aht_segundos', format: v => `${Math.floor(v / 60)}m ${Math.round(v % 60)}s`, benchmark: 280, invertGood: true },
     ],
   },
   'Ops': {
     description: 'Operaciones — eficiencia y procesos',
     kpis: [
-      { label: 'FCR Promedio', key: 'fcr', format: v => `${v.toFixed(0)}%`, benchmark: 78 },
-      { label: 'CSAT Promedio', key: 'csat', format: v => `${v.toFixed(1)}/5`, benchmark: 4.1 },
-      { label: 'AHT Promedio', key: 'aht', format: v => `${Math.floor(v / 60)}m ${v % 60}s`, benchmark: 260, invertGood: true },
-      { label: 'Escalaciones', key: 'escalations', format: v => `${v.toFixed(1)}%`, benchmark: 5, invertGood: true },
+      { label: 'FCR Promedio', key: 'avg_fcr', format: v => `${v.toFixed(0)}%`, benchmark: 78 },
+      { label: 'CSAT Promedio', key: 'avg_csat', format: v => `${v.toFixed(1)}/5`, benchmark: 4.1 },
+      { label: 'AHT Promedio', key: 'avg_aht_segundos', format: v => `${Math.floor(v / 60)}m ${Math.round(v % 60)}s`, benchmark: 260, invertGood: true },
+      { label: 'Escalaciones', key: 'avg_escalaciones', format: v => `${v.toFixed(1)}%`, benchmark: 5, invertGood: true },
     ],
   },
 };
 
-function avg(agents: Agent[], key: keyof Agent): number {
+function avgAgents(agents: AgentSummary[], key: AreaKPIKey): number {
   if (agents.length === 0) return 0;
   return agents.reduce((s, a) => s + (a[key] as number), 0) / agents.length;
 }
 
-function AgentRow({ agent, rank }: { agent: Agent; rank: number }) {
+// ─── Skeleton de carga ────────────────────────────────────────────────────────
+
+function EquiposSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-[240px] rounded-xl" />
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <div className="p-4 space-y-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={i} className="h-10 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Fila de agente ───────────────────────────────────────────────────────────
+
+function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
   const TrendIcon = agent.trend === 'up' ? TrendingUp : agent.trend === 'down' ? TrendingDown : Minus;
   const trendColor = agent.trend === 'up' ? 'text-emerald-400' : agent.trend === 'down' ? 'text-red-400' : 'text-muted-foreground';
+  const trendLabel = agent.trend === 'up' ? 'Subiendo' : agent.trend === 'down' ? 'Bajando' : 'Estable';
 
-  const initials = agent.name.split(' ').map(w => w[0]).join('').slice(0, 2);
+  const initials = agent.agent_name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <tr className="border-b border-border hover:bg-secondary/50 transition-colors">
@@ -79,49 +116,73 @@ function AgentRow({ agent, rank }: { agent: Agent; rank: number }) {
             {initials}
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">{agent.name}</p>
-            <p className="text-[11px] text-muted-foreground">{agent.role}</p>
+            <p className="text-sm font-medium text-foreground capitalize">{agent.agent_name.toLowerCase()}</p>
+            <p className="text-[11px] text-muted-foreground">ID {agent.agent_id} · {agent.days_count} días</p>
           </div>
         </div>
       </td>
-      <td className="py-3 px-4 text-sm text-foreground">{agent.fcr}%</td>
-      <td className="py-3 px-4 text-sm text-foreground">{agent.csat}/5</td>
-      <td className="py-3 px-4 text-sm text-foreground">{Math.floor(agent.aht / 60)}m {agent.aht % 60}s</td>
+      <td className="py-3 px-4 text-sm text-foreground">{agent.avg_fcr.toFixed(0)}%</td>
+      <td className="py-3 px-4 text-sm text-foreground">{agent.avg_csat.toFixed(1)}/5</td>
+      <td className="py-3 px-4 text-sm text-foreground">
+        {Math.floor(agent.avg_aht_segundos / 60)}m {Math.round(agent.avg_aht_segundos % 60)}s
+      </td>
+      <td className="py-3 px-4 text-sm text-foreground">{agent.avg_tasa_contacto.toFixed(1)}%</td>
       <td className="py-3 px-4">
         <div className={cn('flex items-center gap-1 text-xs font-medium', trendColor)}>
           <TrendIcon size={13} />
-          <span className="capitalize">{agent.trend === 'up' ? 'Subiendo' : agent.trend === 'down' ? 'Bajando' : 'Estable'}</span>
+          <span>{trendLabel}</span>
+          {agent.trend_delta !== 0 && (
+            <span className="text-[10px]">({agent.trend_delta > 0 ? '+' : ''}{agent.trend_delta}pp)</span>
+          )}
         </div>
       </td>
     </tr>
   );
 }
 
-function AreaPanel({ area }: { area: Area }) {
-  const agents = agentsData.filter(a => a.area === area);
-  const config = areaConfig[area];
-  const sorted = [...agents].sort((a, b) => {
-    if (area === 'Ventas' || area === 'Cobranzas') return b.conversions - a.conversions;
-    return b.fcr - a.fcr;
-  });
+// ─── Panel de área ────────────────────────────────────────────────────────────
 
-  const chartData = sorted.slice(0, 5).map(a => ({
-    name: a.name.split(' ')[0],
-    fcr: a.fcr,
-    csat: a.csat * 20, // scale to 100
-    rawCsat: a.csat,
+function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
+  const config = areaConfig[area] ?? areaConfig['Cobranzas'];
+
+  // Ordenar por tasa_contacto descendente (más efectivos primero)
+  const sorted = [...agents].sort((a, b) => b.avg_tasa_contacto - a.avg_tasa_contacto);
+
+  const chartData = sorted.slice(0, 8).map(a => ({
+    name: a.agent_name.split(' ')[0],
+    fcr: Math.round(a.avg_fcr),
+    csat: Math.round(a.avg_csat * 20), // escalar a 100
+    rawCsat: a.avg_csat,
+    tc: Math.round(a.avg_tasa_contacto),
   }));
+
+  if (agents.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-12 text-center space-y-3">
+        <Users size={32} className="mx-auto text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          No hay datos de agentes para el área <strong>{area}</strong> en los últimos 30 días.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Ejecuta el script <code className="bg-secondary px-1 rounded">scripts/seed_agents.py</code> para cargar datos sintéticos,
+          o espera a que Supabase reciba datos reales de la operación.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">{config.description}</p>
 
-      {/* Area KPIs */}
+      {/* KPIs del área */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {config.kpis.map((kpi) => {
-          const value = avg(agents, kpi.key);
+          const value = avgAgents(agents, kpi.key);
           const isGood = kpi.invertGood ? value <= kpi.benchmark : value >= kpi.benchmark;
-          const diff = ((value - kpi.benchmark) / kpi.benchmark * 100).toFixed(1);
+          const diff = kpi.benchmark !== 0
+            ? ((value - kpi.benchmark) / kpi.benchmark * 100).toFixed(1)
+            : '0';
           return (
             <div key={kpi.label} className="rounded-xl border border-border bg-card p-4">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{kpi.label}</p>
@@ -137,19 +198,21 @@ function AreaPanel({ area }: { area: Area }) {
         })}
       </div>
 
-      {/* Chart */}
+      {/* Gráfico */}
       <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4">FCR por Agente (Top 5)</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-4">
+          Tasa de Contacto por Agente (Top {Math.min(8, sorted.length)}) — últimos 30 días
+        </h3>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E4E8EF" vertical={false} />
             <XAxis dataKey="name" tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} domain={[50, 100]} />
+            <YAxis tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 70]} />
             <Tooltip
               contentStyle={{ background: '#FFFFFF', border: '1px solid #E4E8EF', borderRadius: 8, fontSize: 12 }}
-              formatter={(v: number) => [`${v}%`, 'FCR']}
+              formatter={(v: number) => [`${v}%`, 'Tasa Contacto']}
             />
-            <Bar dataKey="fcr" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="tc" radius={[4, 4, 0, 0]}>
               {chartData.map((_, i) => (
                 <Cell key={i} fill={i === 0 ? '#6334C0' : 'rgba(99,52,192,0.4)'} />
               ))}
@@ -158,10 +221,13 @@ function AreaPanel({ area }: { area: Area }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Agents table */}
+      {/* Tabla de agentes */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <h3 className="text-sm font-semibold text-foreground">Agentes del Área</h3>
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">
+            Agentes del Área · {agents.length} activos
+          </h3>
+          <span className="text-[10px] text-muted-foreground">Promedios últimos 30 días · Supabase</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -171,12 +237,13 @@ function AreaPanel({ area }: { area: Area }) {
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">FCR</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">CSAT</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">AHT</th>
-                <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tendencia</th>
+                <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tasa Contacto</th>
+                <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tendencia 7d</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((agent, i) => (
-                <AgentRow key={agent.id} agent={agent} rank={i + 1} />
+                <AgentRow key={agent.agent_id} agent={agent} rank={i + 1} />
               ))}
             </tbody>
           </table>
@@ -186,28 +253,66 @@ function AreaPanel({ area }: { area: Area }) {
   );
 }
 
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function Equipos() {
-  const [areaTab, setAreaTab] = useState('Ventas');
+  const { loading, error, agents, areas, lastUpdated } = useAgentsData();
+
+  // El área activa: priorizar "Cobranzas" si existe, sino la primera
+  const defaultArea = areas.includes('Cobranzas') ? 'Cobranzas' : (areas[0] ?? 'Cobranzas');
+  const [areaTab, setAreaTab] = useState<string | null>(null);
+  const activeArea = areaTab ?? defaultArea;
+
+  // Agentes de la campaña activa (Cobranzas tiene todos los agentes reales)
+  // Si no hay datos en Supabase, mostrar el área Cobranzas con estado vacío
+  const displayAreas = areas.length > 0 ? areas : ['Cobranzas'];
+  const agentsInArea = agents.filter(a => a.area === activeArea);
+
   return (
     <div className="p-6 max-w-[1200px] mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Equipos</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Performance por área · {agentsData.length} agentes activos
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Equipos</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
+            {loading ? (
+              <><Loader2 size={12} className="animate-spin" /> Cargando datos desde Supabase...</>
+            ) : error ? (
+              <span className="text-red-400 flex items-center gap-1">
+                <AlertTriangle size={12} /> Error Supabase: {error}
+              </span>
+            ) : agents.length === 0 ? (
+              <>Sin datos en Supabase — ejecuta scripts/seed_agents.py para cargar datos de prueba</>
+            ) : (
+              <>Performance por área · {agents.length} agentes activos · datos al {lastUpdated}</>
+            )}
+          </p>
+        </div>
       </div>
 
-      <Tabs value={areaTab} onValueChange={setAreaTab}>
+      <Tabs value={activeArea} onValueChange={v => setAreaTab(v)}>
         <PageTabsBar>
           <PageTabs
-            activeTab={areaTab}
-            onChange={setAreaTab}
-            tabs={AREAS.map(area => ({ value: area, label: area }))}
+            activeTab={activeArea}
+            onChange={v => setAreaTab(v)}
+            tabs={displayAreas.map(area => ({
+              value: area,
+              label: area,
+              badge: area === activeArea
+                ? <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
+                    {agents.filter(a => a.area === area).length}
+                  </span>
+                : undefined,
+            }))}
           />
         </PageTabsBar>
-        {AREAS.map(area => (
+
+        {displayAreas.map(area => (
           <TabsContent key={area} value={area} className="mt-6">
-            <AreaPanel area={area} />
+            {loading ? (
+              <EquiposSkeleton />
+            ) : (
+              <AreaPanel area={area} agents={agents.filter(a => a.area === area)} />
+            )}
           </TabsContent>
         ))}
       </Tabs>
