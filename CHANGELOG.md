@@ -1,5 +1,52 @@
 # WeKall Intelligence — CHANGELOG
 
+---
+
+## [V19.0.0] — 2026-04-05 — Arquitectura Multi-Tenant
+
+### Migración de single-tenant a multi-tenant
+
+- **`client_id` en todas las tablas:** `cdr_daily_metrics`, `transcriptions`, `agents_performance` — columna `TEXT NOT NULL DEFAULT 'credismart'` con índices compuestos
+- **ClientContext:** contexto React global que gestiona el cliente activo en el frontend — persistido en localStorage (`wki_client_id`)
+- **Login page:** auth mock via tabla `app_users` — email + código de empresa → sesión guardada en localStorage
+- **AuthGuard:** protección de rutas con default `'credismart'` para mantener cero breaking changes con el acceso existente de Fabián
+- **Tabla `app_users`:** usuarios por empresa con roles (`CEO` / `VP Ventas` / `VP CX` / `COO` / `admin`), campo `last_login`, FK a `client_config`
+- **Tabla `client_branding`:** personalización por cliente — colores primarios, logo URL, tagline
+- **Configuración → pestaña "Mi Empresa":** datos del cliente cargados dinámicamente desde Supabase
+- **Script `onboard_client.py`:** CLI para onboardear clientes en 1 comando (crea `client_config` + `client_branding` + usuario inicial)
+- **SQL `migrate_multitenant.sql`:** script completo con todos los cambios de schema, RLS policies y datos iniciales
+- Build exitoso, deploy en Cloudflare Pages
+
+---
+
+## [V18.0.0] — 2026-04-05 — Datos Reales de Agentes + Alertas + Anomaly Detection
+
+### Equipos: datos reales de agentes desde Supabase
+- **`agents_performance`:** tabla Supabase con 22 agentes reales Crediminuto × 30 días hábiles = 660 registros
+- **`useAgentsData` hook:** lee datos reales, calcula promedios (30d) y tendencias (7d vs 30d) — indicadores ↑↓→ con umbral ±3%
+- **Equipos page:** 100% conectada a datos reales de Supabase (sin ningún dato mock)
+
+### Sistema de Alertas
+- **`alert_log`:** historial persistente de alertas en Supabase con severity (critical/warning/info)
+- Evaluación automática de umbrales desde datos CDR en tiempo real
+- Botón "Probar alerta" para disparo manual
+- Historial de las últimas 10 alertas con timestamp y valores reales vs umbrales
+
+### Vicky Insights: historial persistente
+- **`vicky_conversations`:** cada Q&A de Vicky guardado en Supabase con metadatos (modelo, tokens, latencia)
+- **Tab "Historial":** 20 conversaciones más recientes, colapsables, con recarga automática al abrir el chat
+
+### Anomaly Detection
+- Cálculo de desviación estándar sobre los últimos 30 días de CDR
+- Banner proactivo en Overview cuando `|hoy − media 30d| > 1.5σ`
+- Muestra delta exacto y contexto para el CEO
+
+- Build exitoso, deploy en Cloudflare Pages
+
+---
+
+# WeKall Intelligence — CHANGELOG
+
 > Repositorio del producto real (stack de producción).  
 > Para el historial completo de versiones V1–V8 (prototipo HTML), ver: https://github.com/fabsaa98/wekall-intelligence
 
