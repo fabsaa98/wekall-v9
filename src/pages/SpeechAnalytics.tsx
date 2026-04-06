@@ -244,6 +244,30 @@ export default function SpeechAnalytics() {
     const objecionYaPago = mapaObjeciones.find(o => o.id === 'ya_pago');
     const minutosRecuperados = objecionYaPago ? objecionYaPago.frecuencia * 8 : 0;
 
+    // ── Tendencia temporal semanal ─────────────────────────────────────────────
+    // Compara tasa de promesas (exitosas/total) esta semana vs semana anterior
+    const sortedByDate = [...calls].sort((a, b) =>
+      (a.raw.call_date || '').localeCompare(b.raw.call_date || ''),
+    );
+    const datesUniq = [...new Set(sortedByDate.map(c => c.raw.call_date).filter(Boolean))].sort();
+    const recentDates = datesUniq.slice(-10);
+    const thisWeekDates = recentDates.slice(-5);
+    const prevWeekDates = recentDates.slice(-10, -5);
+
+    const weeklyTrend = (() => {
+      if (thisWeekDates.length === 0 || prevWeekDates.length === 0) return null;
+      const thisWeekCalls = calls.filter(c => thisWeekDates.includes(c.raw.call_date || ''));
+      const prevWeekCalls = calls.filter(c => prevWeekDates.includes(c.raw.call_date || ''));
+      const thisRate = thisWeekCalls.length > 0
+        ? Math.round((thisWeekCalls.filter(c => c.resultado === 'exitoso').length / thisWeekCalls.length) * 100)
+        : 0;
+      const prevRate = prevWeekCalls.length > 0
+        ? Math.round((prevWeekCalls.filter(c => c.resultado === 'exitoso').length / prevWeekCalls.length) * 100)
+        : 0;
+      const delta = thisRate - prevRate;
+      return { thisRate, prevRate, delta, thisWeekN: thisWeekCalls.length, prevWeekN: prevWeekCalls.length };
+    })();
+
     return {
       total,
       exitosas: exitosas.length,
@@ -263,6 +287,7 @@ export default function SpeechAnalytics() {
       potencialCapacitacion: Math.round(potencialCapacitacion),
       minutosRecuperados,
       objecionMasFrecuente: mapaObjeciones[0],
+      weeklyTrend,
     };
   }, [transcriptions]);
 
@@ -306,7 +331,7 @@ export default function SpeechAnalytics() {
     );
   }
 
-  const { total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente } = analysis;
+  const { total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend } = analysis;
 
   // ── Headline ejecutivo ──────────────────────────────────────────────────────
   const mejorAgente = agentes[0];
@@ -342,9 +367,28 @@ export default function SpeechAnalytics() {
 
       {/* ═══ SECCIÓN 1 — HEADLINE EJECUTIVO ══════════════════════════════════════ */}
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <BarChart2 size={16} className="text-primary" />
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Diagnóstico Ejecutivo</span>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <BarChart2 size={16} className="text-primary" />
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">Diagnóstico Ejecutivo</span>
+          </div>
+          {/* Tendencia semanal — Speech Analytics */}
+          {weeklyTrend && (
+            <div className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
+              weeklyTrend.delta > 0
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                : weeklyTrend.delta < 0
+                ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                : 'border-border bg-muted/30 text-muted-foreground',
+            )}>
+              {weeklyTrend.delta > 0 ? <TrendingUp size={12} /> : weeklyTrend.delta < 0 ? <TrendingDown size={12} /> : null}
+              Esta semana vs anterior: tasa de promesas{' '}
+              {weeklyTrend.delta > 0 ? 'subió' : weeklyTrend.delta < 0 ? 'bajó' : 'igual'}{' '}
+              {weeklyTrend.delta !== 0 && `${Math.abs(weeklyTrend.delta)}pp`}
+              {' '}({weeklyTrend.thisRate}% vs {weeklyTrend.prevRate}%)
+            </div>
+          )}
         </div>
 
         <p className="text-sm text-foreground leading-relaxed">

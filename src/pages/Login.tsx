@@ -4,15 +4,42 @@ import { supabase, signIn as signInProxy } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
 import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
 
+// Sesión persistente: si remember=true, guardar en localStorage con TTL de 30 días
+// Si remember=false, guardar en sessionStorage (se borra al cerrar browser)
+const REMEMBER_KEY = 'wki_remember_session';
+const REMEMBER_TTL_DAYS = 30;
+
+function setPersistedSession(user: object, remember: boolean) {
+  const payload = { user, expires: Date.now() + (remember ? REMEMBER_TTL_DAYS * 86400 * 1000 : 0) };
+  if (remember) {
+    localStorage.setItem(REMEMBER_KEY, JSON.stringify(payload));
+  } else {
+    // Solo sesión de browser — no persistir más allá del cierre
+    sessionStorage.setItem(REMEMBER_KEY, JSON.stringify(payload));
+    localStorage.removeItem(REMEMBER_KEY);
+  }
+}
+
 const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
 
 export default function Login() {
   const navigate = useNavigate();
   const { setClientId, setCurrentUser } = useClient();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    // Pre-llenar email si hay sesión recordada
+    try {
+      const ls = localStorage.getItem(REMEMBER_KEY);
+      if (ls) {
+        const { user, expires } = JSON.parse(ls);
+        if (expires === 0 || expires > Date.now()) return (user as {email?: string}).email || '';
+      }
+    } catch { /* ignore */ }
+    return '';
+  });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem(REMEMBER_KEY));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -50,6 +77,7 @@ export default function Login() {
             const user = data[0];
             setClientId(user.client_id);
             setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
+            setPersistedSession(user, rememberMe);
             supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
             navigate('/', { replace: true });
             return;
@@ -68,6 +96,7 @@ export default function Login() {
           const user = data[0];
           setClientId(user.client_id);
           setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
+          setPersistedSession(user, rememberMe);
           supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
           navigate('/', { replace: true });
           return;
@@ -102,6 +131,7 @@ export default function Login() {
             const user = data[0];
             setClientId(user.client_id);
             setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
+            setPersistedSession(user, rememberMe);
             supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
             navigate('/', { replace: true });
             return;
@@ -167,6 +197,21 @@ export default function Login() {
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
+          </div>
+
+          {/* Remember me */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={e => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border border-border bg-card text-primary focus:ring-primary/50 cursor-pointer"
+              disabled={loading}
+            />
+            <label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer select-none">
+              Recordar sesión por 30 días
+            </label>
           </div>
 
           {error && (

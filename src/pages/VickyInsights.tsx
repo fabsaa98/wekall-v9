@@ -1319,6 +1319,18 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
             {/* Input */}
             <div className="border-t border-border p-4">
+              {/* Botón Sorpréndeme — Tableau Pulse style */}
+              <div className="flex items-center gap-2 mb-2.5">
+                <button
+                  onClick={handleSorprendeme}
+                  disabled={surpriseLoading || loading || cdr.loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary text-xs font-medium hover:bg-primary/15 transition-all disabled:opacity-40"
+                >
+                  {surpriseLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                  ¿Qué pasó esta semana?
+                </button>
+                <span className="text-[10px] text-muted-foreground">Análisis proactivo automático</span>
+              </div>
               <div className="chat-input-wrapper flex items-end gap-2 rounded-xl border border-border bg-card px-3 py-2 transition-all">
                 <textarea
                   value={input}
