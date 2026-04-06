@@ -5,9 +5,34 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAgentsData, type AgentSummary } from '@/hooks/useAgentsData';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  LineChart, Line,
 } from 'recharts';
 import { TrendingUp, TrendingDown, Minus, Loader2, AlertTriangle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ─── Mini Sparkline ───────────────────────────────────────────────────────────
+
+function AgentSparkline({ data, trend }: { data: number[]; trend: 'up' | 'down' | 'stable' }) {
+  if (!data || data.length < 2) {
+    return <span className="text-[10px] text-muted-foreground">—</span>;
+  }
+  const chartData = data.map((v, i) => ({ i, v }));
+  const color = trend === 'up' ? '#22C55E' : trend === 'down' ? '#EF4444' : '#6B7280';
+  return (
+    <div title={`Últimos ${data.length} días: ${data.join(', ')}%`}>
+      <LineChart width={64} height={24} data={chartData}>
+        <Line
+          type="monotone"
+          dataKey="v"
+          stroke={color}
+          strokeWidth={1.5}
+          dot={false}
+          isAnimationActive={false}
+        />
+      </LineChart>
+    </div>
+  );
+}
 
 // ─── Configuración por área ───────────────────────────────────────────────────
 
@@ -128,12 +153,14 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
       </td>
       <td className="py-3 px-4 text-sm text-foreground">{agent.avg_tasa_contacto.toFixed(1)}%</td>
       <td className="py-3 px-4">
-        <div className={cn('flex items-center gap-1 text-xs font-medium', trendColor)}>
-          <TrendIcon size={13} />
-          <span>{trendLabel}</span>
-          {agent.trend_delta !== 0 && (
-            <span className="text-[10px]">({agent.trend_delta > 0 ? '+' : ''}{agent.trend_delta}pp)</span>
-          )}
+        <div className="flex items-center gap-2">
+          <AgentSparkline data={agent.sparkline7d} trend={agent.trend} />
+          <div className={cn('flex items-center gap-1 text-xs font-medium', trendColor)}>
+            <TrendIcon size={12} />
+            {agent.trend_delta !== 0 && (
+              <span className="text-[10px]">{agent.trend_delta > 0 ? '+' : ''}{agent.trend_delta}pp</span>
+            )}
+          </div>
         </div>
       </td>
     </tr>
@@ -238,7 +265,7 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">CSAT</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">AHT</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tasa Contacto</th>
-                <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tendencia 7d</th>
+                <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tendencia 7d ↗</th>
               </tr>
             </thead>
             <tbody>

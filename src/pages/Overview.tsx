@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, TrendingDown,
-  BarChart2, Loader2, Zap, ArrowUp, ArrowDown,
+  BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -130,6 +130,36 @@ export default function Overview() {
       isHistorico: false,
     })),
   ];
+
+  // ── Comparativa semanal (esta semana vs semana anterior) ─────────────────
+  const weeklyComparison = (() => {
+    if (cdr.last30Days.length < 10) return null;
+    // Semana actual: últimos 5 días hábiles (o menos si no hay)
+    const all = [...cdr.last30Days].sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const thisWeek = all.slice(-5);
+    const prevWeek = all.slice(-10, -5);
+    if (thisWeek.length === 0 || prevWeek.length === 0) return null;
+
+    const avgTasa = (arr: typeof thisWeek) =>
+      Math.round(arr.reduce((s, d) => s + d.tasa_contacto_pct, 0) / arr.length * 10) / 10;
+    const avgVol = (arr: typeof thisWeek) =>
+      Math.round(arr.reduce((s, d) => s + d.total_llamadas, 0) / arr.length);
+
+    const thisWeekTasa = avgTasa(thisWeek);
+    const prevWeekTasa = avgTasa(prevWeek);
+    const thisWeekVol = avgVol(thisWeek);
+    const prevWeekVol = avgVol(prevWeek);
+
+    const deltaTasa = Math.round((thisWeekTasa - prevWeekTasa) * 10) / 10;
+    const deltaVol = thisWeekVol - prevWeekVol;
+    const deltaVolPct = prevWeekVol > 0 ? Math.round(((thisWeekVol - prevWeekVol) / prevWeekVol) * 1000) / 10 : 0;
+
+    // Día más productivo (mayor tasa de contacto) y más bajo de la semana actual
+    const bestDay = thisWeek.reduce((a, b) => a.tasa_contacto_pct > b.tasa_contacto_pct ? a : b);
+    const worstDay = thisWeek.reduce((a, b) => a.tasa_contacto_pct < b.tasa_contacto_pct ? a : b);
+
+    return { thisWeekTasa, prevWeekTasa, deltaTasa, thisWeekVol, prevWeekVol, deltaVol, deltaVolPct, bestDay, worstDay };
+  })();
 
   // Proyección promedio
   const forecastAvg = cdr.forecast.length > 0
@@ -424,6 +454,61 @@ export default function Overview() {
               />
             </ComposedChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* ── COMPARATIVA SEMANAL (Sisense Weekly Digest) ───────────────────────── */}
+      {weeklyComparison && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={15} className="text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Esta semana vs semana anterior</h2>
+            <span className="text-xs text-muted-foreground ml-1">— últimos 5 días hábiles vs 5 anteriores</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Δ Tasa de contacto */}
+            <div className="rounded-lg border border-border bg-secondary/20 p-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tasa de contacto</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-bold text-foreground">{weeklyComparison.thisWeekTasa}%</span>
+                <span className={cn(
+                  'flex items-center text-xs font-semibold',
+                  weeklyComparison.deltaTasa >= 0 ? 'text-emerald-400' : 'text-red-400',
+                )}>
+                  {weeklyComparison.deltaTasa >= 0 ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
+                  {Math.abs(weeklyComparison.deltaTasa)}pp
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Sem. ant.: {weeklyComparison.prevWeekTasa}%</p>
+            </div>
+            {/* Δ Volumen */}
+            <div className="rounded-lg border border-border bg-secondary/20 p-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Volumen llamadas</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-bold text-foreground">{weeklyComparison.thisWeekVol.toLocaleString('es-CO')}</span>
+                <span className={cn(
+                  'flex items-center text-xs font-semibold',
+                  weeklyComparison.deltaVol >= 0 ? 'text-emerald-400' : 'text-red-400',
+                )}>
+                  {weeklyComparison.deltaVol >= 0 ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
+                  {Math.abs(weeklyComparison.deltaVolPct)}%
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Sem. ant.: {weeklyComparison.prevWeekVol.toLocaleString('es-CO')}</p>
+            </div>
+            {/* Día más productivo */}
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+              <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🏆 Mejor día</p>
+              <p className="text-sm font-bold text-foreground">{weeklyComparison.bestDay.fecha.slice(5)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.bestDay.tasa_contacto_pct}% contacto · {weeklyComparison.bestDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
+            </div>
+            {/* Día más bajo */}
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+              <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wider mb-1">📉 Día más bajo</p>
+              <p className="text-sm font-bold text-foreground">{weeklyComparison.worstDay.fecha.slice(5)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.worstDay.tasa_contacto_pct}% contacto · {weeklyComparison.worstDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
+            </div>
+          </div>
         </div>
       )}
 

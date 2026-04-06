@@ -490,6 +490,38 @@ export default function VickyInsights() {
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('chat');
 
+  const [surpriseLoading, setSurpriseLoading] = useState(false);
+
+  // "Sorpréndeme" — análisis proactivo de la semana (Tableau Pulse style)
+  async function handleSorprendeme() {
+    setSurpriseLoading(true);
+    const last14 = cdr.last30Days.slice(-14);
+    const thisWeek = last14.slice(-5);
+    const prevWeek = last14.slice(-10, -5);
+
+    const avgTasa = (arr: typeof thisWeek) =>
+      arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.tasa_contacto_pct, 0) / arr.length * 10) / 10 : 0;
+    const avgVol = (arr: typeof thisWeek) =>
+      arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.total_llamadas, 0) / arr.length) : 0;
+
+    const thisWeekTasa = avgTasa(thisWeek);
+    const prevWeekTasa = avgTasa(prevWeek);
+    const deltaTasa = Math.round((thisWeekTasa - prevWeekTasa) * 10) / 10;
+    const thisWeekVol = avgVol(thisWeek);
+    const prevWeekVol = avgVol(prevWeek);
+    const deltaVol = prevWeekVol > 0 ? Math.round(((thisWeekVol - prevWeekVol) / prevWeekVol) * 100) : 0;
+
+    const bestDay = thisWeek.length > 0
+      ? thisWeek.reduce((a, b) => a.tasa_contacto_pct > b.tasa_contacto_pct ? a : b)
+      : null;
+
+    const question = `Análisis semanal proactivo: Esta semana la tasa de contacto promedio fue ${thisWeekTasa}% (semana anterior: ${prevWeekTasa}%, delta: ${deltaTasa > 0 ? '+' : ''}${deltaTasa}pp). Volumen: ${thisWeekVol.toLocaleString('es-CO')} llamadas/día (delta: ${deltaVol > 0 ? '+' : ''}${deltaVol}% vs semana anterior). ${bestDay ? `Mejor día: ${bestDay.fecha} con ${bestDay.tasa_contacto_pct}% contacto.` : ''} Dame un análisis ejecutivo de lo que pasó esta semana y las 3 acciones prioritarias para la próxima semana.`;
+
+    setSurpriseLoading(false);
+    setActiveTab('chat');
+    await sendMessage(question);
+  }
+
   // Session ID estable por sesión de browser
   const [sessionId] = useState(() => {
     const stored = sessionStorage.getItem('vicky_session_id');

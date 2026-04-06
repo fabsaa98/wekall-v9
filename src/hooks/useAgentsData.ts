@@ -48,6 +48,9 @@ export interface AgentSummary {
   avg7d_csat: number;
 
   days_count: number; // días con datos en los últimos 30
+
+  // Sparkline: últimos 7 días de tasa_contacto (para mini-gráfico en tabla)
+  sparkline7d: number[];
 }
 
 export interface AgentsDataState {
@@ -112,6 +115,9 @@ function aggregateAgent(records: AgentDayRecord[]): AgentSummary {
     avg7d_csat:          Math.round(avg(last7.map(r => r.csat)) * 10) / 10,
 
     days_count: all.length,
+
+    // Sparkline: últimos 7 días de tasa_contacto ordenados cronológicamente
+    sparkline7d: last7.map(r => Math.round(r.tasa_contacto * 10) / 10),
   };
 }
 
