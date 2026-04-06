@@ -9,7 +9,7 @@ import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
 const REMEMBER_KEY = 'wki_remember_session';
 const REMEMBER_TTL_DAYS = 30;
 
-function setPersistedSession(user: object, remember: boolean) {
+function setPersistedSession(user: object & { client_id?: string }, remember: boolean) {
   const payload = { user, expires: Date.now() + (remember ? REMEMBER_TTL_DAYS * 86400 * 1000 : 0) };
   if (remember) {
     localStorage.setItem(REMEMBER_KEY, JSON.stringify(payload));
@@ -17,6 +17,10 @@ function setPersistedSession(user: object, remember: boolean) {
     // Solo sesión de browser — no persistir más allá del cierre
     sessionStorage.setItem(REMEMBER_KEY, JSON.stringify(payload));
     localStorage.removeItem(REMEMBER_KEY);
+  }
+  // Guardar wki_client_id para AuthGuard (legacy compatibility)
+  if (user.client_id) {
+    localStorage.setItem('wki_client_id', user.client_id);
   }
 }
 
