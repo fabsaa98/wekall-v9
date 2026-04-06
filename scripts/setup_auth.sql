@@ -2,6 +2,35 @@
 -- Ejecutar en Supabase SQL Editor (Dashboard > SQL Editor)
 -- Este script enlaza auth.users con app_users para autenticación real
 
+-- ─── 0. Fix constraint multi-tenant: unique(email) → unique(email, client_id) ─
+-- IMPORTANTE: app_users usa email como PK único, pero en multi-tenant
+-- el mismo email puede pertenecer a varios clientes. Necesitamos cambiar
+-- la constraint para soportar fabian@wekall.co en wekall Y en credismart.
+DO $$
+BEGIN
+  -- Eliminar constraint de email único si existe
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'app_users_email_key' AND conrelid = 'public.app_users'::regclass
+  ) THEN
+    ALTER TABLE public.app_users DROP CONSTRAINT app_users_email_key;
+    RAISE NOTICE 'Dropped app_users_email_key constraint';
+  END IF;
+END $$;
+
+-- Crear constraint compuesta (email, client_id) si no existe
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'app_users_email_client_id_key' AND conrelid = 'public.app_users'::regclass
+  ) THEN
+    ALTER TABLE public.app_users 
+      ADD CONSTRAINT app_users_email_client_id_key UNIQUE (email, client_id);
+    RAISE NOTICE 'Added app_users_email_client_id_key constraint';
+  END IF;
+END $$;
+
 -- ─── 1. Agregar auth_id a app_users ──────────────────────────────────────────
 ALTER TABLE public.app_users 
   ADD COLUMN IF NOT EXISTS auth_id uuid REFERENCES auth.users(id);

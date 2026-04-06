@@ -1,3 +1,9 @@
+/**
+ * AlertsView — DECISIÓN FIX 2E (V20): NO enrutado en App.tsx.
+ * Redundante con /alertas (Alertas.tsx), que ya tiene: alertas dinámicas desde CDR Supabase,
+ * historial en alert_log, creación NL, evaluación de KPIs y umbrales dinámicos por cliente.
+ * AlertsView usa mockAlertRules/mockAlerts que no existen en mockData.ts actual.
+ */
 import { useState } from 'react';
 import { Bell, Plus, Lightning, Warning, Info, EnvelopeSimple, SlackLogo, Globe, Clock } from '@phosphor-icons/react';
 import { useAlerts, useAlertRules } from '@/hooks/useAlerts';

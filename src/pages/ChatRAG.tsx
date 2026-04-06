@@ -1,3 +1,16 @@
+/**
+ * ChatRAG — Interfaz alternativa de RAG/chat con transcripciones.
+ *
+ * DECISIÓN FIX 2D (V20): Este componente NO está enrutado en App.tsx.
+ * Razón: Es funcionalmente redundante con VickyInsights (/vicky), que ya implementa:
+ *   - RAG semántico sobre transcripciones (via Worker /rag-query)
+ *   - Chat con contexto de llamadas
+ *   - Motor EBITDA y cálculos determinísticos
+ *
+ * Si en el futuro se necesitan features específicos de ChatRAG (historial de
+ * conversaciones multi-sesión via useChat, sidebar de conversaciones previas),
+ * considerar integrarlos en VickyInsights en lugar de enrutar este componente.
+ */
 import { useState, useRef, useEffect } from 'react';
 import { Plus, PaperPlaneRight, Sparkle, ChatText } from '@phosphor-icons/react';
 import { ChatMessageBubble } from '@/components/ChatMessageBubble';

@@ -19,10 +19,9 @@ Notas:
 
 import argparse
 import sys
+import os
 import requests
 import json
-
-import os
 SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://iszodrpublcnsyvtgjcg.supabase.co')
 SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 

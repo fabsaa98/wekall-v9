@@ -13,6 +13,14 @@ import DocumentAnalysis from '@/pages/DocumentAnalysis';
 import Login from '@/pages/Login';
 import Admin from '@/pages/Admin';
 import { supabase } from '@/lib/supabase';
+// Fix 2A, 2B, 2C — Páginas activas: Transcripciones, Subir Grabación, Búsqueda
+import TranscriptionList from '@/pages/TranscriptionList';
+import TranscriptionDetail from '@/pages/TranscriptionDetail';
+import UploadRecording from '@/pages/UploadRecording';
+import SearchView from '@/pages/SearchView';
+// Fix 2D: ChatRAG NO se enruta — es redundante con VickyInsights (misma función de RAG/chat).
+// Fix 2E: AlertsView, IntegrationsView, SettingsView y Dashboard son redundantes con
+//   Alertas y Configuracion actuales — NO se enrutan para evitar fragmentación de UX.
 
 /**
  * AuthGuard — Control de acceso con doble verificación:
@@ -109,6 +117,13 @@ export default function App() {
                 <Route path="/equipos" element={<Equipos />} />
                 <Route path="/config" element={<Configuracion />} />
                 <Route path="/admin" element={<Admin />} />
+                {/* Fix 2A: Transcripciones */}
+                <Route path="/transcriptions" element={<TranscriptionList />} />
+                <Route path="/transcriptions/:id" element={<TranscriptionDetail />} />
+                {/* Fix 2B: Subir grabación */}
+                <Route path="/upload" element={<UploadRecording />} />
+                {/* Fix 2C: Búsqueda semántica global */}
+                <Route path="/search" element={<SearchView />} />
               </Route>
 
               {/* Fallback */}
