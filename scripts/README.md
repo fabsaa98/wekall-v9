@@ -259,3 +259,48 @@ python3 scripts/seed_agents.py  # modificar AGENTS y CAMPAIGN en el script
 #    https://wekall-intelligence.pages.dev/login
 #    Email: ceo@nuevo.com / Código: nuevo_cliente
 ```
+
+---
+
+## create_auth_user.py — V20
+
+Crea un usuario en Supabase Auth (con contraseña real) y lo enlaza con `app_users`.
+
+```bash
+export SUPABASE_SERVICE_KEY="<service_role_key_from_supabase_dashboard>"
+python3 scripts/create_auth_user.py \
+  --email ceo@empresa.co \
+  --password TempPass123! \
+  --client-id empresa_xyz \
+  --name "Nombre CEO" \
+  --role CEO
+```
+
+**Parámetros:**
+- `--email` — email del usuario (obligatorio)
+- `--password` — contraseña temporal (obligatorio)
+- `--client-id` — client_id de la empresa (debe existir en client_config)
+- `--name` — nombre del usuario (opcional)
+- `--role` — CEO | VP Ventas | VP CX | COO | admin (default: CEO)
+
+---
+
+## setup_auth.sql — V20
+
+Script de migración para activar Supabase Auth real:
+- Agrega columna `auth_id` a `app_users`
+- Cambia constraint a `UNIQUE(email, client_id)` para multi-tenant
+- Crea trigger `on_auth_user_created` para enlace automático
+- Crea función `get_user_client_id()` para RLS futuro
+
+Ejecutar una sola vez en Supabase Dashboard > SQL Editor.
+
+---
+
+## update_search_function.sql — V20
+
+Actualiza la función `search_transcriptions` para aceptar `client_id_filter`:
+- Sin este parámetro, todos los clientes ven todas las transcripciones (inseguro)
+- Con este parámetro, el RAG está aislado por cliente
+
+Ejecutar en Supabase Dashboard > SQL Editor. **Obligatorio para producción multi-tenant.**
