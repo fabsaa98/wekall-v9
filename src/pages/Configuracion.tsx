@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug, Building2, LogOut, Globe, DollarSign } from 'lucide-react';
+import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug, Building2, LogOut, Globe, DollarSign, Linkedin, Instagram, Twitter, Facebook, Mail } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -198,25 +198,119 @@ export default function Configuracion() {
           {/* Branding */}
           {clientBranding && (
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Branding</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <h3 className="text-sm font-semibold text-foreground">Branding e identidad</h3>
+
+              {/* Logo + color */}
+              <div className="flex items-center gap-4">
+                {clientBranding.logo_url ? (
+                  <img
+                    src={clientBranding.logo_url}
+                    alt="Logo empresa"
+                    className="h-14 w-14 rounded-xl object-contain border border-border bg-white/5 p-1"
+                  />
+                ) : (
+                  <div
+                    className="h-14 w-14 rounded-xl border border-border flex items-center justify-center shrink-0 text-white font-bold text-xl"
+                    style={{ backgroundColor: clientBranding.primary_color || '#6334C0' }}
+                  >
+                    {(clientBranding.company_name || clientConfig?.client_name || '?')
+                      .split(' ')
+                      .slice(0, 2)
+                      .map((w: string) => w[0])
+                      .join('')
+                      .toUpperCase()}
+                  </div>
+                )}
                 <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Color primario</p>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded-full border border-white/10"
-                      style={{ background: clientBranding.primary_color || '#6334C0' }}
-                    />
-                    <p className="text-sm text-foreground font-mono">{clientBranding.primary_color || '#6334C0'}</p>
+                  <p className="text-sm font-semibold text-foreground">{clientBranding.company_name || clientConfig?.client_name}</p>
+                  {clientBranding.tagline && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{clientBranding.tagline}</p>
+                  )}
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: clientBranding.primary_color || '#6334C0' }} />
+                    <code className="text-[11px] text-muted-foreground">{clientBranding.primary_color || '#6334C0'}</code>
                   </div>
                 </div>
-                {clientBranding.logo_url && (
+              </div>
+
+              {/* Descripción */}
+              {clientBranding.industry_description && (
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Descripción</p>
+                  <p className="text-sm text-foreground leading-relaxed">{clientBranding.industry_description}</p>
+                </div>
+              )}
+
+              {/* Contacto y web */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border">
+                {clientBranding.website_url && (
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Logo</p>
-                    <img src={clientBranding.logo_url} alt="Logo empresa" className="h-8 object-contain" />
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Sitio web</p>
+                    <a
+                      href={clientBranding.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                    >
+                      <Globe size={12} />
+                      {clientBranding.website_url.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
+                {clientBranding.contact_email && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email de contacto</p>
+                    <a
+                      href={`mailto:${clientBranding.contact_email}`}
+                      className="text-sm text-foreground hover:text-primary flex items-center gap-1.5"
+                    >
+                      <Mail size={12} className="text-muted-foreground" />
+                      {clientBranding.contact_email}
+                    </a>
+                  </div>
+                )}
+                {clientBranding.phone && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Teléfono</p>
+                    <p className="text-sm text-foreground">{clientBranding.phone}</p>
                   </div>
                 )}
               </div>
+
+              {/* Redes sociales */}
+              {(clientBranding.linkedin_url || clientBranding.instagram_url || clientBranding.twitter_url || clientBranding.facebook_url) && (
+                <div className="border-t border-border pt-3">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Redes sociales</p>
+                  <div className="flex items-center gap-4">
+                    {clientBranding.linkedin_url && (
+                      <a href={clientBranding.linkedin_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                        <Linkedin size={14} /> LinkedIn
+                      </a>
+                    )}
+                    {clientBranding.instagram_url && (
+                      <a
+                        href={clientBranding.instagram_url.startsWith('http') ? clientBranding.instagram_url : `https://instagram.com/${clientBranding.instagram_url.replace('@', '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-pink-400 transition-colors">
+                        <Instagram size={14} /> Instagram
+                      </a>
+                    )}
+                    {clientBranding.twitter_url && (
+                      <a href={clientBranding.twitter_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-sky-400 transition-colors">
+                        <Twitter size={14} /> Twitter/X
+                      </a>
+                    )}
+                    {clientBranding.facebook_url && (
+                      <a href={clientBranding.facebook_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-blue-400 transition-colors">
+                        <Facebook size={14} /> Facebook
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

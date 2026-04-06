@@ -23,10 +23,18 @@ export interface ClientConfig {
 
 export interface ClientBranding {
   client_id: string;
-  logo_url?: string;
+  logo_url?: string | null;
   primary_color?: string;
   company_name?: string;
-  tagline?: string;
+  tagline?: string | null;
+  website_url?: string | null;
+  linkedin_url?: string | null;
+  instagram_url?: string | null;
+  twitter_url?: string | null;
+  facebook_url?: string | null;
+  industry_description?: string | null;
+  contact_email?: string | null;
+  phone?: string | null;
   updated_at?: string;
 }
 

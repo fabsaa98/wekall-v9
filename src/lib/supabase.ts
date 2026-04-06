@@ -77,6 +77,25 @@ export async function getHourlyDistribution(fecha: string): Promise<CDRHourlyMet
   return data || [];
 }
 
+// ─── Client Branding ──────────────────────────────────────────────────────────
+
+export interface ClientBranding {
+  client_id: string;
+  logo_url: string | null;
+  primary_color: string;
+  company_name: string;
+  tagline: string | null;
+  website_url: string | null;
+  linkedin_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
+  facebook_url: string | null;
+  industry_description: string | null;
+  contact_email: string | null;
+  phone: string | null;
+  updated_at: string;
+}
+
 // ─── Configuración de cliente (parámetros EBITDA por cliente) ─────────────────
 export interface ClientConfig {
   client_id: string;

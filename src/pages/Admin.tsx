@@ -3,7 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ShieldCheck, Users, Building2, Plus, Eye, PowerOff, Power,
-  ChevronRight, X, Loader2, RefreshCw, UserPlus
+  ChevronRight, X, Loader2, RefreshCw, UserPlus,
+  Globe, Linkedin, Instagram, Twitter, Facebook, Mail, Phone
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -47,10 +48,18 @@ interface ClientRow {
 
 interface ClientBranding {
   client_id: string;
-  logo_url?: string;
+  logo_url?: string | null;
   primary_color?: string;
   company_name?: string;
-  tagline?: string;
+  tagline?: string | null;
+  website_url?: string | null;
+  linkedin_url?: string | null;
+  instagram_url?: string | null;
+  twitter_url?: string | null;
+  facebook_url?: string | null;
+  industry_description?: string | null;
+  contact_email?: string | null;
+  phone?: string | null;
 }
 
 interface UserRow {
@@ -209,32 +218,117 @@ function ClientDetailPanel({
           <>
             {/* Branding */}
             <section>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Branding</h3>
-              <div className="rounded-lg border border-border bg-secondary/20 p-4 space-y-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Empresa</h3>
+              <div className="rounded-lg border border-border bg-secondary/20 p-4 space-y-4">
+                {/* Logo + nombre */}
                 <div className="flex items-center gap-3">
-                  <div
-                    className="h-10 w-10 rounded-lg border border-border shrink-0"
-                    style={{ backgroundColor: detail.branding?.primary_color || '#6334C0' }}
-                  />
+                  {detail.branding?.logo_url ? (
+                    <img
+                      src={detail.branding.logo_url}
+                      alt="Logo"
+                      className="h-12 w-12 rounded-lg object-contain border border-border bg-white/5 p-1"
+                    />
+                  ) : (
+                    <div
+                      className="h-12 w-12 rounded-lg border border-border flex items-center justify-center shrink-0 text-white font-bold text-lg"
+                      style={{ backgroundColor: detail.branding?.primary_color || '#6334C0' }}
+                    >
+                      {(detail.branding?.company_name || client.client_name)
+                        .split(' ')
+                        .slice(0, 2)
+                        .map(w => w[0])
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+                  )}
                   <div>
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm font-semibold text-foreground">
                       {detail.branding?.company_name || client.client_name}
                     </p>
                     {detail.branding?.tagline && (
                       <p className="text-xs text-muted-foreground">{detail.branding.tagline}</p>
                     )}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: detail.branding?.primary_color || '#6334C0' }} />
+                      <code className="text-[11px] text-muted-foreground">{detail.branding?.primary_color || '#6334C0'}</code>
+                    </div>
                   </div>
                 </div>
-                {detail.branding?.logo_url && (
-                  <img
-                    src={detail.branding.logo_url}
-                    alt="Logo"
-                    className="h-8 w-auto object-contain"
-                  />
+
+                {/* Descripción */}
+                {detail.branding?.industry_description && (
+                  <p className="text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">
+                    {detail.branding.industry_description}
+                  </p>
                 )}
-                <div className="flex gap-4 text-xs text-muted-foreground">
-                  <span>Color: <code className="text-foreground">{detail.branding?.primary_color || '#6334C0'}</code></span>
-                </div>
+
+                {/* Sitio web */}
+                {detail.branding?.website_url && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <Globe size={12} className="text-muted-foreground shrink-0" />
+                    <a
+                      href={detail.branding.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline truncate"
+                    >
+                      {detail.branding.website_url.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
+
+                {/* Email de contacto */}
+                {detail.branding?.contact_email && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <Mail size={12} className="text-muted-foreground shrink-0" />
+                    <a
+                      href={`mailto:${detail.branding.contact_email}`}
+                      className="text-muted-foreground hover:text-foreground truncate"
+                    >
+                      {detail.branding.contact_email}
+                    </a>
+                  </div>
+                )}
+
+                {/* Teléfono */}
+                {detail.branding?.phone && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <Phone size={12} className="text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">{detail.branding.phone}</span>
+                  </div>
+                )}
+
+                {/* Redes sociales */}
+                {(detail.branding?.linkedin_url || detail.branding?.instagram_url || detail.branding?.twitter_url || detail.branding?.facebook_url) && (
+                  <div className="flex items-center gap-3 border-t border-border pt-3">
+                    {detail.branding.linkedin_url && (
+                      <a href={detail.branding.linkedin_url} target="_blank" rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary transition-colors" title="LinkedIn">
+                        <Linkedin size={14} />
+                      </a>
+                    )}
+                    {detail.branding.instagram_url && (
+                      <a
+                        href={detail.branding.instagram_url.startsWith('http') ? detail.branding.instagram_url : `https://instagram.com/${detail.branding.instagram_url.replace('@', '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-pink-400 transition-colors" title="Instagram">
+                        <Instagram size={14} />
+                      </a>
+                    )}
+                    {detail.branding.twitter_url && (
+                      <a href={detail.branding.twitter_url} target="_blank" rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-sky-400 transition-colors" title="Twitter/X">
+                        <Twitter size={14} />
+                      </a>
+                    )}
+                    {detail.branding.facebook_url && (
+                      <a href={detail.branding.facebook_url} target="_blank" rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-blue-400 transition-colors" title="Facebook">
+                        <Facebook size={14} />
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
 
@@ -749,6 +843,14 @@ const EMPTY_FORM = {
   country: '',
   currency: '',
   primaryColor: '#6334C0',
+  logoUrl: '',
+  tagline: '',
+  industryDescription: '',
+  websiteUrl: '',
+  linkedinUrl: '',
+  instagramUrl: '',
+  contactEmail: '',
+  phone: '',
   ceoEmail: '',
   ceoName: '',
   ceoRole: 'CEO',
@@ -802,6 +904,14 @@ function CreateClientTab() {
         client_id: form.clientId,
         company_name: form.companyName,
         primary_color: form.primaryColor,
+        logo_url: form.logoUrl || null,
+        tagline: form.tagline || null,
+        industry_description: form.industryDescription || null,
+        website_url: form.websiteUrl || null,
+        linkedin_url: form.linkedinUrl || null,
+        instagram_url: form.instagramUrl || null,
+        contact_email: form.contactEmail || null,
+        phone: form.phone || null,
       });
       if (brandingError) throw new Error(`client_branding: ${brandingError.message}`);
 
@@ -845,10 +955,10 @@ function CreateClientTab() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Company Info */}
+        {/* Sección 1: Datos básicos */}
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Datos del cliente</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">1 · Datos básicos</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
@@ -910,12 +1020,12 @@ function CreateClientTab() {
           </CardContent>
         </Card>
 
-        {/* Branding */}
+        {/* Sección 2: Branding */}
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Branding</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">2 · Branding</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="space-y-1.5 flex-1">
                 <Label>Color principal</Label>
@@ -939,13 +1049,105 @@ function CreateClientTab() {
                 style={{ backgroundColor: form.primaryColor }}
               />
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>URL del logo</Label>
+                <Input
+                  type="url"
+                  placeholder="https://empresa.com/logo.png"
+                  value={form.logoUrl}
+                  onChange={e => update('logoUrl', e.target.value)}
+                  className="h-10"
+                />
+                <p className="text-xs text-muted-foreground">Upload directo disponible próximamente</p>
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>Tagline</Label>
+                <Input
+                  placeholder="Soluciones financieras para todos"
+                  value={form.tagline}
+                  onChange={e => update('tagline', e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>¿A qué se dedica la empresa?</Label>
+                <textarea
+                  placeholder="Descripción breve de la empresa y su propuesta de valor..."
+                  value={form.industryDescription}
+                  onChange={e => update('industryDescription', e.target.value)}
+                  maxLength={200}
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                />
+                <p className="text-xs text-muted-foreground text-right">{form.industryDescription.length}/200</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* CEO Info */}
+        {/* Sección 3: Contacto y redes */}
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">Usuario administrador (CEO)</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">3 · Contacto y redes sociales</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Globe size={12} className="text-muted-foreground" /> Sitio web</Label>
+              <Input
+                type="url"
+                placeholder="https://empresa.com"
+                value={form.websiteUrl}
+                onChange={e => update('websiteUrl', e.target.value)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Linkedin size={12} className="text-muted-foreground" /> LinkedIn</Label>
+              <Input
+                type="url"
+                placeholder="https://linkedin.com/company/empresa"
+                value={form.linkedinUrl}
+                onChange={e => update('linkedinUrl', e.target.value)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Instagram size={12} className="text-muted-foreground" /> Instagram</Label>
+              <Input
+                placeholder="@empresa"
+                value={form.instagramUrl}
+                onChange={e => update('instagramUrl', e.target.value)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Mail size={12} className="text-muted-foreground" /> Email de contacto</Label>
+              <Input
+                type="email"
+                placeholder="contacto@empresa.com"
+                value={form.contactEmail}
+                onChange={e => update('contactEmail', e.target.value)}
+                className="h-10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Phone size={12} className="text-muted-foreground" /> Teléfono</Label>
+              <Input
+                type="tel"
+                placeholder="+57 300 000 0000"
+                value={form.phone}
+                onChange={e => update('phone', e.target.value)}
+                className="h-10"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sección 4: CEO */}
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider">4 · Usuario administrador (CEO)</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
