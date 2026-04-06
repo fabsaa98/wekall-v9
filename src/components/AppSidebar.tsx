@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 
@@ -10,12 +10,10 @@ const navItems = [
   { label: 'Análisis Docs', path: '/document-analysis', icon: Brain },
   { label: 'Alertas', path: '/alertas', icon: Bell },
   { label: 'Equipos', path: '/equipos', icon: Users },
-  // Fix 2A: Transcripciones — análisis de llamadas grabadas con client_id
-  { label: 'Transcripciones', path: '/transcriptions', icon: FileAudio },
-  // Fix 2B: Subir grabación al Worker /ingest (con client_id del contexto)
-  { label: 'Subir grabación', path: '/upload', icon: Upload },
-  // Fix 2C: Búsqueda semántica global en transcripciones
-  { label: 'Búsqueda', path: '/search', icon: Search },
+  // Nota: Transcripciones, Subir Grabación y Búsqueda se eliminaron del sidebar
+  // — sus backends no existen en esta versión. El acceso a transcripciones
+  // se hace desde Speech Analytics y el panel de Vicky Insights.
+  // Se reactivarán cuando el webhook WeKall esté conectado (V21).
   { label: 'Configuración', path: '/config', icon: Settings },
 ];
 
