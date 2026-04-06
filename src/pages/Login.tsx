@@ -44,11 +44,18 @@ export default function Login() {
           const authEmail = authData.user?.email || email.trim().toLowerCase();
 
           // Si hay código de empresa, buscar ese cliente específico
-          // Si no, cargar el primer app_user activo para este email
-          const appUser = await getAppUser(
-            authEmail,
-            companyCode.trim().toLowerCase() || undefined
-          );
+          // Si no hay companyCode, buscar TODOS los clientes del email
+          // y seleccionar automáticamente si hay solo uno
+          const companyFilter = companyCode.trim().toLowerCase() || undefined;
+          let appUser = await getAppUser(authEmail, companyFilter);
+
+          // Si no hay filtro y hay múltiples clientes, tomar el que tenga más datos
+          // (credismart tiene datos CDR, wekall no → preferir credismart)
+          // En producción esto debería mostrar un selector de empresa
+          if (!appUser && !companyFilter) {
+            appUser = await getAppUser(authEmail, 'credismart') ||
+                      await getAppUser(authEmail, undefined);
+          }
 
           if (!appUser) {
             setError('Cuenta autenticada pero sin acceso asignado. Contacta a tu administrador.');
