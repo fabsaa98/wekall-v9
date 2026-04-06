@@ -91,7 +91,8 @@ export default function Login() {
           .then(() => {});
 
         setLoading(false);
-        navigate('/', { replace: true });
+        // Hard redirect para evitar race condition con AuthGuard y Supabase session
+        window.location.href = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/';
         return;
 
       } catch (authErr: unknown) {
