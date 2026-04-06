@@ -222,12 +222,12 @@ export default function Overview() {
     : '';
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1 w-full min-w-0">
 
       {/* Banner de anomalía (si detectada) */}
       {anomaly?.detected && (
         <div className={cn(
-          'animate-fade-slide-down rounded-xl border p-4 flex items-start gap-3',
+          'animate-fade-slide-down rounded-xl border p-4 flex flex-col sm:flex-row items-start gap-3',
           anomaly.direction === 'down'
             ? 'border-red-500/30 bg-red-500/10'
             : 'border-emerald-500/30 bg-emerald-500/10',
@@ -325,12 +325,12 @@ export default function Overview() {
       {/* ── FORECASTING 7 DÍAS ─────────────────────────────────────────────── */}
       {cdr.forecast.length > 0 && (
         <div className="rounded-xl border border-primary/20 bg-card p-5">
-          <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Proyección 7 Días — Tasa de Contacto</h2>
               <p className="text-xs text-muted-foreground">Regresión lineal sobre últimos 30 días · Banda de confianza ±1 desv. estándar</p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-3 sm:shrink-0">
               {forecastAvg !== null && (
                 <div className="text-right">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Proyección promedio</p>
@@ -374,7 +374,8 @@ export default function Overview() {
             </span>
           </div>
 
-          <ResponsiveContainer width="100%" height={220}>
+          <div className="h-48 sm:h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={forecastChartData} margin={{ top: 5, right: 10, bottom: 0, left: -15 }}>
               <defs>
                 <linearGradient id="gForecastConf" x1="0" y1="0" x2="0" y2="1">
@@ -454,6 +455,7 @@ export default function Overview() {
               />
             </ComposedChart>
           </ResponsiveContainer>
+          </div>
         </div>
       )}
 
@@ -465,7 +467,7 @@ export default function Overview() {
             <h2 className="text-sm font-semibold text-foreground">Esta semana vs semana anterior</h2>
             <span className="text-xs text-muted-foreground ml-1">— últimos 5 días hábiles vs 5 anteriores</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Δ Tasa de contacto */}
             <div className="rounded-lg border border-border bg-secondary/20 p-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tasa de contacto</p>
@@ -532,7 +534,8 @@ export default function Overview() {
               </span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
+          <div className="h-44 sm:h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={conversationTrend} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1">
@@ -555,6 +558,7 @@ export default function Overview() {
               <Area type="monotone" dataKey="resolved" name="Contactos" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" />
             </AreaChart>
           </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Proactive Insights — dinámicos */}

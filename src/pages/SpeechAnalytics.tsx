@@ -340,12 +340,12 @@ export default function SpeechAnalytics() {
   const patronTopEjecutivo = patronesExitosos[0];
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1 w-full min-w-0">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/15">
+          <div className="p-2.5 rounded-xl bg-primary/15 shrink-0">
             <Mic size={20} className="text-primary" />
           </div>
           <div>
@@ -367,7 +367,7 @@ export default function SpeechAnalytics() {
 
       {/* ═══ SECCIÓN 1 — HEADLINE EJECUTIVO ══════════════════════════════════════ */}
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 space-y-4">
-        <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <BarChart2 size={16} className="text-primary" />
             <span className="text-xs font-semibold text-primary uppercase tracking-wider">Diagnóstico Ejecutivo</span>
@@ -419,7 +419,7 @@ export default function SpeechAnalytics() {
         )}
 
         {/* KPIs inline */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-border/50">
           {[
             { label: 'Promesas de pago', value: nExitosas, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
             { label: 'Sin acuerdo', value: nFallidas, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },

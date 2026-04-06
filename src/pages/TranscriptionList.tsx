@@ -63,7 +63,7 @@ export default function TranscriptionList() {
   const sentimentOptions = ['positive', 'negative', 'neutral', 'mixed'] as const;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4 sm:p-6 overflow-y-auto flex-1 w-full min-w-0">
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar en transcripciones..." className="flex-1" />

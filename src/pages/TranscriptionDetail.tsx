@@ -73,7 +73,7 @@ export default function TranscriptionDetail() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4 sm:p-6 overflow-y-auto flex-1 w-full min-w-0">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-2 sm:flex-row sm:items-start">
         <div className="flex items-center gap-3 flex-1">

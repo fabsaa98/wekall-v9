@@ -110,7 +110,7 @@ const INDUSTRY_COLORS: Record<string, string> = {
   cobranzas: 'bg-red-500/15 text-red-400 border-red-500/30',
   servicio: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   ventas: 'bg-green-500/15 text-green-400 border-green-500/30',
-  soporte: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+  soporte: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
   banca: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
   salud: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
   retail: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
@@ -568,7 +568,8 @@ function ClientsTab() {
         </Button>
       </div>
 
-      <Card className="border-border">
+      <Card className="border-border overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
@@ -662,6 +663,7 @@ function ClientsTab() {
             )}
           </TableBody>
         </Table>
+        </div>
       </Card>
 
       {/* Detail panel */}
@@ -758,7 +760,8 @@ function UsersTab() {
         />
       )}
 
-      <Card className="border-border">
+      <Card className="border-border overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
@@ -829,6 +832,7 @@ function UsersTab() {
             )}
           </TableBody>
         </Table>
+        </div>
       </Card>
     </div>
   );
@@ -1220,7 +1224,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto overflow-y-auto flex-1 w-full min-w-0">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 border border-primary/20">

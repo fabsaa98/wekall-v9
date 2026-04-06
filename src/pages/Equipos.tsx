@@ -98,7 +98,7 @@ function avgAgents(agents: AgentSummary[], key: AreaKPIKey): number {
 function EquiposSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
           <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
@@ -203,7 +203,7 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
       <p className="text-sm text-muted-foreground">{config.description}</p>
 
       {/* KPIs del área */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {config.kpis.map((kpi) => {
           const value = avgAgents(agents, kpi.key);
           const isGood = kpi.invertGood ? value <= kpi.benchmark : value >= kpi.benchmark;
@@ -230,7 +230,7 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
         <h3 className="text-sm font-semibold text-foreground mb-4">
           Tasa de Contacto por Agente (Top {Math.min(8, sorted.length)}) — últimos 30 días
         </h3>
-        <ResponsiveContainer width="100%" height={180}>
+        <div className="h-44 sm:h-[180px]"><ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E4E8EF" vertical={false} />
             <XAxis dataKey="name" tick={{ fill: '#3D4A60', fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -245,7 +245,7 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
               ))}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer></div>
       </div>
 
       {/* Tabla de agentes */}
@@ -296,7 +296,7 @@ export default function Equipos() {
   const agentsInArea = agents.filter(a => a.area === activeArea);
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-[1200px] mx-auto space-y-4 sm:space-y-6 overflow-y-auto flex-1 w-full min-w-0">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Equipos</h1>

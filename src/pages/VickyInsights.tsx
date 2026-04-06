@@ -1255,23 +1255,23 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden min-w-0 w-full">
       {/* Chat main */}
       <div className="flex-1 flex flex-col min-w-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <div className="border-b border-border bg-card/50 px-4 pt-3 pb-0">
-            <div className="flex items-end gap-1">
+          <div className="border-b border-border bg-card/50 px-2 sm:px-4 pt-3 pb-0 overflow-x-auto">
+            <div className="flex items-end gap-1 min-w-max sm:min-w-0">
               {([
-                { value: 'chat',      label: 'Chat',              icon: <MessageSquare size={15} />, color: 'text-blue-500',    colorMuted: 'text-blue-300' },
-                { value: 'upload',    label: 'Analizar Documento', icon: <FileText size={15} />,      color: 'text-amber-500',   colorMuted: 'text-amber-300',   tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
-                { value: 'decisions', label: 'Decisiones',         icon: <ClipboardList size={15} />, color: 'text-emerald-500', colorMuted: 'text-emerald-300', tooltip: 'Convierte los insights de Vicky en decisiones. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
-                { value: 'history',   label: 'Historial',           icon: <History size={15} />,       color: 'text-violet-400',  colorMuted: 'text-violet-300',  tooltip: 'Historial de conversaciones guardadas en Supabase. Clic en una para recargarla en el chat.' },
+                { value: 'chat',      label: 'Chat',         icon: <MessageSquare size={15} />, color: 'text-blue-500',    colorMuted: 'text-blue-300' },
+                { value: 'upload',    label: 'Documento',    icon: <FileText size={15} />,      color: 'text-amber-500',   colorMuted: 'text-amber-300',   tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
+                { value: 'decisions', label: 'Decisiones',   icon: <ClipboardList size={15} />, color: 'text-emerald-500', colorMuted: 'text-emerald-300', tooltip: 'Convierte los insights de Vicky en decisiones. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
+                { value: 'history',   label: 'Historial',    icon: <History size={15} />,       color: 'text-violet-400',  colorMuted: 'text-violet-300',  tooltip: 'Historial de conversaciones guardadas en Supabase. Clic en una para recargarla en el chat.' },
               ] as Array<{ value: string; label: string; icon: React.ReactNode; color: string; colorMuted: string; tooltip?: string }>).map(tab => (
                 <button
                   key={tab.value}
                   onClick={() => setActiveTab(tab.value)}
                   className={cn(
-                    'group flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-all',
+                    'group flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium rounded-t-lg border border-b-0 transition-all whitespace-nowrap',
                     activeTab === tab.value
                       ? 'bg-background border-primary/60 text-foreground shadow-sm -mb-px z-10'
                       : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50',
@@ -1425,7 +1425,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                                 const stored = JSON.parse(localStorage.getItem('wekall_decision_log') || '[]');
                                 localStorage.setItem('wekall_decision_log', JSON.stringify(stored.map((x: {id: string}) => x.id === d.id ? { ...x, estado: 'En progreso' } : x)));
                               }}
-                              className="text-[10px] px-1.5 py-0.5 rounded border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+                              className="text-[10px] px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-600 hover:bg-amber-500/10 transition-colors"
                             >
                               Iniciar
                             </button>
@@ -1543,7 +1543,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   </div>
                 </div>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
                 {/* CRM — Próximamente */}
                 <div className="relative border rounded-xl p-4 flex flex-col items-center gap-2 text-center opacity-60 cursor-not-allowed pointer-events-none border-border">
                   <Database className="w-10 h-10 text-muted-foreground" />

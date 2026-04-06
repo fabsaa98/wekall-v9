@@ -123,7 +123,7 @@ export default function AppLayout() {
       />
 
       {/* Main */}
-      <div className={`flex flex-1 flex-col overflow-hidden transition-all duration-300 ${collapsed ? 'lg:ml-16' : 'lg:ml-[280px]'}`}>
+      <div className={`flex flex-1 flex-col overflow-hidden transition-all duration-300 w-full ${collapsed ? 'lg:ml-16' : 'lg:ml-[280px]'}`}>
         {/* Header */}
         <header className="flex items-center gap-3 border-b border-border bg-card/50 backdrop-blur-sm px-4 h-16 shrink-0">
           <button

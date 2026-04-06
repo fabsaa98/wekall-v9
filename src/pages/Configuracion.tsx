@@ -162,7 +162,7 @@ export default function Configuracion() {
   }
 
   return (
-    <div className="p-6 max-w-[900px] mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-[900px] mx-auto space-y-4 sm:space-y-6 overflow-y-auto flex-1 w-full min-w-0">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Fuentes de datos, integraciones y preferencias</p>

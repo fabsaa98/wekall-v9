@@ -355,7 +355,7 @@ export default function Alertas() {
   const firedAlerts = alerts.filter(a => !a.active);
 
   return (
-    <div className="p-6 max-w-[900px] mx-auto space-y-6 overflow-y-auto flex-1">
+    <div className="p-4 sm:p-6 max-w-[900px] mx-auto space-y-4 sm:space-y-6 overflow-y-auto flex-1 w-full min-w-0">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -486,7 +486,7 @@ export default function Alertas() {
 
         <TabsContent value="active" className="mt-4 space-y-3">
           {activeAlerts.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <div className="rounded-xl border border-border bg-card p-4 sm:p-8 text-center">
               <p className="text-muted-foreground text-sm">No hay alertas activas</p>
             </div>
           ) : (
@@ -498,7 +498,7 @@ export default function Alertas() {
 
         <TabsContent value="fired" className="mt-4 space-y-3">
           {firedAlerts.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <div className="rounded-xl border border-border bg-card p-4 sm:p-8 text-center">
               <p className="text-muted-foreground text-sm">Sin alertas inactivas</p>
             </div>
           ) : (
@@ -536,7 +536,7 @@ export default function Alertas() {
               </p>
             </div>
           ) : alertHistory.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-8 text-center space-y-2">
+            <div className="rounded-xl border border-border bg-card p-4 sm:p-8 text-center space-y-2">
               <History size={28} className="mx-auto text-muted-foreground" />
               <p className="text-muted-foreground text-sm">Sin alertas registradas en Supabase</p>
               <p className="text-xs text-muted-foreground">
