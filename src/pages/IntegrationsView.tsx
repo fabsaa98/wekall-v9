@@ -1,3 +1,8 @@
+/**
+ * IntegrationsView — DECISIÓN FIX 2E (V20): NO enrutado en App.tsx.
+ * Redundante con la pestaña "Integraciones" en Configuracion.tsx (/config).
+ * Usa mockIntegrations que no está definido en mockData.ts actual — causaría crash.
+ */
 import { Plug, Check, X, Clock, ArrowRight } from '@phosphor-icons/react';
 import { mockIntegrations } from '@/data/mockData';
 import { format } from 'date-fns';

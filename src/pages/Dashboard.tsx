@@ -1,3 +1,9 @@
+/**
+ * Dashboard — DECISIÓN FIX 2E (V20): NO enrutado en App.tsx.
+ * Redundante con Overview.tsx (/). Dashboard usa mocks de @phosphor-icons y
+ * hooks (useDashboardKPIs, useCallsPerDay, etc.) que están en desarrollo.
+ * Overview.tsx usa datos reales de Supabase CDR y es la página principal activa.
+ */
 import {
   PhoneCall, Clock, Smiley, Microphone, SpeakerSlash, ArrowsClockwise, Bell,
   Target, Binoculars, ShieldWarning, CheckSquare, Timer, Question,

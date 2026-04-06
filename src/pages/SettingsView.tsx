@@ -1,3 +1,10 @@
+/**
+ * SettingsView — DECISIÓN FIX 2E (V20): NO enrutado en App.tsx.
+ * Redundante con Configuracion.tsx (/config). Tiene features interesantes
+ * (Hotwords, Retención, Auditoría) pero dependen de hooks/mocks no implementados
+ * en el sistema actual (useHotwords, useAuditLogs, mockHotwords, mockAuditLogs).
+ * Integrar estos features en Configuracion.tsx en una futura iteración.
+ */
 import { useState } from 'react';
 import { Plus, Download, Trash } from '@phosphor-icons/react';
 import { useHotwords, useDeleteHotword } from '@/hooks/useHotwords';
