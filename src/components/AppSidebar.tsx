@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 
@@ -22,7 +22,7 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
   const { role } = useRole();
-  const { clientConfig, clientBranding } = useClient();
+  const { clientConfig, clientBranding, currentUser } = useClient();
   const clientDisplayName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
 
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
@@ -105,6 +105,31 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               </NavLink>
             );
           })}
+
+          {/* Admin — solo para role admin */}
+          {currentUser?.role === 'admin' && (() => {
+            const isActive = location.pathname.startsWith('/admin');
+            return (
+              <NavLink
+                to="/admin"
+                onClick={onMobileClose}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all mt-2 ${
+                  isActive
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
+                }`}
+                title={collapsed ? 'Admin' : undefined}
+              >
+                <ShieldCheck size={18} className="shrink-0" />
+                {!collapsed && (
+                  <span className="truncate lg:block">Admin</span>
+                )}
+                {isActive && !collapsed && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                )}
+              </NavLink>
+            );
+          })()}
         </nav>
 
         {/* Footer — Logo cliente + rol */}

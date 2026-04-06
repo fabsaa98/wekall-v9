@@ -10,6 +10,7 @@ import Equipos from '@/pages/Equipos';
 import Configuracion from '@/pages/Configuracion';
 import DocumentAnalysis from '@/pages/DocumentAnalysis';
 import Login from '@/pages/Login';
+import Admin from '@/pages/Admin';
 
 // Guard: si no hay client_id en localStorage, redirige a /login
 // IMPORTANTE: Si no hay client_id, usa 'credismart' como default
@@ -48,6 +49,7 @@ export default function App() {
                 <Route path="/alertas" element={<Alertas />} />
                 <Route path="/equipos" element={<Equipos />} />
                 <Route path="/config" element={<Configuracion />} />
+                <Route path="/admin" element={<Admin />} />
               </Route>
 
               {/* Fallback */}
