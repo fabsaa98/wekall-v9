@@ -84,42 +84,32 @@ const OBJECIONES = [
   {
     id: 'capacidad',
     label: 'Capacidad de pago',
-    icon: '💸',
-    color: 'amber',
     keywords: ['no puedo pagar', 'no tengo dinero', 'no tengo', 'no cuento con', 'no me alcanza', 'estoy sin trabajo', 'sin empleo', 'desempleo'],
-    recomendacion: 'Implementar script de cuotas flexibles. La objeción de capacidad es la más superable cuando se ofrecen montos pequeños y fechas flexibles.',
+    recomendacion: 'Práctica recomendada: ofrecer cuotas de menor monto o plan de pago flexible antes del cierre. Dar opciones concretas reduce la fricción.',
   },
   {
     id: 'desacuerdo',
     label: 'Desacuerdo con la deuda',
-    icon: '❓',
-    color: 'red',
     keywords: ['no reconozco', 'no debo', 'no es mío', 'no es mi deuda', 'está mal', 'error', 'equivocado', 'no corresponde', 'no es correcto'],
-    recomendacion: 'Ofrecer envío de documentación de respaldo. Los clientes que reciben prueba documental resuelven la objeción en el 60% de los casos.',
+    recomendacion: 'Práctica recomendada: ofrecer envío de documentación de respaldo y agendar llamada de seguimiento. No insistir sin evidencia disponible.',
   },
   {
     id: 'tiempo',
     label: 'Solicitud de tiempo',
-    icon: '⏰',
-    color: 'blue',
     keywords: ['espere', 'después', 'luego', 'más tarde', 'la próxima semana', 'dame tiempo', 'necesito tiempo', 'no es buen momento'],
-    recomendacion: 'Acordar fecha de seguimiento específica en la misma llamada. El 45% de los clientes que piden tiempo cumple si se fija una fecha concreta.',
+    recomendacion: 'Práctica recomendada: acordar fecha específica de seguimiento en la misma llamada antes de finalizar el contacto.',
   },
   {
     id: 'ya_pago',
     label: 'Ya realizó el pago',
-    icon: '✅',
-    color: 'green',
     keywords: ['ya pagué', 'ya pague', 'ya lo pagué', 'ya cancelé', 'ya hice el pago', 'ya está pagado'],
-    recomendacion: 'Verificar en sistema antes de insistir. Las llamadas por pagos ya realizados dañan la relación con el cliente y generan quejas.',
+    recomendacion: 'Práctica recomendada: verificar en sistema antes de insistir. Las llamadas por pagos ya realizados afectan la experiencia del cliente y generan quejas.',
   },
   {
     id: 'contacto',
     label: 'Contacto incorrecto',
-    icon: '📞',
-    color: 'purple',
     keywords: ['número equivocado', 'no conozco', 'no es de aquí', 'se equivocó', 'equivocado', 'no lo conozco', 'no vive aquí'],
-    recomendacion: 'Actualizar base de datos de contactos. Los números incorrectos representan tiempo perdido que puede redirigirse a contactos válidos.',
+    recomendacion: 'Práctica recomendada: actualizar base de datos de contactos. Los números incorrectos representan tiempo que puede redirigirse a contactos válidos.',
   },
 ];
 
@@ -186,6 +176,20 @@ export default function SpeechAnalytics() {
       return { ...p, enExitosas, enFallidas, tasaEnExitosas, tasaEnFallidas, ventaja, totalCon };
     }).sort((a, b) => b.ventaja - a.ventaja);
 
+    // ── Fragmentos de summary de llamadas exitosas (fallback robusto) ─────────
+    // Extrae los primeros 120 chars de cada summary exitoso, agrupa similares
+    const fragmentosSummaryExitosos: string[] = exitosas
+      .filter(c => c.raw.summary && c.raw.summary.trim().length > 10)
+      .slice(0, 10)
+      .map(c => {
+        const s = c.raw.summary.trim();
+        // Tomar primera oración relevante (hasta el primer punto o 120 chars)
+        const firstSentence = s.split(/[.!?]/)[0]?.trim() || s;
+        return firstSentence.length > 120 ? firstSentence.substring(0, 120) + '…' : firstSentence;
+      })
+      .filter((v, i, arr) => arr.indexOf(v) === i) // deduplicar
+      .slice(0, 5);
+
     // ── Análisis por agente ───────────────────────────────────────────────────
     const agentMap: Record<string, { calls: ParsedCall[] }> = {};
     for (const c of calls) {
@@ -247,6 +251,7 @@ export default function SpeechAnalytics() {
       noContacto: noContacto.length,
       tasaExito,
       patronesExitosos,
+      fragmentosSummaryExitosos,
       agentes,
       top3,
       bottom3,
@@ -301,7 +306,7 @@ export default function SpeechAnalytics() {
     );
   }
 
-  const { total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente } = analysis;
+  const { total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente } = analysis;
 
   // ── Headline ejecutivo ──────────────────────────────────────────────────────
   const mejorAgente = agentes[0];
@@ -375,7 +380,7 @@ export default function SpeechAnalytics() {
             { label: 'Promesas de pago', value: nExitosas, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
             { label: 'Sin acuerdo', value: nFallidas, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
             { label: 'No contactados', value: noContacto, icon: AlertCircle, color: 'text-slate-400', bg: 'bg-slate-500/10' },
-            { label: 'Agentes activos', value: agentes.length, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+            { label: 'Agentes activos', value: agentes.length, icon: Users, color: 'text-muted-foreground', bg: 'bg-muted/30' },
           ].map(stat => (
             <div key={stat.label} className={cn("rounded-lg p-3 flex items-center gap-2.5", stat.bg)}>
               <stat.icon size={16} className={stat.color} />
@@ -399,32 +404,71 @@ export default function SpeechAnalytics() {
         {/* 2 columnas: éxito vs fracaso */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Llamadas que SÍ cierran */}
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-4">
+          <div className="rounded-xl border border-emerald-500/20 bg-card p-5 space-y-4">
             <div className="flex items-center gap-2">
               <CheckCircle2 size={15} className="text-emerald-400" />
               <h3 className="text-sm font-semibold text-emerald-400">Conversaciones que SÍ cierran</h3>
               <span className="ml-auto text-xs text-muted-foreground">{nExitosas} llamadas</span>
             </div>
 
-            {/* Patrones presentes en exitosas */}
-            <div className="space-y-2.5">
-              {patronesExitosos.filter(p => p.ventaja > 0).slice(0, 5).map(p => (
-                <div key={p.id} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-foreground/80">{p.label}</span>
-                    <span className="font-semibold text-emerald-400">{p.tasaEnExitosas}%</span>
-                  </div>
-                  <div className="h-1.5 bg-emerald-900/30 rounded-full">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${p.tasaEnExitosas}%` }} />
-                  </div>
-                  {p.ventaja >= 10 && (
-                    <p className="text-[10px] text-emerald-400/70 flex items-center gap-1">
-                      <ArrowUpRight size={10} /> +{p.ventaja}pp vs llamadas fallidas — patrón diferenciador clave
+            {/* Patrones presentes en exitosas — con fallback robusto */}
+            {(() => {
+              const patronesConDatos = patronesExitosos.filter(p => p.ventaja > 0 && p.tasaEnExitosas > 0);
+              if (nExitosas < 5) {
+                return (
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Se necesitan más transcripciones para identificar patrones estadísticamente significativos.
+                      Actualmente: <span className="font-semibold text-foreground">{nExitosas} llamadas con promesa de pago.</span>
                     </p>
-                  )}
+                  </div>
+                );
+              }
+              if (patronesConDatos.length === 0) {
+                // Fallback: mostrar fragmentos textuales de summaries exitosos
+                return (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Extractos de llamadas con promesa de pago</p>
+                    {fragmentosSummaryExitosos.length > 0 ? (
+                      <div className="space-y-2">
+                        {fragmentosSummaryExitosos.map((frag, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/15 flex items-center justify-center mt-0.5">
+                              <span className="text-[9px] font-bold text-emerald-400">{i + 1}</span>
+                            </span>
+                            <p className="text-xs text-foreground/80 leading-relaxed">"{frag}"</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        No se encontraron summaries disponibles para las llamadas exitosas.
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-2.5">
+                  {patronesConDatos.slice(0, 5).map(p => (
+                    <div key={p.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-foreground/80">{p.label}</span>
+                        <span className="font-semibold text-emerald-400">{p.tasaEnExitosas}%</span>
+                      </div>
+                      <div className="h-1.5 bg-border rounded-full">
+                        <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${p.tasaEnExitosas}%` }} />
+                      </div>
+                      {p.ventaja >= 10 && (
+                        <p className="text-[10px] text-emerald-400/70 flex items-center gap-1">
+                          <ArrowUpRight size={10} /> +{p.ventaja}pp vs llamadas fallidas — patrón diferenciador clave
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
 
             {/* Temas frecuentes en exitosas */}
             {topTemasExitosos.length > 0 && (
@@ -440,7 +484,7 @@ export default function SpeechAnalytics() {
           </div>
 
           {/* Llamadas que NO cierran */}
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-5 space-y-4">
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
             <div className="flex items-center gap-2">
               <XCircle size={15} className="text-red-400" />
               <h3 className="text-sm font-semibold text-red-400">Conversaciones que NO cierran</h3>
@@ -514,7 +558,7 @@ export default function SpeechAnalytics() {
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Agente</th>
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Llamadas</th>
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-emerald-400 uppercase tracking-wide">Tasa de Cierre</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-blue-400 uppercase tracking-wide">Tono del cliente</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Tono del cliente</th>
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Promesas</th>
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">vs Promedio</th>
                 </tr>
@@ -599,60 +643,46 @@ export default function SpeechAnalytics() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mapaObjeciones.map(obj => {
-            const colorMap = {
-              amber: { border: 'border-amber-500/20', bg: 'bg-amber-500/5', badge: 'bg-amber-500/15 text-amber-400', bar: 'bg-amber-500' },
-              red: { border: 'border-red-500/20', bg: 'bg-red-500/5', badge: 'bg-red-500/15 text-red-400', bar: 'bg-red-500' },
-              blue: { border: 'border-blue-500/20', bg: 'bg-blue-500/5', badge: 'bg-blue-500/15 text-blue-400', bar: 'bg-blue-500' },
-              green: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/5', badge: 'bg-emerald-500/15 text-emerald-400', bar: 'bg-emerald-500' },
-              purple: { border: 'border-purple-500/20', bg: 'bg-purple-500/5', badge: 'bg-purple-500/15 text-purple-400', bar: 'bg-purple-500' },
-            }[obj.color] || { border: 'border-border', bg: 'bg-card', badge: 'bg-muted text-muted-foreground', bar: 'bg-primary' };
+          {mapaObjeciones.filter(obj => obj.frecuencia > 0).map(obj => (
+            <div key={obj.id} className="rounded-xl border border-border bg-card p-5 space-y-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-1">{obj.label}</h3>
+                  <p className="text-xs text-muted-foreground">{obj.frecuencia} {obj.frecuencia === 1 ? 'ocurrencia' : 'ocurrencias'} · {obj.resueltas} resueltas</p>
+                </div>
+                <span className="text-xs font-bold px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                  {obj.frecuencia}x
+                </span>
+              </div>
 
-            return (
-              <div key={obj.id} className={cn("rounded-xl border p-5 space-y-3", colorMap.border, colorMap.bg)}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-base">{obj.icon}</span>
-                      <h3 className="text-sm font-semibold text-foreground">{obj.label}</h3>
-                    </div>
-                    {obj.frecuencia === 0 ? (
-                      <p className="text-xs text-muted-foreground">Sin ocurrencias detectadas</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">{obj.frecuencia} {obj.frecuencia === 1 ? 'ocurrencia' : 'ocurrencias'} · {obj.resueltas} resueltas</p>
-                    )}
-                  </div>
-                  <span className={cn("text-xs font-bold px-2 py-1 rounded-full", colorMap.badge)}>
-                    {obj.frecuencia}x
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground">Tasa de resolución</span>
+                  <span className={cn("font-bold", obj.tasaResolucion >= 50 ? "text-emerald-400" : obj.tasaResolucion >= 25 ? "text-amber-400" : "text-red-400")}>
+                    {obj.tasaResolucion}%
                   </span>
                 </div>
-
-                {obj.frecuencia > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-muted-foreground">Tasa de resolución</span>
-                      <span className={cn("font-bold", obj.tasaResolucion >= 50 ? "text-emerald-400" : obj.tasaResolucion >= 25 ? "text-amber-400" : "text-red-400")}>
-                        {obj.tasaResolucion}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-black/20 rounded-full">
-                      <div className={cn("h-full rounded-full", colorMap.bar)} style={{ width: `${obj.tasaResolucion}%` }} />
-                    </div>
-                  </div>
-                )}
-
-                <p className="text-[11px] text-foreground/70 leading-relaxed border-t border-white/5 pt-2">
-                  💡 {obj.recomendacion}
-                </p>
-
-                {obj.frecuencia > 0 && obj.frecuencia < 3 && (
-                  <p className="text-[10px] text-muted-foreground italic">
-                    ⚠️ Requiere más muestras para ser estadísticamente significativo.
-                  </p>
-                )}
+                <div className="h-1.5 bg-border rounded-full">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${obj.tasaResolucion}%` }} />
+                </div>
               </div>
-            );
-          })}
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border pt-2">
+                {obj.recomendacion}
+              </p>
+
+              {obj.frecuencia < 3 && (
+                <p className="text-[10px] text-muted-foreground italic">
+                  ⚠️ Requiere más muestras para ser estadísticamente significativo.
+                </p>
+              )}
+            </div>
+          ))}
+          {mapaObjeciones.filter(obj => obj.frecuencia > 0).length === 0 && (
+            <div className="col-span-3 rounded-xl border border-border bg-card p-6 text-center">
+              <p className="text-sm text-muted-foreground">No se detectaron objeciones con las palabras clave configuradas en las transcripciones disponibles.</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -666,24 +696,23 @@ export default function SpeechAnalytics() {
 
         <div className="space-y-3">
           {/* Recomendación 1: Script de cuotas */}
-          <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-0.5">
-                <span className="text-xs font-bold text-emerald-400">1</span>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mt-0.5">
+                <span className="text-xs font-bold text-primary">1</span>
               </div>
               <div className="space-y-2 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-semibold text-foreground">
                     Implementar script estándar con oferta de cuotas específicas en las primeras 2 minutos de llamada
                   </p>
-                  <span className="flex-shrink-0 text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-full">
+                  <span className="flex-shrink-0 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
                     Impacto Alto
                   </span>
                 </div>
                 <p className="text-xs text-foreground/70 leading-relaxed">
-                  Las llamadas que mencionan cuotas o alternativas de pago concretas muestran significativamente mayor tasa de cierre.
-                  Estandarizar esta práctica en todos los agentes tiene potencial de{' '}
-                  <span className="font-semibold text-emerald-400">+15% en tasa de promesa</span>.
+                  Las llamadas que mencionan cuotas o alternativas de pago concretas muestran mayor tasa de cierre en los datos analizados.
+                  Estandarizar esta práctica en todos los agentes es una práctica recomendada en operaciones de cobranza de alto rendimiento.
                 </p>
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
                   <span className="flex items-center gap-1">
@@ -700,17 +729,17 @@ export default function SpeechAnalytics() {
           </div>
 
           {/* Recomendación 2: Capacitación agentes */}
-          <div className="rounded-xl border border-blue-500/25 bg-blue-500/5 p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
-                <span className="text-xs font-bold text-blue-400">2</span>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center mt-0.5">
+                <span className="text-xs font-bold text-foreground">2</span>
               </div>
               <div className="space-y-2 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-semibold text-foreground">
                     Programa de shadowing: los agentes de bajo rendimiento acompañan llamadas del top performer
                   </p>
-                  <span className="flex-shrink-0 text-xs font-bold text-blue-400 bg-blue-500/15 px-2.5 py-1 rounded-full">
+                  <span className="flex-shrink-0 text-xs font-bold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                     Impacto Medio-Alto
                   </span>
                 </div>
@@ -718,12 +747,12 @@ export default function SpeechAnalytics() {
                   {bottom3.length > 0
                     ? `Los agentes ${bottom3.map(a => a.name).join(', ')} tienen tasas de conversión por debajo del promedio (${tasaExito}%). Replicar los patrones del top performer `
                     : 'Estandarizar las mejores prácticas de conversación del top performer '}
-                  {mejorAgente && <span>(<span className="font-semibold text-blue-400">{mejorAgente.name}: {mejorAgente.tasaConversion}%</span>) </span>}
-                  puede generar <span className="font-semibold text-blue-400">+{potencialCapacitacion > 0 ? potencialCapacitacion : Math.round(total * 0.08)} promesas adicionales/mes</span>.
+                  {mejorAgente && <span>(<span className="font-semibold text-foreground">{mejorAgente.name}: {mejorAgente.tasaConversion}%</span>) </span>}
+                  puede generar <span className="font-semibold text-foreground">+{potencialCapacitacion > 0 ? potencialCapacitacion : Math.round(total * 0.08)} promesas adicionales/mes</span>.
                 </p>
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
                   <span className="flex items-center gap-1">
-                    <Users size={10} className="text-blue-400" />
+                    <Users size={10} />
                     {bottom3.length > 0 ? `${bottom3.length} agentes a capacitar` : 'Todos los agentes se benefician'}
                   </span>
                   <span className="flex items-center gap-1">
@@ -736,40 +765,37 @@ export default function SpeechAnalytics() {
           </div>
 
           {/* Recomendación 3: Objeción más frecuente */}
-          <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center mt-0.5">
-                <span className="text-xs font-bold text-amber-400">3</span>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mt-0.5">
+                <span className="text-xs font-bold text-primary">3</span>
               </div>
               <div className="space-y-2 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-semibold text-foreground">
                     Crear protocolo de respuesta para la objeción más frecuente: "{objecionMasFrecuente?.label || 'Capacidad de pago'}"
                   </p>
-                  <span className="flex-shrink-0 text-xs font-bold text-amber-400 bg-amber-500/15 px-2.5 py-1 rounded-full">
+                  <span className="flex-shrink-0 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
                     Quick Win
                   </span>
                 </div>
                 <p className="text-xs text-foreground/70 leading-relaxed">
                   {objecionMasFrecuente && objecionMasFrecuente.frecuencia > 0
-                    ? <>La objeción "<span className="font-semibold">{objecionMasFrecuente.label}</span>" aparece {objecionMasFrecuente.frecuencia} veces y tiene una tasa de resolución del{' '}
-                      <span className="font-semibold text-amber-400">{objecionMasFrecuente.tasaResolucion}%</span>.
-                      {objecionMasFrecuente.tasaResolucion < 50
-                        ? ' Hay oportunidad de mejora significativa con un guión estructurado de respuesta.'
-                        : ' Con un protocolo consistente, se puede llevar esta tasa al 60%+.'
-                      }
+                    ? <>La objeción "<span className="font-semibold">{objecionMasFrecuente.label}</span>" aparece <span className="font-semibold">{objecionMasFrecuente.frecuencia} veces</span> en los datos y tiene una tasa de resolución actual del{' '}
+                      <span className={cn("font-semibold", objecionMasFrecuente.tasaResolucion >= 50 ? "text-emerald-400" : "text-red-400")}>{objecionMasFrecuente.tasaResolucion}%</span>.
+                      {' '}Un guión estructurado de respuesta puede mejorar esta tasa.
                     </>
-                    : 'Documentar y estandarizar la respuesta a cada tipo de objeción reduce el tiempo de manejo y aumenta la tasa de resolución.'
+                    : 'Documentar y estandarizar la respuesta a cada tipo de objeción reduce el tiempo de manejo.'
                   }
                   {minutosRecuperados > 0 && (
-                    <> Eliminar llamadas improductivas por "ya pagué" recupera{' '}
-                      <span className="font-semibold text-amber-400">~{minutosRecuperados} minutos/día</span> de tiempo productivo.
+                    <> Reducir llamadas por "ya pagué" no verificadas recupera{' '}
+                      <span className="font-semibold">~{minutosRecuperados} minutos/día</span> de tiempo productivo.
                     </>
                   )}
                 </p>
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
                   <span className="flex items-center gap-1">
-                    <TrendingDown size={10} className="text-amber-400" />
+                    <TrendingDown size={10} />
                     Reduce tiempo promedio de llamada improductiva
                   </span>
                   <span className="flex items-center gap-1">
