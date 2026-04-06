@@ -43,12 +43,19 @@ export async function signIn(email: string, password: string) {
 
     const json = await resp.json() as { access_token: string; refresh_token: string; user: { email: string; user_metadata?: Record<string, unknown> }; client_id: string | null };
 
-    // Sincronizar sesión con el cliente de supabase (fire-and-forget — no bloquear el login)
+    // Sincronizar sesión con el cliente de supabase (con timeout corto para no bloquear)
     if (json.access_token) {
-      supabase.auth.setSession({
-        access_token: json.access_token,
-        refresh_token: json.refresh_token,
-      }).catch(() => { /* ignorar errores de sync */ });
+      try {
+        await Promise.race([
+          supabase.auth.setSession({
+            access_token: json.access_token,
+            refresh_token: json.refresh_token,
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('setSession timeout')), 3000)),
+        ]);
+      } catch {
+        // Si setSession falla/timeout, la app sigue funcionando con las keys anon
+      }
     }
 
     return json; // { access_token, refresh_token, user, client_id }

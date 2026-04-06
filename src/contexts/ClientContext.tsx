@@ -121,30 +121,41 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
     async function initSession() {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const session = sessionData?.session;
+        // Timeout de 2s para evitar cuelgue si Supabase Auth no responde
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+        ]);
+
+        if (!sessionResult) {
+          // Timeout — usar localStorage como modo legacy, no bloquear la app
+          return;
+        }
+
+        const session = (sessionResult as { data: { session: { user?: { email?: string } } | null } }).data?.session;
 
         if (session?.user?.email) {
           // Hay sesión de Supabase Auth activa
-          // PRIORIDAD: localStorage (cliente seleccionado por el usuario) > primer cliente del JWT
           const storedClientId = localStorage.getItem(LS_CLIENT_ID) || 'credismart';
-          const appUser = await getAppUser(
-            session.user.email,
-            storedClientId  // siempre filtrar por el cliente del localStorage
-          );
+          try {
+            const appUser = await Promise.race([
+              getAppUser(session.user.email, storedClientId),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+            ]);
 
-          if (appUser && mounted) {
-            // No sobrescribir clientId — el localStorage ya lo tiene correcto
-            setCurrentUser({
-              id: appUser.id,
-              email: appUser.email,
-              client_id: appUser.client_id,
-              role: appUser.role,
-              name: appUser.name,
-              active: appUser.active,
-            });
+            if (appUser && mounted) {
+              setCurrentUser({
+                id: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).id,
+                email: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).email,
+                client_id: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).client_id,
+                role: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).role,
+                name: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).name,
+                active: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).active,
+              });
+            }
+          } catch {
+            // Si getAppUser falla, continuar sin usuario enriquecido
           }
-          // Si no hay app_user para ese cliente, mantener el localStorage tal cual
         }
         // Si no hay sesión Auth, usar localStorage como estaba (modo legacy)
       } catch (err) {
