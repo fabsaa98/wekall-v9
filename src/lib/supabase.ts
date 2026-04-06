@@ -18,42 +18,42 @@ export interface AppUser {
 }
 
 /**
- * Sign in con email y password usando Supabase Auth real.
- * Si la cuenta no existe en auth.users, lanzará error (lo captura Login.tsx para fallback).
+ * Sign in via Worker proxy — evita bloqueos del cliente JS de Supabase en redes móviles.
+ * El Worker llama a Supabase Auth REST directamente y retorna { access_token, refresh_token, user, client_id }.
  */
 export async function signIn(email: string, password: string) {
-  // Usar fetch directo para evitar timeouts del cliente JS de Supabase
+  const PROXY = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const resp = await fetch(
-      `${supabase.supabaseUrl}/auth/v1/token?grant_type=password`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabase.supabaseKey,
-        },
-        body: JSON.stringify({ email, password }),
-        signal: controller.signal,
-      }
-    );
-    clearTimeout(timeout);
-    const json = await resp.json();
-    if (!resp.ok || json.error) {
-      throw new Error(json.error_description || json.error || 'auth_error');
+    const resp = await fetch(`${PROXY}/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({})) as Record<string, string>;
+      throw new Error(err.error || 'auth_error');
     }
-    // Sincronizar sesión con el cliente de supabase
+
+    const json = await resp.json() as { access_token: string; refresh_token: string; user: { email: string; user_metadata?: Record<string, unknown> }; client_id: string | null };
+
+    // Sincronizar sesión con el cliente de supabase (para queries subsecuentes)
     if (json.access_token) {
       await supabase.auth.setSession({
         access_token: json.access_token,
         refresh_token: json.refresh_token,
       });
     }
-    return { user: json.user, session: json };
+
+    return json; // { access_token, refresh_token, user, client_id }
   } catch (err: unknown) {
-    clearTimeout(timeout);
+    clearTimeout(timeoutId);
     if (err instanceof Error && err.name === 'AbortError') throw new Error('auth_timeout');
     throw err;
   }

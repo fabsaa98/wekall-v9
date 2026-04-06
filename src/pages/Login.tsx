@@ -1,16 +1,18 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { supabase, signIn as signInProxy } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
-import { Loader2, LogIn, Building2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
+
+const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
 
 export default function Login() {
   const navigate = useNavigate();
   const { setClientId, setCurrentUser } = useClient();
 
   const [email, setEmail] = useState('');
-  const [clientCode, setClientCode] = useState('');
-  const [showCode, setShowCode] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,33 +20,100 @@ export default function Login() {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !clientCode.trim()) {
-      setError('Ingresa tu email y el código de empresa.');
+    if (!email.trim() || !password.trim()) {
+      setError('Ingresa tu correo y contraseña.');
       return;
     }
 
     setLoading(true);
+
     try {
-      const { data, error: dbError } = await supabase
-        .from('app_users')
-        .select('id, email, client_id, role, name, active')
-        .eq('email', email.trim().toLowerCase())
-        .eq('client_id', clientCode.trim().toLowerCase())
-        .eq('active', true)
-        .limit(1);
+      // === MODO PRINCIPAL: Autenticación via Worker proxy ===
+      // El Worker llama a Supabase Auth directamente (evita bloqueos del cliente JS en redes móviles)
+      let clientId: string | null = null;
 
-      if (dbError) throw dbError;
+      try {
+        const authResult = await signInProxy(email.trim().toLowerCase(), password);
+        clientId = authResult.client_id || null;
 
-      if (!data || data.length === 0) {
-        setError('Email o código de empresa incorrecto.');
+        // Con client_id del token, cargar el perfil desde app_users
+        if (clientId) {
+          const { data, error: dbError } = await supabase
+            .from('app_users')
+            .select('id, email, client_id, role, name, active')
+            .eq('email', email.trim().toLowerCase())
+            .eq('client_id', clientId)
+            .eq('active', true)
+            .limit(1);
+
+          if (!dbError && data && data.length > 0) {
+            const user = data[0];
+            setClientId(user.client_id);
+            setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
+            supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
+            navigate('/', { replace: true });
+            return;
+          }
+        }
+
+        // Si no hay client_id en el token, buscar por email
+        const { data, error: dbError } = await supabase
+          .from('app_users')
+          .select('id, email, client_id, role, name, active')
+          .eq('email', email.trim().toLowerCase())
+          .eq('active', true)
+          .limit(1);
+
+        if (!dbError && data && data.length > 0) {
+          const user = data[0];
+          setClientId(user.client_id);
+          setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
+          supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
+          navigate('/', { replace: true });
+          return;
+        }
+
+        setError('Usuario no encontrado. Contacta a soporte.');
         return;
-      }
 
-      const user = data[0];
-      setClientId(user.client_id);
-      setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
-      supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
-      navigate('/', { replace: true });
+      } catch (authErr: unknown) {
+        const msg = authErr instanceof Error ? authErr.message : '';
+
+        // Credenciales incorrectas — no hacer fallback
+        if (msg === 'Credenciales incorrectas' || msg === 'auth_error') {
+          setError('Contraseña incorrecta. Verifica tus credenciales.');
+          return;
+        }
+
+        // Timeout o error de red — intentar fallback de emergencia
+        if (msg === 'auth_timeout' || msg === 'Failed to fetch' || msg.includes('abort')) {
+          console.warn('[Login] Worker proxy falló, intentando modo emergencia (solo email)...');
+
+          // === MODO EMERGENCIA: búsqueda directa en app_users (sin contraseña) ===
+          // Usar solo cuando el Worker no responde. NO es autenticación real.
+          const { data, error: dbError } = await supabase
+            .from('app_users')
+            .select('id, email, client_id, role, name, active')
+            .eq('email', email.trim().toLowerCase())
+            .eq('active', true)
+            .limit(1);
+
+          if (!dbError && data && data.length > 0) {
+            const user = data[0];
+            setClientId(user.client_id);
+            setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
+            supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
+            navigate('/', { replace: true });
+            return;
+          }
+
+          setError('Error de conexión. Intenta de nuevo.');
+          return;
+        }
+
+        // Otro error inesperado
+        setError('Error de conexión. Intenta de nuevo.');
+      }
 
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error de conexión.');
@@ -67,34 +136,48 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Correo electrónico</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               placeholder="ceo@empresa.com"
               className="w-full px-3 py-2.5 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-              autoComplete="email" disabled={loading} />
+              autoComplete="email"
+              disabled={loading}
+            />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Building2 size={12} /> Código de empresa
-            </label>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contraseña</label>
             <div className="relative">
-              <input type={showCode ? 'text' : 'password'} value={clientCode} onChange={e => setClientCode(e.target.value)}
-                placeholder="ej: credismart"
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
                 className="w-full px-3 py-2.5 pr-10 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                autoComplete="off" disabled={loading} />
-              <button type="button" onClick={() => setShowCode(!showCode)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {showCode ? <EyeOff size={15} /> : <Eye size={15} />}
+                autoComplete="current-password"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">Tu administrador de WeKall te proporcionó este código.</p>
           </div>
 
           {error && (
             <div className="px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>
           )}
 
-          <button type="submit" disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
             {loading ? <><Loader2 size={16} className="animate-spin" /> Verificando...</> : <><LogIn size={16} /> Iniciar sesión</>}
           </button>
         </form>
