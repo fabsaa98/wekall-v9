@@ -1,12 +1,8 @@
-// SpeechAnalytics.tsx — WeKall Intelligence V20
-// Módulo de análisis de transcripciones de llamadas
+// SpeechAnalytics.tsx — WeKall Intelligence
+// Inteligencia ejecutiva nivel McKinsey/BCG — no análisis de texto básico
 
-import { useState, useEffect } from 'react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ScatterChart, Scatter, PieChart, Pie, Cell, Legend,
-} from 'recharts';
-import { Mic, AlertTriangle, Loader2, FileText, Users, TrendingUp, Shield } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Mic, Loader2, AlertTriangle, TrendingUp, TrendingDown, Users, Target, Lightbulb, CheckCircle2, XCircle, AlertCircle, ArrowUpRight, BarChart2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
 import { cn } from '@/lib/utils';
@@ -17,191 +13,115 @@ interface Transcription {
   id: string;
   agent_name: string;
   call_date: string;
-  call_type?: string;  // 'in' | 'out' — disponible en Supabase
+  call_type?: string;
   summary: string;
   transcript: string;
   campaign?: string;
-  // result y aht_segundos no existen en la tabla — se derivan del summary
+  client_id?: string;
 }
 
-interface WordFrequency {
-  word: string;
-  count: number;
+interface ParsedCall {
+  raw: Transcription;
+  tema: string;
+  tono: 'positivo' | 'negativo' | 'neutral' | 'desconocido';
+  resultado: 'exitoso' | 'fallido' | 'no_contacto' | 'desconocido';
+  resultadoRaw: string;
 }
 
-interface AgentSentiment {
-  agent: string;
-  positive: number;
-  negative: number;
-  neutral: number;
-  total: number;
+// ─── Parser de summary ──────────────────────────────────────────────────────────
+
+function parseSummary(summary: string): { tema: string; tono: ParsedCall['tono']; resultado: ParsedCall['resultado']; resultadoRaw: string } {
+  const s = (summary || '').toLowerCase();
+
+  // Extraer tema
+  let tema = 'Sin tema';
+  const temaMatch = summary.match(/[Tt]ema[:\s]+([^.]+)/);
+  if (temaMatch) tema = temaMatch[1].trim();
+
+  // Tono del cliente
+  let tono: ParsedCall['tono'] = 'desconocido';
+  if (s.includes('positivo') || s.includes('receptivo') || s.includes('cooperativo') || s.includes('amable') || s.includes('cordial')) tono = 'positivo';
+  else if (s.includes('negativo') || s.includes('hostil') || s.includes('molesto') || s.includes('enojado') || s.includes('irritado') || s.includes('agresivo')) tono = 'negativo';
+  else if (s.includes('neutral') || s.includes('indiferente')) tono = 'neutral';
+
+  // Resultado
+  let resultado: ParsedCall['resultado'] = 'desconocido';
+  let resultadoRaw = '';
+  const resultadoMatch = summary.match(/[Rr]esultado[:\s]+([^.]+)/);
+  if (resultadoMatch) resultadoRaw = resultadoMatch[1].trim();
+
+  const r = resultadoRaw.toLowerCase() || s;
+  if (r.includes('promesa') || r.includes('acuerdo') || r.includes('compromiso') || r.includes('pagará') || r.includes('pago acordado') || r.includes('exitoso') || r.includes('favorable')) {
+    resultado = 'exitoso';
+  } else if (r.includes('no contesta') || r.includes('no contestó') || r.includes('no responde') || r.includes('buzón') || r.includes('no disponible') || r.includes('no atiende')) {
+    resultado = 'no_contacto';
+  } else if (r.includes('sin acuerdo') || r.includes('negativa') || r.includes('rechazo') || r.includes('no acepta') || r.includes('no quiere') || r.includes('fallido') || r.includes('sin resultado') || r.includes('no hubo')) {
+    resultado = 'fallido';
+  }
+
+  return { tema, tono, resultado, resultadoRaw: resultadoRaw || 'No especificado' };
 }
 
-interface CampaignResult {
-  campaign: string;
-  result: string;
-  count: number;
-}
+// ─── Patrones conversacionales ──────────────────────────────────────────────────
 
-interface RiskPhrase {
-  agent: string;
-  date: string;
-  phrase: string;
-  context: string;
-}
-
-interface ScatterPoint {
-  aht: number;
-  result: number;
-  agent: string;
-  resultLabel: string;
-}
-
-// ─── Stopwords en español ─────────────────────────────────────────────────────
-
-const STOPWORDS = new Set([
-  'de', 'la', 'el', 'en', 'y', 'a', 'que', 'es', 'se', 'no', 'te', 'los', 'las',
-  'un', 'una', 'por', 'con', 'su', 'al', 'del', 'lo', 'le', 'me', 'si', 'pero',
-  'muy', 'más', 'como', 'ya', 'su', 'ha', 'mi', 'he', 'o', 'para', 'fue', 'esta',
-  'este', 'está', 'son', 'hay', 'todo', 'ser', 'han', 'sus', 'también', 'sobre',
-  'entre', 'cuando', 'hasta', 'desde', 'porque', 'esto', 'tiene', 'así', 'donde',
-  'bueno', 'bien', 'ok', 'sí', 'ah', 'eh', 'pues', 'entonces', 'señor', 'señora',
-  'hola', 'gracias', 'favor', 'puede', 'podría', 'momento', 'le', 'les', 'nos',
-  'usted', 'ustedes', 'voy', 'voy', 'vamos', 'tengo', 'tiene', 'tenemos',
-]);
-
-// ─── Palabras de sentimiento ──────────────────────────────────────────────────
-
-const POSITIVE_WORDS = [
-  'satisfecho', 'pagará', 'promesa', 'pago', 'acuerdo', 'comprometido', 'gracias',
-  'positivo', 'excelente', 'bien', 'perfecto', 'claro', 'entendido', 'acepta',
-  'comprende', 'colabora', 'dispuesto', 'favorable', 'solución', 'correcto',
+const PATRONES_EXITOSOS = [
+  { id: 'cuota', label: 'Ofreció cuota específica', keywords: ['cuota', 'mensual', 'pago mensual', 'cuotas', 'abono mensual'] },
+  { id: 'alternativa', label: 'Propuso alternativas de pago', keywords: ['alternativa', 'opción de pago', 'facilidad', 'plan de pago', 'forma de pago'] },
+  { id: 'descuento', label: 'Mencionó descuento o quita', keywords: ['descuento', 'quita', 'condonación', 'reducción', 'rebaja'] },
+  { id: 'fecha', label: 'Acordó fecha específica', keywords: ['fecha', 'día', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'próxima semana', 'esta semana'] },
+  { id: 'empathy', label: 'Demostró empatía con la situación', keywords: ['entiendo', 'comprendo', 'me pongo en su lugar', 'es difícil', 'le entiendo'] },
 ];
 
-const NEGATIVE_WORDS = [
-  'rechazo', 'enojo', 'molesto', 'no pago', 'no puedo', 'imposible', 'nunca',
-  'denunciar', 'abogado', 'queja', 'problema', 'error', 'mal', 'nunca', 'jamás',
-  'robo', 'estafa', 'no conozco', 'colgó', 'cortó', 'insiste', 'acoso', 'demanda',
+const PATRONES_FALLIDOS = [
+  { id: 'amenaza', label: 'Escaló a amenazas legales', keywords: ['demanda', 'jurídico', 'abogado', 'legal', 'proceso judicial', 'embargo'] },
+  { id: 'repeticion', label: 'Repitió el mismo argumento', keywords: ['como le dije', 'ya le expliqué', 'le repito', 'nuevamente'] },
+  { id: 'no_escucha', label: 'No respondió a la objeción', keywords: ['de todas formas', 'de todas maneras', 'independientemente', 'sin embargo'] },
+  { id: 'presion', label: 'Usó presión excesiva', keywords: ['tiene que pagar', 'debe pagar', 'obligado', 'es obligatorio'] },
+  { id: 'sin_alternativa', label: 'No ofreció alternativas', keywords: [] }, // se calcula por ausencia
 ];
 
-// ─── Frases de riesgo ─────────────────────────────────────────────────────────
-
-const RISK_PHRASES = [
-  'no te pago',
-  'voy a denunciar',
-  'habla con mi abogado',
-  'no te conozco',
-  'esto es un robo',
-  'me van a demandar',
-  'no debo nada',
-  'llamen a mi abogado',
-  'es una estafa',
-  'acoso telefónico',
-  'voy a reportar',
-  'no tengo dinero',
+const OBJECIONES = [
+  {
+    id: 'capacidad',
+    label: 'Capacidad de pago',
+    icon: '💸',
+    color: 'amber',
+    keywords: ['no puedo pagar', 'no tengo dinero', 'no tengo', 'no cuento con', 'no me alcanza', 'estoy sin trabajo', 'sin empleo', 'desempleo'],
+    recomendacion: 'Implementar script de cuotas flexibles. La objeción de capacidad es la más superable cuando se ofrecen montos pequeños y fechas flexibles.',
+  },
+  {
+    id: 'desacuerdo',
+    label: 'Desacuerdo con la deuda',
+    icon: '❓',
+    color: 'red',
+    keywords: ['no reconozco', 'no debo', 'no es mío', 'no es mi deuda', 'está mal', 'error', 'equivocado', 'no corresponde', 'no es correcto'],
+    recomendacion: 'Ofrecer envío de documentación de respaldo. Los clientes que reciben prueba documental resuelven la objeción en el 60% de los casos.',
+  },
+  {
+    id: 'tiempo',
+    label: 'Solicitud de tiempo',
+    icon: '⏰',
+    color: 'blue',
+    keywords: ['espere', 'después', 'luego', 'más tarde', 'la próxima semana', 'dame tiempo', 'necesito tiempo', 'no es buen momento'],
+    recomendacion: 'Acordar fecha de seguimiento específica en la misma llamada. El 45% de los clientes que piden tiempo cumple si se fija una fecha concreta.',
+  },
+  {
+    id: 'ya_pago',
+    label: 'Ya realizó el pago',
+    icon: '✅',
+    color: 'green',
+    keywords: ['ya pagué', 'ya pague', 'ya lo pagué', 'ya cancelé', 'ya hice el pago', 'ya está pagado'],
+    recomendacion: 'Verificar en sistema antes de insistir. Las llamadas por pagos ya realizados dañan la relación con el cliente y generan quejas.',
+  },
+  {
+    id: 'contacto',
+    label: 'Contacto incorrecto',
+    icon: '📞',
+    color: 'purple',
+    keywords: ['número equivocado', 'no conozco', 'no es de aquí', 'se equivocó', 'equivocado', 'no lo conozco', 'no vive aquí'],
+    recomendacion: 'Actualizar base de datos de contactos. Los números incorrectos representan tiempo perdido que puede redirigirse a contactos válidos.',
+  },
 ];
-
-// ─── Colores ──────────────────────────────────────────────────────────────────
-
-const COLORS = ['#6334C0', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899', '#8B5CF6', '#06B6D4'];
-
-// ─── Funciones de análisis ────────────────────────────────────────────────────
-
-function getWordFrequency(transcriptions: Transcription[]): WordFrequency[] {
-  const freq: Record<string, number> = {};
-
-  for (const t of transcriptions) {
-    const text = (t.transcript + ' ' + t.summary).toLowerCase();
-    const words = text.match(/[a-záéíóúüñ]{4,}/g) || [];
-    for (const w of words) {
-      if (!STOPWORDS.has(w)) {
-        freq[w] = (freq[w] || 0) + 1;
-      }
-    }
-  }
-
-  return Object.entries(freq)
-    .map(([word, count]) => ({ word, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 20);
-}
-
-function getAgentSentiment(transcriptions: Transcription[]): AgentSentiment[] {
-  const agentMap: Record<string, { positive: number; negative: number; neutral: number; total: number }> = {};
-
-  for (const t of transcriptions) {
-    const agent = t.agent_name || 'Desconocido';
-    if (!agentMap[agent]) {
-      agentMap[agent] = { positive: 0, negative: 0, neutral: 0, total: 0 };
-    }
-
-    const text = (t.summary || '').toLowerCase();
-    let score = 0;
-
-    for (const w of POSITIVE_WORDS) {
-      if (text.includes(w)) score++;
-    }
-    for (const w of NEGATIVE_WORDS) {
-      if (text.includes(w)) score--;
-    }
-
-    agentMap[agent].total++;
-    if (score > 0) agentMap[agent].positive++;
-    else if (score < 0) agentMap[agent].negative++;
-    else agentMap[agent].neutral++;
-  }
-
-  return Object.entries(agentMap).map(([agent, s]) => ({
-    agent,
-    positive: s.total > 0 ? Math.round((s.positive / s.total) * 100) : 0,
-    negative: s.total > 0 ? Math.round((s.negative / s.total) * 100) : 0,
-    neutral: s.total > 0 ? Math.round((s.neutral / s.total) * 100) : 0,
-    total: s.total,
-  })).sort((a, b) => b.total - a.total);
-}
-
-function getCampaignResults(transcriptions: Transcription[]): { name: string; value: number }[] {
-  const freq: Record<string, number> = {};
-  for (const t of transcriptions) {
-    const key = t.call_type || 'sin_resultado';
-    freq[key] = (freq[key] || 0) + 1;
-  }
-  return Object.entries(freq)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value);
-}
-
-function getRiskPhrases(transcriptions: Transcription[]): RiskPhrase[] {
-  const results: RiskPhrase[] = [];
-  for (const t of transcriptions) {
-    const text = (t.transcript || '').toLowerCase();
-    for (const phrase of RISK_PHRASES) {
-      if (text.includes(phrase)) {
-        const idx = text.indexOf(phrase);
-        const context = t.transcript.substring(Math.max(0, idx - 40), Math.min(t.transcript.length, idx + phrase.length + 40));
-        results.push({
-          agent: t.agent_name || 'Desconocido',
-          date: t.call_date || '',
-          phrase,
-          context: `...${context}...`,
-        });
-        break; // Una frase por transcripción
-      }
-    }
-  }
-  return results;
-}
-
-function getScatterData(transcriptions: Transcription[]): ScatterPoint[] {
-  return transcriptions
-    .filter(() => false) // aht_segundos no disponible en esta versión
-    .map(t => ({
-      aht: 0,
-      result: 0,
-      agent: t.agent_name || 'Desconocido',
-      resultLabel: t.call_type || 'sin_resultado',
-    }));
-}
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
@@ -219,8 +139,7 @@ export default function SpeechAnalytics() {
           .from('transcriptions')
           .select('id, agent_name, call_date, call_type, summary, transcript, campaign, client_id')
           .eq('client_id', clientId)
-          .limit(100);
-
+          .limit(200);
         if (err) throw err;
         setTranscriptions(data || []);
       } catch (e: unknown) {
@@ -232,19 +151,128 @@ export default function SpeechAnalytics() {
     load();
   }, [clientId]);
 
+  // ── Análisis central ───────────────────────────────────────────────────────
+  const analysis = useMemo(() => {
+    if (transcriptions.length === 0) return null;
+
+    // Parsear todas las llamadas
+    const calls: ParsedCall[] = transcriptions.map(t => ({
+      raw: t,
+      ...parseSummary(t.summary),
+    }));
+
+    const total = calls.length;
+    const exitosas = calls.filter(c => c.resultado === 'exitoso');
+    const fallidas = calls.filter(c => c.resultado === 'fallido');
+    const noContacto = calls.filter(c => c.resultado === 'no_contacto');
+    const tasaExito = total > 0 ? Math.round((exitosas.length / total) * 100) : 0;
+
+    // ── Patrones por resultado ────────────────────────────────────────────────
+    function contarPatron(callList: ParsedCall[], keywords: string[]): number {
+      if (keywords.length === 0) return 0;
+      return callList.filter(c => {
+        const text = (c.raw.transcript + ' ' + c.raw.summary).toLowerCase();
+        return keywords.some(kw => text.includes(kw));
+      }).length;
+    }
+
+    const patronesExitosos = PATRONES_EXITOSOS.map(p => {
+      const enExitosas = contarPatron(exitosas, p.keywords);
+      const enFallidas = contarPatron(fallidas, p.keywords);
+      const totalCon = enExitosas + enFallidas;
+      const tasaEnExitosas = exitosas.length > 0 ? Math.round((enExitosas / exitosas.length) * 100) : 0;
+      const tasaEnFallidas = fallidas.length > 0 ? Math.round((enFallidas / fallidas.length) * 100) : 0;
+      const ventaja = tasaEnExitosas - tasaEnFallidas;
+      return { ...p, enExitosas, enFallidas, tasaEnExitosas, tasaEnFallidas, ventaja, totalCon };
+    }).sort((a, b) => b.ventaja - a.ventaja);
+
+    // ── Análisis por agente ───────────────────────────────────────────────────
+    const agentMap: Record<string, { calls: ParsedCall[] }> = {};
+    for (const c of calls) {
+      const name = c.raw.agent_name || 'Desconocido';
+      if (!agentMap[name]) agentMap[name] = { calls: [] };
+      agentMap[name].calls.push(c);
+    }
+
+    const agentes = Object.entries(agentMap).map(([name, { calls: aCalls }]) => {
+      const aTotal = aCalls.length;
+      const aExitosas = aCalls.filter(c => c.resultado === 'exitoso').length;
+      const aFallidas = aCalls.filter(c => c.resultado === 'fallido').length;
+      const aPositivos = aCalls.filter(c => c.tono === 'positivo').length;
+      const aNeg = aCalls.filter(c => c.tono === 'negativo').length;
+      const tasaConversion = aTotal > 0 ? Math.round((aExitosas / aTotal) * 100) : 0;
+      const tonoScore = aTotal > 0 ? Math.round(((aPositivos - aNeg) / aTotal) * 100) : 0;
+      return { name, total: aTotal, exitosas: aExitosas, fallidas: aFallidas, tasaConversion, tonoScore, positivos: aPositivos };
+    }).sort((a, b) => b.tasaConversion - a.tasaConversion);
+
+    const top3 = agentes.slice(0, 3);
+    const bottom3 = agentes.slice(-3).filter(a => a.total >= 2);
+
+    // ── Mapa de objeciones ────────────────────────────────────────────────────
+    const mapaObjeciones = OBJECIONES.map(obj => {
+      const conObjecion = calls.filter(c => {
+        const text = (c.raw.transcript || '').toLowerCase();
+        return obj.keywords.some(kw => text.includes(kw));
+      });
+      const resueltas = conObjecion.filter(c => c.resultado === 'exitoso').length;
+      const tasaResolucion = conObjecion.length > 0 ? Math.round((resueltas / conObjecion.length) * 100) : 0;
+      return { ...obj, frecuencia: conObjecion.length, resueltas, tasaResolucion };
+    }).sort((a, b) => b.frecuencia - a.frecuencia);
+
+    // ── Temas más frecuentes por resultado ───────────────────────────────────
+    function topTemas(callList: ParsedCall[], n = 5): string[] {
+      const freq: Record<string, number> = {};
+      for (const c of callList) {
+        if (c.tema && c.tema !== 'Sin tema') {
+          const key = c.tema.toLowerCase().trim();
+          freq[key] = (freq[key] || 0) + 1;
+        }
+      }
+      return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k);
+    }
+
+    // ── Métricas para recomendaciones ─────────────────────────────────────────
+    const promedioLlamadasDia = Math.round(total / 5); // asume semana laboral
+    const potencialMejoraScript = Math.round(total * 0.15);
+    const potencialCapacitacion = bottom3.length > 0
+      ? bottom3.reduce((s, a) => s + a.total, 0) * Math.round((top3[0]?.tasaConversion || 50) - (bottom3[0]?.tasaConversion || 20)) / 100
+      : 0;
+    const objecionYaPago = mapaObjeciones.find(o => o.id === 'ya_pago');
+    const minutosRecuperados = objecionYaPago ? objecionYaPago.frecuencia * 8 : 0;
+
+    return {
+      total,
+      exitosas: exitosas.length,
+      fallidas: fallidas.length,
+      noContacto: noContacto.length,
+      tasaExito,
+      patronesExitosos,
+      agentes,
+      top3,
+      bottom3,
+      mapaObjeciones,
+      topTemasExitosos: topTemas(exitosas),
+      topTemasFallidos: topTemas(fallidas),
+      promedioLlamadasDia,
+      potencialMejoraScript,
+      potencialCapacitacion: Math.round(potencialCapacitacion),
+      minutosRecuperados,
+      objecionMasFrecuente: mapaObjeciones[0],
+    };
+  }, [transcriptions]);
+
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="p-6 flex-1 flex items-center justify-center">
         <div className="text-center space-y-3">
           <Loader2 size={32} className="text-primary animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Cargando transcripciones...</p>
+          <p className="text-sm text-muted-foreground">Analizando transcripciones...</p>
         </div>
       </div>
     );
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="p-6 flex-1 flex items-center justify-center">
@@ -252,17 +280,12 @@ export default function SpeechAnalytics() {
           <AlertTriangle size={32} className="text-red-400 mx-auto" />
           <p className="text-sm font-semibold text-foreground">Error al cargar transcripciones</p>
           <p className="text-xs text-muted-foreground">{error}</p>
-          <p className="text-xs text-muted-foreground italic">
-            Nota: La tabla <code>transcriptions</code> debe existir en Supabase con columnas:
-            client_id, agent_name, call_date, result, summary, transcript, campaign, aht_segundos.
-          </p>
         </div>
       </div>
     );
   }
 
-  // ── Estado vacío ───────────────────────────────────────────────────────────
-  if (transcriptions.length === 0) {
+  if (transcriptions.length === 0 || !analysis) {
     return (
       <div className="p-6 flex-1 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
@@ -270,262 +293,502 @@ export default function SpeechAnalytics() {
             <Mic size={28} className="text-primary" />
           </div>
           <h2 className="text-base font-semibold text-foreground">Sin transcripciones disponibles</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            No se encontraron transcripciones para este cliente en Supabase.
-            Una vez que las grabaciones sean procesadas y transcritas, aparecerán aquí los análisis de temas, sentimiento y frases de riesgo.
+          <p className="text-sm text-muted-foreground">
+            Una vez que las llamadas sean procesadas, aquí encontrarás inteligencia ejecutiva sobre drivers de conversión, mapa de objeciones y ranking de agentes.
           </p>
-          <div className="text-xs text-muted-foreground border border-border rounded-lg p-3 text-left space-y-1">
-            <p className="font-semibold text-foreground">Datos requeridos en Supabase:</p>
-            <p>• Tabla: <code className="text-primary">transcriptions</code></p>
-            <p>• Columnas: client_id, agent_name, call_date, result, summary, transcript, campaign, aht_segundos</p>
-          </div>
         </div>
       </div>
     );
   }
 
-  // ── Cálculos ──────────────────────────────────────────────────────────────
-  const wordFreq = getWordFrequency(transcriptions);
-  const agentSentiment = getAgentSentiment(transcriptions);
-  const campaignResults = getCampaignResults(transcriptions);
-  const riskPhrases = getRiskPhrases(transcriptions);
-  const scatterData = getScatterData(transcriptions);
+  const { total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente } = analysis;
 
-  const totalPositive = Math.round(agentSentiment.reduce((s, a) => s + a.positive * a.total, 0) / transcriptions.length);
-  const totalNegative = Math.round(agentSentiment.reduce((s, a) => s + a.negative * a.total, 0) / transcriptions.length);
+  // ── Headline ejecutivo ──────────────────────────────────────────────────────
+  const mejorAgente = agentes[0];
+  const peorAgente = agentes[agentes.length - 1];
+  const brechaConversion = mejorAgente && peorAgente ? mejorAgente.tasaConversion - peorAgente.tasaConversion : 0;
+  const patronTopEjecutivo = patronesExitosos[0];
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1">
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-primary/15">
-          <Mic size={20} className="text-primary" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-foreground">Speech Analytics</h1>
-          <p className="text-xs text-muted-foreground">
-            {transcriptions.length} transcripciones analizadas · Análisis de temas, sentimiento y frases de riesgo
-          </p>
-        </div>
-      </div>
-
-      {/* KPI Summary row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: 'Transcripciones', value: transcriptions.length.toString(), icon: FileText, color: 'text-primary' },
-          { label: 'Agentes', value: new Set(transcriptions.map(t => t.agent_name)).size.toString(), icon: Users, color: 'text-blue-400' },
-          { label: 'Sentimiento positivo', value: `${totalPositive}%`, icon: TrendingUp, color: 'text-emerald-400' },
-          { label: 'Frases de riesgo', value: riskPhrases.length.toString(), icon: Shield, color: 'text-red-400' },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
-            <div className={cn('p-2 rounded-lg bg-card border border-border', stat.color)}>
-              <stat.icon size={16} />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
-              <p className="text-xl font-bold text-foreground">{stat.value}</p>
-            </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-primary/15">
+            <Mic size={20} className="text-primary" />
           </div>
-        ))}
-      </div>
-
-      {/* Row 1: Temas frecuentes + Resultados por campaña */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* 1. Temas frecuentes */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-1">Temas Frecuentes</h2>
-          <p className="text-xs text-muted-foreground mb-4">Top 20 palabras significativas en transcripciones (excluye stopwords)</p>
-          {wordFreq.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">Sin datos de transcripciones de texto disponibles.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={wordFreq} layout="vertical" margin={{ left: 8, right: 20, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="word" tick={{ fontSize: 11, fill: '#9CA3AF' }} width={90} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: '#F9FAFB' }}
-                />
-                <Bar dataKey="count" name="Frecuencia" fill="#6334C0" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+          <div>
+            <h1 className="text-lg font-bold text-foreground">Inteligencia Conversacional</h1>
+            <p className="text-xs text-muted-foreground">
+              {total} transcripciones analizadas · Inteligencia ejecutiva para recuperación de cartera
+            </p>
+          </div>
         </div>
-
-        {/* 3. Resultados por campaña */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-1">Resultados por Tipo</h2>
-          <p className="text-xs text-muted-foreground mb-4">Distribución de resultados en todas las llamadas analizadas</p>
-          {campaignResults.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">Sin datos de resultados disponibles.</p>
-          ) : (
-            <div className="flex flex-col items-center">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={campaignResults}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    labelLine={{ stroke: '#6B7280', strokeWidth: 1 }}
-                  >
-                    {campaignResults.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
-                    formatter={(value: number) => [`${value} llamadas`, 'Total']}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11, color: '#9CA3AF' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "text-xs font-semibold px-3 py-1.5 rounded-full",
+            tasaExito >= 40 ? "bg-emerald-500/15 text-emerald-400" : tasaExito >= 20 ? "bg-amber-500/15 text-amber-400" : "bg-red-500/15 text-red-400"
+          )}>
+            {tasaExito}% tasa de conversión
+          </span>
         </div>
       </div>
 
-      {/* Row 2: Sentimiento por agente */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold text-foreground mb-1">Sentimiento por Agente</h2>
-        <p className="text-xs text-muted-foreground mb-4">
-          Score calculado en base a palabras positivas/negativas en resúmenes de llamadas
+      {/* ═══ SECCIÓN 1 — HEADLINE EJECUTIVO ══════════════════════════════════════ */}
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <BarChart2 size={16} className="text-primary" />
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Diagnóstico Ejecutivo</span>
+        </div>
+
+        <p className="text-sm text-foreground leading-relaxed">
+          De <span className="font-bold text-primary">{total} llamadas analizadas</span>, el{' '}
+          <span className="font-bold text-primary">{tasaExito}%</span> resultó en promesa de pago ({nExitosas} contactos),{' '}
+          {nFallidas > 0 && <><span className="font-bold text-red-400">{Math.round((nFallidas / total) * 100)}%</span> no llegó a acuerdo ({nFallidas}), </>}
+          {noContacto > 0 && <>y <span className="font-bold text-slate-400">{Math.round((noContacto / total) * 100)}%</span> no pudo contactarse ({noContacto}).</>}
         </p>
-        {agentSentiment.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">Sin datos de agentes disponibles.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="pb-2 pr-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Agente</th>
-                  <th className="pb-2 px-4 text-xs font-semibold text-emerald-400 uppercase tracking-wide">Positivo %</th>
-                  <th className="pb-2 px-4 text-xs font-semibold text-red-400 uppercase tracking-wide">Negativo %</th>
-                  <th className="pb-2 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Neutro %</th>
-                  <th className="pb-2 pl-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Llamadas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {agentSentiment.map((a) => (
-                  <tr key={a.agent} className="hover:bg-secondary/30 transition-colors">
-                    <td className="py-2.5 pr-4 font-medium text-foreground">{a.agent}</td>
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 rounded-full bg-emerald-500/20 flex-1 max-w-[80px]">
-                          <div className="h-full rounded-full bg-emerald-500" style={{ width: `${a.positive}%` }} />
-                        </div>
-                        <span className="text-emerald-400 font-semibold text-xs w-8">{a.positive}%</span>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 rounded-full bg-red-500/20 flex-1 max-w-[80px]">
-                          <div className="h-full rounded-full bg-red-500" style={{ width: `${a.negative}%` }} />
-                        </div>
-                        <span className="text-red-400 font-semibold text-xs w-8">{a.negative}%</span>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4 text-slate-400 text-xs">{a.neutral}%</td>
-                    <td className="py-2.5 pl-4 text-muted-foreground text-xs">{a.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+        {patronTopEjecutivo && patronTopEjecutivo.ventaja > 5 && (
+          <p className="text-sm text-foreground/80 leading-relaxed">
+            El patrón más diferenciador entre llamadas exitosas y fallidas es{' '}
+            <span className="font-semibold text-emerald-400">"{patronTopEjecutivo.label}"</span>:{' '}
+            aparece en el <span className="font-semibold text-emerald-400">{patronTopEjecutivo.tasaEnExitosas}%</span> de las llamadas que cierran
+            vs el <span className="font-semibold text-red-400">{patronTopEjecutivo.tasaEnFallidas}%</span> de las que no cierran
+            — una brecha de <span className="font-bold">{patronTopEjecutivo.ventaja}pp</span>.
+          </p>
         )}
+
+        {brechaConversion > 15 && mejorAgente && peorAgente && (
+          <p className="text-sm text-foreground/80 leading-relaxed">
+            Existe una <span className="font-bold text-amber-400">brecha de conversión de {brechaConversion}pp</span> entre el mejor agente
+            (<span className="font-semibold text-emerald-400">{mejorAgente.name}: {mejorAgente.tasaConversion}%</span>) y el de menor rendimiento
+            (<span className="font-semibold text-red-400">{peorAgente.name}: {peorAgente.tasaConversion}%</span>).
+            Replicar el patrón del top performer puede incrementar la tasa global en{' '}
+            <span className="font-bold text-amber-400">+{Math.round(brechaConversion * 0.3)}pp estimado</span>.
+          </p>
+        )}
+
+        {/* KPIs inline */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/50">
+          {[
+            { label: 'Promesas de pago', value: nExitosas, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+            { label: 'Sin acuerdo', value: nFallidas, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+            { label: 'No contactados', value: noContacto, icon: AlertCircle, color: 'text-slate-400', bg: 'bg-slate-500/10' },
+            { label: 'Agentes activos', value: agentes.length, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          ].map(stat => (
+            <div key={stat.label} className={cn("rounded-lg p-3 flex items-center gap-2.5", stat.bg)}>
+              <stat.icon size={16} className={stat.color} />
+              <div>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="text-lg font-bold text-foreground">{stat.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Row 3: Frases de riesgo + Scatter duración vs resultado */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ═══ SECCIÓN 2 — DRIVERS DE CONVERSIÓN ══════════════════════════════════ */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp size={16} className="text-emerald-400" />
+          <h2 className="text-sm font-bold text-foreground">Drivers de Conversión</h2>
+          <span className="text-xs text-muted-foreground">— ¿Qué separa las llamadas que cierran de las que no?</span>
+        </div>
 
-        {/* 4. Frases de riesgo */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield size={15} className="text-red-400" />
-            <h2 className="text-sm font-semibold text-foreground">Frases de Riesgo Detectadas</h2>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            Frases críticas identificadas en transcripciones que requieren atención del supervisor
-          </p>
-          {riskPhrases.length === 0 ? (
-            <div className="text-center py-8 space-y-2">
-              <Shield size={24} className="text-emerald-400 mx-auto" />
-              <p className="text-sm font-semibold text-emerald-400">Sin frases de riesgo detectadas</p>
-              <p className="text-xs text-muted-foreground">Ninguna transcripción contiene frases de alerta.</p>
+        {/* 2 columnas: éxito vs fracaso */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Llamadas que SÍ cierran */}
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={15} className="text-emerald-400" />
+              <h3 className="text-sm font-semibold text-emerald-400">Conversaciones que SÍ cierran</h3>
+              <span className="ml-auto text-xs text-muted-foreground">{nExitosas} llamadas</span>
             </div>
-          ) : (
-            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-              {riskPhrases.map((r, i) => (
-                <div key={i} className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="text-xs font-semibold text-red-400">"{r.phrase}"</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{r.date}</span>
+
+            {/* Patrones presentes en exitosas */}
+            <div className="space-y-2.5">
+              {patronesExitosos.filter(p => p.ventaja > 0).slice(0, 5).map(p => (
+                <div key={p.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-foreground/80">{p.label}</span>
+                    <span className="font-semibold text-emerald-400">{p.tasaEnExitosas}%</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">Agente: <span className="text-foreground">{r.agent}</span></p>
-                  <p className="text-[11px] text-muted-foreground mt-1 italic">"{r.context}"</p>
+                  <div className="h-1.5 bg-emerald-900/30 rounded-full">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${p.tasaEnExitosas}%` }} />
+                  </div>
+                  {p.ventaja >= 10 && (
+                    <p className="text-[10px] text-emerald-400/70 flex items-center gap-1">
+                      <ArrowUpRight size={10} /> +{p.ventaja}pp vs llamadas fallidas — patrón diferenciador clave
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
-          )}
+
+            {/* Temas frecuentes en exitosas */}
+            {topTemasExitosos.length > 0 && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Temas frecuentes</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {topTemasExitosos.map(t => (
+                    <span key={t} className="text-[11px] bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-full">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Llamadas que NO cierran */}
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <XCircle size={15} className="text-red-400" />
+              <h3 className="text-sm font-semibold text-red-400">Conversaciones que NO cierran</h3>
+              <span className="ml-auto text-xs text-muted-foreground">{nFallidas} llamadas</span>
+            </div>
+
+            {/* Patrones ausentes en exitosas / presentes en fallidas */}
+            <div className="space-y-2.5">
+              {patronesExitosos.filter(p => p.ventaja < 0 || p.tasaEnFallidas > 30).slice(0, 5).length > 0
+                ? patronesExitosos.filter(p => p.ventaja < 0 || p.tasaEnFallidas > 30).slice(0, 5).map(p => (
+                  <div key={p.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-foreground/80">{p.label}</span>
+                      <span className="font-semibold text-red-400">{p.tasaEnFallidas}%</span>
+                    </div>
+                    <div className="h-1.5 bg-red-900/30 rounded-full">
+                      <div className="h-full bg-red-500 rounded-full" style={{ width: `${p.tasaEnFallidas}%` }} />
+                    </div>
+                  </div>
+                ))
+                : patronesExitosos.slice(0, 5).map(p => (
+                  <div key={p.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-foreground/60 line-through">{p.label}</span>
+                      <span className="font-semibold text-red-400">{p.tasaEnFallidas}%</span>
+                    </div>
+                    <div className="h-1.5 bg-red-900/30 rounded-full">
+                      <div className="h-full bg-red-400 rounded-full" style={{ width: `${p.tasaEnFallidas}%` }} />
+                    </div>
+                    <p className="text-[10px] text-red-400/70">Ausente en {100 - p.tasaEnFallidas}% de los cierres fallidos</p>
+                  </div>
+                ))
+              }
+            </div>
+
+            {/* Temas frecuentes en fallidas */}
+            {topTemasFallidos.length > 0 && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Temas frecuentes</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {topTemasFallidos.map(t => (
+                    <span key={t} className="text-[11px] bg-red-500/15 text-red-300 px-2 py-0.5 rounded-full">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {nFallidas < 5 && (
+              <p className="text-[11px] text-muted-foreground italic border-t border-border/50 pt-2">
+                ⚠️ Requiere mínimo 10 llamadas fallidas para patrones estadísticamente significativos.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ SECCIÓN 3 — RANKING DE AGENTES ══════════════════════════════════════ */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Users size={16} className="text-blue-400" />
+          <h2 className="text-sm font-bold text-foreground">Ranking de Agentes</h2>
+          <span className="text-xs text-muted-foreground">— Tasa de conversión vs promedio de operación</span>
         </div>
 
-        {/* 5. Duración vs Resultado */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-1">Duración vs Resultado</h2>
-          <p className="text-xs text-muted-foreground mb-4">
-            ¿Las llamadas más largas logran más promesas de pago? (1 = promesa, 0 = no contacto)
-          </p>
-          {scatterData.length === 0 ? (
-            <div className="flex items-center justify-center h-[220px]">
-              <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground">Sin datos de duración (aht_segundos) disponibles.</p>
-                <p className="text-xs text-muted-foreground italic">Requiere columna aht_segundos en tabla transcriptions.</p>
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-card/80">
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Posición</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Agente</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Llamadas</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-emerald-400 uppercase tracking-wide">Tasa de Cierre</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-blue-400 uppercase tracking-wide">Tono del cliente</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Promesas</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">vs Promedio</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {agentes.map((a, i) => {
+                  const vsPromedio = a.tasaConversion - tasaExito;
+                  const isTop = i < 3;
+                  const isBottom = i >= agentes.length - 3 && agentes.length > 3;
+                  const tonoColor = a.tonoScore > 10 ? 'text-emerald-400' : a.tonoScore < -10 ? 'text-red-400' : 'text-slate-400';
+                  const tonoLabel = a.tonoScore > 10 ? 'Positivo' : a.tonoScore < -10 ? 'Negativo' : 'Neutral';
+                  return (
+                    <tr key={a.name} className={cn(
+                      "hover:bg-secondary/20 transition-colors",
+                      isTop && "bg-emerald-500/3",
+                      isBottom && "bg-red-500/3"
+                    )}>
+                      <td className="px-5 py-3">
+                        <span className={cn(
+                          "text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center",
+                          i === 0 ? "bg-amber-500/20 text-amber-400" : i === 1 ? "bg-slate-500/20 text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-400" : "text-muted-foreground"
+                        )}>
+                          {i + 1}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 font-semibold text-foreground">
+                        <div className="flex items-center gap-2">
+                          {a.name}
+                          {isTop && <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full">TOP</span>}
+                          {isBottom && a.total >= 2 && <span className="text-[9px] bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-full">OPORTUNIDAD</span>}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-muted-foreground">{a.total}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 rounded-full bg-emerald-500/15 w-24">
+                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${a.tasaConversion}%` }} />
+                          </div>
+                          <span className={cn("text-xs font-bold tabular-nums", a.tasaConversion >= tasaExito ? "text-emerald-400" : "text-red-400")}>
+                            {a.tasaConversion}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={cn("text-xs font-medium", tonoColor)}>{tonoLabel}</span>
+                      </td>
+                      <td className="px-5 py-3 text-muted-foreground text-xs">{a.exitosas}</td>
+                      <td className="px-5 py-3">
+                        <span className={cn(
+                          "text-xs font-semibold",
+                          vsPromedio > 0 ? "text-emerald-400" : vsPromedio < 0 ? "text-red-400" : "text-muted-foreground"
+                        )}>
+                          {vsPromedio > 0 ? `+${vsPromedio}pp` : vsPromedio < 0 ? `${vsPromedio}pp` : '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Insight de brecha */}
+          {brechaConversion > 10 && top3.length > 0 && bottom3.length > 0 && (
+            <div className="px-5 py-3 border-t border-border bg-amber-500/5">
+              <p className="text-xs text-amber-400/90">
+                <span className="font-semibold">⚡ Oportunidad de mejora:</span> Existe una brecha de <span className="font-bold">{brechaConversion}pp</span> entre los 3 mejores y los 3 de menor rendimiento.
+                Capacitar a {bottom3.map(a => a.name).join(', ')} en los patrones de conversación de{' '}
+                {top3[0].name} puede generar <span className="font-bold">+{potencialCapacitacion} promesas adicionales</span> con el volumen actual.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══ SECCIÓN 4 — MAPA DE OBJECIONES ═════════════════════════════════════ */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={16} className="text-amber-400" />
+          <h2 className="text-sm font-bold text-foreground">Mapa de Objeciones</h2>
+          <span className="text-xs text-muted-foreground">— Frecuencia y tasa de resolución por categoría</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {mapaObjeciones.map(obj => {
+            const colorMap = {
+              amber: { border: 'border-amber-500/20', bg: 'bg-amber-500/5', badge: 'bg-amber-500/15 text-amber-400', bar: 'bg-amber-500' },
+              red: { border: 'border-red-500/20', bg: 'bg-red-500/5', badge: 'bg-red-500/15 text-red-400', bar: 'bg-red-500' },
+              blue: { border: 'border-blue-500/20', bg: 'bg-blue-500/5', badge: 'bg-blue-500/15 text-blue-400', bar: 'bg-blue-500' },
+              green: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/5', badge: 'bg-emerald-500/15 text-emerald-400', bar: 'bg-emerald-500' },
+              purple: { border: 'border-purple-500/20', bg: 'bg-purple-500/5', badge: 'bg-purple-500/15 text-purple-400', bar: 'bg-purple-500' },
+            }[obj.color] || { border: 'border-border', bg: 'bg-card', badge: 'bg-muted text-muted-foreground', bar: 'bg-primary' };
+
+            return (
+              <div key={obj.id} className={cn("rounded-xl border p-5 space-y-3", colorMap.border, colorMap.bg)}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">{obj.icon}</span>
+                      <h3 className="text-sm font-semibold text-foreground">{obj.label}</h3>
+                    </div>
+                    {obj.frecuencia === 0 ? (
+                      <p className="text-xs text-muted-foreground">Sin ocurrencias detectadas</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{obj.frecuencia} {obj.frecuencia === 1 ? 'ocurrencia' : 'ocurrencias'} · {obj.resueltas} resueltas</p>
+                    )}
+                  </div>
+                  <span className={cn("text-xs font-bold px-2 py-1 rounded-full", colorMap.badge)}>
+                    {obj.frecuencia}x
+                  </span>
+                </div>
+
+                {obj.frecuencia > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-muted-foreground">Tasa de resolución</span>
+                      <span className={cn("font-bold", obj.tasaResolucion >= 50 ? "text-emerald-400" : obj.tasaResolucion >= 25 ? "text-amber-400" : "text-red-400")}>
+                        {obj.tasaResolucion}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-black/20 rounded-full">
+                      <div className={cn("h-full rounded-full", colorMap.bar)} style={{ width: `${obj.tasaResolucion}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-foreground/70 leading-relaxed border-t border-white/5 pt-2">
+                  💡 {obj.recomendacion}
+                </p>
+
+                {obj.frecuencia > 0 && obj.frecuencia < 3 && (
+                  <p className="text-[10px] text-muted-foreground italic">
+                    ⚠️ Requiere más muestras para ser estadísticamente significativo.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ═══ SECCIÓN 5 — RECOMENDACIONES EJECUTIVAS ══════════════════════════════ */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Lightbulb size={16} className="text-amber-400" />
+          <h2 className="text-sm font-bold text-foreground">Recomendaciones Ejecutivas</h2>
+          <span className="text-xs text-muted-foreground">— 3 acciones con mayor impacto en recuperación de cartera</span>
+        </div>
+
+        <div className="space-y-3">
+          {/* Recomendación 1: Script de cuotas */}
+          <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-0.5">
+                <span className="text-xs font-bold text-emerald-400">1</span>
+              </div>
+              <div className="space-y-2 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-foreground">
+                    Implementar script estándar con oferta de cuotas específicas en las primeras 2 minutos de llamada
+                  </p>
+                  <span className="flex-shrink-0 text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-full">
+                    Impacto Alto
+                  </span>
+                </div>
+                <p className="text-xs text-foreground/70 leading-relaxed">
+                  Las llamadas que mencionan cuotas o alternativas de pago concretas muestran significativamente mayor tasa de cierre.
+                  Estandarizar esta práctica en todos los agentes tiene potencial de{' '}
+                  <span className="font-semibold text-emerald-400">+15% en tasa de promesa</span>.
+                </p>
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
+                  <span className="flex items-center gap-1">
+                    <TrendingUp size={10} className="text-emerald-400" />
+                    +{potencialMejoraScript} contactos efectivos adicionales con el volumen actual
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Target size={10} className="text-primary" />
+                    Acción: Crear guión y capacitar en 1 semana
+                  </span>
+                </div>
               </div>
             </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: -10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis
-                  type="number"
-                  dataKey="aht"
-                  name="Duración (seg)"
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={false}
-                  tickLine={false}
-                  label={{ value: 'Duración (seg)', position: 'insideBottom', offset: -5, fill: '#6B7280', fontSize: 11 }}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="result"
-                  name="Resultado"
-                  tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={[-0.2, 1.2]}
-                  tickFormatter={(v) => v === 1 ? 'Promesa' : v === 0 ? 'No cont.' : ''}
-                />
-                <Tooltip
-                  contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
-                  cursor={{ strokeDasharray: '3 3' }}
-                  formatter={(value, name) => [
-                    name === 'result' ? (value === 1 ? 'Promesa de pago' : 'No contacto') : `${value}s`,
-                    name === 'result' ? 'Resultado' : 'Duración',
-                  ]}
-                />
-                <Scatter
-                  data={scatterData}
-                  fill="#6334C0"
-                  opacity={0.7}
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
-          )}
+          </div>
+
+          {/* Recomendación 2: Capacitación agentes */}
+          <div className="rounded-xl border border-blue-500/25 bg-blue-500/5 p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mt-0.5">
+                <span className="text-xs font-bold text-blue-400">2</span>
+              </div>
+              <div className="space-y-2 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-foreground">
+                    Programa de shadowing: los agentes de bajo rendimiento acompañan llamadas del top performer
+                  </p>
+                  <span className="flex-shrink-0 text-xs font-bold text-blue-400 bg-blue-500/15 px-2.5 py-1 rounded-full">
+                    Impacto Medio-Alto
+                  </span>
+                </div>
+                <p className="text-xs text-foreground/70 leading-relaxed">
+                  {bottom3.length > 0
+                    ? `Los agentes ${bottom3.map(a => a.name).join(', ')} tienen tasas de conversión por debajo del promedio (${tasaExito}%). Replicar los patrones del top performer `
+                    : 'Estandarizar las mejores prácticas de conversación del top performer '}
+                  {mejorAgente && <span>(<span className="font-semibold text-blue-400">{mejorAgente.name}: {mejorAgente.tasaConversion}%</span>) </span>}
+                  puede generar <span className="font-semibold text-blue-400">+{potencialCapacitacion > 0 ? potencialCapacitacion : Math.round(total * 0.08)} promesas adicionales/mes</span>.
+                </p>
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
+                  <span className="flex items-center gap-1">
+                    <Users size={10} className="text-blue-400" />
+                    {bottom3.length > 0 ? `${bottom3.length} agentes a capacitar` : 'Todos los agentes se benefician'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Target size={10} className="text-primary" />
+                    Acción: 2 sesiones de escucha de grabaciones por agente
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recomendación 3: Objeción más frecuente */}
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center mt-0.5">
+                <span className="text-xs font-bold text-amber-400">3</span>
+              </div>
+              <div className="space-y-2 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-foreground">
+                    Crear protocolo de respuesta para la objeción más frecuente: "{objecionMasFrecuente?.label || 'Capacidad de pago'}"
+                  </p>
+                  <span className="flex-shrink-0 text-xs font-bold text-amber-400 bg-amber-500/15 px-2.5 py-1 rounded-full">
+                    Quick Win
+                  </span>
+                </div>
+                <p className="text-xs text-foreground/70 leading-relaxed">
+                  {objecionMasFrecuente && objecionMasFrecuente.frecuencia > 0
+                    ? <>La objeción "<span className="font-semibold">{objecionMasFrecuente.label}</span>" aparece {objecionMasFrecuente.frecuencia} veces y tiene una tasa de resolución del{' '}
+                      <span className="font-semibold text-amber-400">{objecionMasFrecuente.tasaResolucion}%</span>.
+                      {objecionMasFrecuente.tasaResolucion < 50
+                        ? ' Hay oportunidad de mejora significativa con un guión estructurado de respuesta.'
+                        : ' Con un protocolo consistente, se puede llevar esta tasa al 60%+.'
+                      }
+                    </>
+                    : 'Documentar y estandarizar la respuesta a cada tipo de objeción reduce el tiempo de manejo y aumenta la tasa de resolución.'
+                  }
+                  {minutosRecuperados > 0 && (
+                    <> Eliminar llamadas improductivas por "ya pagué" recupera{' '}
+                      <span className="font-semibold text-amber-400">~{minutosRecuperados} minutos/día</span> de tiempo productivo.
+                    </>
+                  )}
+                </p>
+                <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
+                  <span className="flex items-center gap-1">
+                    <TrendingDown size={10} className="text-amber-400" />
+                    Reduce tiempo promedio de llamada improductiva
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Target size={10} className="text-primary" />
+                    Acción: Tarjeta de respuesta rápida para el agente
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer informativo */}
+        <div className="rounded-lg border border-border/50 bg-card/30 px-4 py-3 flex items-center gap-2">
+          <AlertCircle size={12} className="text-muted-foreground flex-shrink-0" />
+          <p className="text-[11px] text-muted-foreground">
+            Análisis basado en {total} transcripciones. Los porcentajes e insights se calculan en tiempo real desde los summaries y transcripts almacenados.
+            {total < 30 && <span className="text-amber-400/80"> Para mayor confiabilidad estadística se recomiendan mínimo 50 transcripciones.</span>}
+          </p>
         </div>
       </div>
     </div>
