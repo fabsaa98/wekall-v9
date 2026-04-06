@@ -1,5 +1,5 @@
 // Service Worker limpio — sin caché de rutas hardcodeadas
-const CACHE_NAME = 'wekall-intelligence-v3';
+const CACHE_NAME = 'wekall-intelligence-v4';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
