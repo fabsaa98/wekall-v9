@@ -53,8 +53,9 @@ export async function getAppUser(email: string, clientId?: string): Promise<AppU
     query = query.eq('client_id', clientId);
   }
 
-  const { data } = await query.maybeSingle();
-  return data;
+  // Usar .limit(1) en vez de .maybeSingle() — un email puede tener múltiples clientes (multi-tenant)
+  const { data } = await query.limit(1);
+  return data?.[0] ?? null;
 }
 
 // Tipos
