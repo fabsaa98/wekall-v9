@@ -43,12 +43,12 @@ export async function signIn(email: string, password: string) {
 
     const json = await resp.json() as { access_token: string; refresh_token: string; user: { email: string; user_metadata?: Record<string, unknown> }; client_id: string | null };
 
-    // Sincronizar sesión con el cliente de supabase (para queries subsecuentes)
+    // Sincronizar sesión con el cliente de supabase (fire-and-forget — no bloquear el login)
     if (json.access_token) {
-      await supabase.auth.setSession({
+      supabase.auth.setSession({
         access_token: json.access_token,
         refresh_token: json.refresh_token,
-      });
+      }).catch(() => { /* ignorar errores de sync */ });
     }
 
     return json; // { access_token, refresh_token, user, client_id }
