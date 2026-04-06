@@ -380,22 +380,26 @@ export default function Overview() {
                 strokeDasharray="4 4"
                 label={{ value: `Prom. 30d: ${cdr.promedio30dTasa}%`, fill: '#6B7280', fontSize: 10, position: 'insideTopRight' }}
               />
-              {/* Banda de confianza (area) */}
+              {/* Banda de confianza: área entre conf_low y conf_high */}
               <Area
                 type="monotone"
                 dataKey="conf_high"
                 stroke="none"
                 fill="url(#gForecastConf)"
+                fillOpacity={0.4}
                 activeDot={false}
                 legendType="none"
+                baseValue="dataMin"
               />
               <Area
                 type="monotone"
                 dataKey="conf_low"
                 stroke="none"
-                fill="#1A1F2E"
+                fill="transparent"
+                fillOpacity={1}
                 activeDot={false}
                 legendType="none"
+                baseValue="dataMin"
               />
               {/* Línea histórico */}
               <Line
