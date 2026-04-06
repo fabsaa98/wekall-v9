@@ -126,14 +126,15 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
         if (session?.user?.email) {
           // Hay sesión de Supabase Auth activa
-          const storedClientId = localStorage.getItem(LS_CLIENT_ID);
+          // PRIORIDAD: localStorage (cliente seleccionado por el usuario) > primer cliente del JWT
+          const storedClientId = localStorage.getItem(LS_CLIENT_ID) || 'credismart';
           const appUser = await getAppUser(
             session.user.email,
-            storedClientId || undefined
+            storedClientId  // siempre filtrar por el cliente del localStorage
           );
 
           if (appUser && mounted) {
-            setClientId(appUser.client_id);
+            // No sobrescribir clientId — el localStorage ya lo tiene correcto
             setCurrentUser({
               id: appUser.id,
               email: appUser.email,
@@ -143,7 +144,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
               active: appUser.active,
             });
           }
-          // Si no hay app_user pero hay sesión auth, dejamos el estado de localStorage
+          // Si no hay app_user para ese cliente, mantener el localStorage tal cual
         }
         // Si no hay sesión Auth, usar localStorage como estaba (modo legacy)
       } catch (err) {
@@ -160,14 +161,15 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
       if (event === 'SIGNED_IN' && session?.user?.email) {
         // Nueva sesión iniciada — cargar app_user
-        const storedClientId = localStorage.getItem(LS_CLIENT_ID);
+        // PRIORIDAD: localStorage (cliente activo) nunca se sobrescribe con el del JWT
+        const storedClientId = localStorage.getItem(LS_CLIENT_ID) || 'credismart';
         try {
           const appUser = await getAppUser(
             session.user.email,
-            storedClientId || undefined
+            storedClientId  // filtrar siempre por el cliente del localStorage
           );
           if (appUser) {
-            setClientId(appUser.client_id);
+            // Solo actualizar currentUser — NO cambiar clientId (localStorage manda)
             setCurrentUser({
               id: appUser.id,
               email: appUser.email,
