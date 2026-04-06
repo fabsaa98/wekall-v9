@@ -17,11 +17,11 @@ interface Transcription {
   id: string;
   agent_name: string;
   call_date: string;
-  result: string;
+  call_type?: string;  // 'in' | 'out' — disponible en Supabase
   summary: string;
   transcript: string;
   campaign?: string;
-  aht_segundos?: number;
+  // result y aht_segundos no existen en la tabla — se derivan del summary
 }
 
 interface WordFrequency {
@@ -135,7 +135,7 @@ function getAgentSentiment(transcriptions: Transcription[]): AgentSentiment[] {
       agentMap[agent] = { positive: 0, negative: 0, neutral: 0, total: 0 };
     }
 
-    const text = (t.summary + ' ' + t.result).toLowerCase();
+    const text = (t.summary || '').toLowerCase();
     let score = 0;
 
     for (const w of POSITIVE_WORDS) {
@@ -163,7 +163,7 @@ function getAgentSentiment(transcriptions: Transcription[]): AgentSentiment[] {
 function getCampaignResults(transcriptions: Transcription[]): { name: string; value: number }[] {
   const freq: Record<string, number> = {};
   for (const t of transcriptions) {
-    const key = t.result || 'sin_resultado';
+    const key = t.call_type || 'sin_resultado';
     freq[key] = (freq[key] || 0) + 1;
   }
   return Object.entries(freq)
@@ -194,12 +194,12 @@ function getRiskPhrases(transcriptions: Transcription[]): RiskPhrase[] {
 
 function getScatterData(transcriptions: Transcription[]): ScatterPoint[] {
   return transcriptions
-    .filter(t => t.aht_segundos != null && t.aht_segundos > 0)
+    .filter(() => false) // aht_segundos no disponible en esta versión
     .map(t => ({
-      aht: t.aht_segundos!,
-      result: t.result === 'promesa_pago' ? 1 : 0,
+      aht: 0,
+      result: 0,
       agent: t.agent_name || 'Desconocido',
-      resultLabel: t.result || 'sin_resultado',
+      resultLabel: t.call_type || 'sin_resultado',
     }));
 }
 
@@ -217,7 +217,7 @@ export default function SpeechAnalytics() {
         setLoading(true);
         const { data, error: err } = await supabase
           .from('transcriptions')
-          .select('id, agent_name, call_date, result, summary, transcript, campaign, aht_segundos')
+          .select('id, agent_name, call_date, call_type, summary, transcript, campaign, client_id')
           .eq('client_id', clientId)
           .limit(100);
 
