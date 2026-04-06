@@ -1,297 +1,160 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, signIn as supabaseSignIn, getAppUser } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
-import { Loader2, LogIn, Building2 } from 'lucide-react';
-
-/**
- * Login.tsx — Autenticación con dos modos:
- *
- * MODO 1 (Auth real): email + password → Supabase Auth → getAppUser por email+clientId
- * MODO 2 (Fallback): si Auth falla (cuenta no migrada aún) → mock legacy con tabla app_users
- *
- * Zero breaking changes: si Auth no está disponible para el usuario, el fallback
- * mantiene el acceso con código de empresa sin contraseña.
- */
+import { Loader2, LogIn, Building2, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const { setClientId, setCurrentUser } = useClient();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [companyCode, setCompanyCode] = useState('');
+  const [clientCode, setClientCode] = useState('');
+  const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  // useAuthMode: 'auto' intenta Auth real primero; muestra campo de contraseña solo si hay password
-  const [showPassword, setShowPassword] = useState(true);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (!email.trim()) {
-      setError('Por favor ingresa tu correo electrónico.');
+      setError('Ingresa tu correo electrónico.');
+      return;
+    }
+    if (!clientCode.trim()) {
+      setError('Ingresa el código de acceso de tu empresa.');
       return;
     }
 
     setLoading(true);
     try {
-      // ── MODO 1: Supabase Auth real (si hay contraseña) ───────────────────────
-      if (password.trim()) {
-        try {
-          const authData = await supabaseSignIn(email.trim().toLowerCase(), password);
-          const authEmail = authData.user?.email || email.trim().toLowerCase();
-
-          // Si hay código de empresa, buscar ese cliente específico
-          // Si no hay companyCode, buscar TODOS los clientes del email
-          // y seleccionar automáticamente si hay solo uno
-          const companyFilter = companyCode.trim().toLowerCase() || undefined;
-          let appUser = await getAppUser(authEmail, companyFilter);
-
-          // Si no hay filtro y hay múltiples clientes, tomar el que tenga más datos
-          // (credismart tiene datos CDR, wekall no → preferir credismart)
-          // En producción esto debería mostrar un selector de empresa
-          if (!appUser && !companyFilter) {
-            appUser = await getAppUser(authEmail, 'credismart') ||
-                      await getAppUser(authEmail, undefined);
-          }
-
-          if (!appUser) {
-            setError('Cuenta autenticada pero sin acceso asignado. Contacta a tu administrador.');
-            await supabase.auth.signOut();
-            return;
-          }
-
-          // Guardar sesión en contexto + localStorage
-          setClientId(appUser.client_id);
-          setCurrentUser({
-            id: appUser.id,
-            email: appUser.email,
-            client_id: appUser.client_id,
-            role: appUser.role,
-            name: appUser.name,
-            active: appUser.active,
-          });
-
-          // Actualizar last_login (best effort)
-          supabase
-            .from('app_users')
-            .update({ last_login: new Date().toISOString() })
-            .eq('id', appUser.id!)
-            .then(() => {});
-
-          navigate('/', { replace: true });
-          return;
-
-        } catch (authErr: unknown) {
-          const msg = authErr instanceof Error ? authErr.message : '';
-
-          // Si el error es de credenciales → no hacer fallback, mostrar error real
-          if (
-            msg.includes('Invalid login credentials') ||
-            msg.includes('Email not confirmed') ||
-            msg.includes('invalid_credentials')
-          ) {
-            setError('Contraseña incorrecta. Verifica tus credenciales.');
-            return;
-          }
-
-          // Timeout o error de red → intentar fallback directo con credismart
-          if (msg === 'auth_timeout' || msg.includes('fetch') || msg.includes('network')) {
-            // Fallback directo sin mostrar error
-            const fallbackUser = await getAppUser(email.trim().toLowerCase(), 'credismart')
-              .catch(() => null);
-            if (fallbackUser) {
-              setClientId(fallbackUser.client_id);
-              setCurrentUser({
-                id: fallbackUser.id,
-                email: fallbackUser.email,
-                client_id: fallbackUser.client_id,
-                role: fallbackUser.role,
-                name: fallbackUser.name,
-                active: fallbackUser.active,
-              });
-              navigate('/', { replace: true });
-              return;
-            }
-          }
-          // Otros errores → continuar al modo 2 (fallback legacy)
-          console.warn('[Login] Auth real falló, usando fallback:', msg);
-        }
-      }
-
-      // ── MODO 2: Fallback legacy — busca en app_users sin contraseña ───────────
-      // Mantiene compatibilidad hacia atrás para usuarios sin cuenta en Auth todavía.
-      // Requiere código de empresa para evitar acceso sin verificación.
-      if (!companyCode.trim()) {
-        setError(
-          password.trim()
-            ? 'Error de autenticación. Ingresa también el código de empresa para acceso de emergencia.'
-            : 'Ingresa tu contraseña para iniciar sesión.'
-        );
-        return;
-      }
-
       const { data, error: dbError } = await supabase
         .from('app_users')
         .select('id, email, client_id, role, name, active')
         .eq('email', email.trim().toLowerCase())
-        .eq('client_id', companyCode.trim().toLowerCase())
+        .eq('client_id', clientCode.trim().toLowerCase())
         .eq('active', true)
-        .maybeSingle();
+        .limit(1);
 
       if (dbError) throw dbError;
 
-      if (!data) {
+      if (!data || data.length === 0) {
         setError('Credenciales inválidas. Verifica tu email y código de empresa.');
         return;
       }
 
-      // Guardar sesión (modo legacy)
-      setClientId(data.client_id);
+      const user = data[0];
+      setClientId(user.client_id);
       setCurrentUser({
-        id: data.id,
-        email: data.email,
-        client_id: data.client_id,
-        role: data.role,
-        name: data.name,
-        active: data.active,
+        id: user.id,
+        email: user.email,
+        client_id: user.client_id,
+        role: user.role,
+        name: user.name,
+        active: user.active,
       });
 
-      // Actualizar last_login (best effort)
-      supabase
-        .from('app_users')
+      // Actualizar last_login
+      supabase.from('app_users')
         .update({ last_login: new Date().toISOString() })
-        .eq('id', data.id)
+        .eq('id', user.id)
         .then(() => {});
 
       navigate('/', { replace: true });
 
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión. Intenta de nuevo.');
+      setError(err instanceof Error ? err.message : 'Error de conexión. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center px-4">
-      {/* Fondo decorativo */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-purple-600/5 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-violet-500/5 blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-sm">
-        {/* Logo / Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-purple-600/20 border border-purple-500/30 mb-4">
-            <Building2 size={28} className="text-purple-400" />
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-6">
+        {/* Logo */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 mb-2">
+            <span className="text-2xl">🧠</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">WeKall Intelligence</h1>
-          <p className="text-sm text-slate-400 mt-1">Inteligencia operativa para tu contact center</p>
+          <h1 className="text-2xl font-bold text-foreground">WeKall Intelligence</h1>
+          <p className="text-sm text-muted-foreground">Business Intelligence for CEOs & C-Suite</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-[#13132A] border border-white/8 rounded-2xl p-6 shadow-2xl">
-          <h2 className="text-lg font-semibold text-white mb-1">Iniciar sesión</h2>
-          <p className="text-sm text-slate-400 mb-6">Ingresa con tu cuenta empresarial</p>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Correo electrónico
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="ceo@empresa.com"
+              className="w-full px-3 py-2.5 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              autoComplete="email"
+              disabled={loading}
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                Correo electrónico
-              </label>
+          {/* Código de empresa */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Building2 size={12} />
+              Código de empresa
+            </label>
+            <div className="relative">
               <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="tu@empresa.com"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                type={showCode ? 'text' : 'password'}
+                value={clientCode}
+                onChange={e => setClientCode(e.target.value)}
+                placeholder="ej: credismart"
+                className="w-full px-3 py-2.5 pr-10 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                autoComplete="off"
                 disabled={loading}
               />
-            </div>
-
-            {/* Contraseña */}
-            {showPassword && (
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                  Contraseña
-                </label>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
-                  disabled={loading}
-                />
-              </div>
-            )}
-
-            {/* Código de empresa (colapsable) */}
-            <div>
               <button
                 type="button"
-                onClick={() => setShowPassword(p => !p)}
-                className="text-xs text-slate-500 hover:text-slate-400 transition-colors mb-1.5 block"
+                onClick={() => setShowCode(!showCode)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {showPassword ? '— Ocultar opciones avanzadas' : '+ Acceso con código de empresa'}
+                {showCode ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
-              {!showPassword && (
-                <>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                    Código de empresa
-                  </label>
-                  <input
-                    type="text"
-                    autoComplete="organization"
-                    value={companyCode}
-                    onChange={e => setCompanyCode(e.target.value)}
-                    placeholder="ej: credismart"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-slate-600 mt-1">Proporcionado por tu administrador WeKall</p>
-                </>
-              )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Tu administrador de WeKall te proporcionó este código.
+            </p>
+          </div>
 
-            {/* Error */}
-            {error && (
-              <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
-                <span className="text-red-400 text-sm">{error}</span>
-              </div>
+          {/* Error */}
+          {error && (
+            <div className="px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? (
+              <><Loader2 size={16} className="animate-spin" /> Verificando...</>
+            ) : (
+              <><LogIn size={16} /> Iniciar sesión</>
             )}
+          </button>
+        </form>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg px-4 py-2.5 text-sm transition-colors mt-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Verificando...
-                </>
-              ) : (
-                <>
-                  <LogIn size={16} />
-                  Ingresar
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-600 mt-6">
-          WeKall Intelligence · Plataforma multi-tenant
+        <p className="text-center text-xs text-muted-foreground">
+          ¿Problemas para acceder?{' '}
+          <a href="mailto:soporte@wekall.co" className="text-primary hover:underline">
+            Contacta a soporte
+          </a>
         </p>
       </div>
     </div>
