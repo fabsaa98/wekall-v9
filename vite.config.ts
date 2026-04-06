@@ -3,9 +3,12 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 // https://vitejs.dev/config/
+// base: '/' para Cloudflare Pages (URL raíz)
+// base: '/wekall-intelligence/' para GitHub Pages (subfolder)
+// Se controla con VITE_BASE_URL en GitHub Actions
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: process.env.VITE_BASE_URL || '/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

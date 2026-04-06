@@ -5,7 +5,8 @@ on:
     branches: [main]
 
 jobs:
-  build-and-deploy:
+  deploy-cloudflare:
+    name: Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,20 +18,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
+      - name: Build for Cloudflare Pages (base = /)
         run: npm run build
         env:
+          VITE_BASE_URL: /
           VITE_OPENAI_KEY: ${{ secrets.VITE_OPENAI_KEY }}
           VITE_PROXY_URL: ${{ secrets.VITE_PROXY_URL }}
 
-      # Deploy 1: GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-
-      # Deploy 2: Cloudflare Pages
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
@@ -39,3 +33,29 @@ jobs:
           projectName: wekall-intelligence
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-github:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build for GitHub Pages (base = /wekall-intelligence/)
+        run: npm run build
+        env:
+          VITE_BASE_URL: /wekall-intelligence/
+          VITE_OPENAI_KEY: ${{ secrets.VITE_OPENAI_KEY }}
+          VITE_PROXY_URL: ${{ secrets.VITE_PROXY_URL }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist

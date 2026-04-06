@@ -97,7 +97,7 @@ export default function App() {
     <TooltipProvider delayDuration={300}>
       <ClientProvider>
         <RoleProvider>
-          <BrowserRouter basename="/">
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
               {/* Ruta pública */}
               <Route path="/login" element={<Login />} />
