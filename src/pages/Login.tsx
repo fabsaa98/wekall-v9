@@ -97,7 +97,26 @@ export default function Login() {
             return;
           }
 
-          // Otros errores de auth (red, configuración) → fallback a mock
+          // Timeout o error de red → intentar fallback directo con credismart
+          if (msg === 'auth_timeout' || msg.includes('fetch') || msg.includes('network')) {
+            // Fallback directo sin mostrar error
+            const fallbackUser = await getAppUser(email.trim().toLowerCase(), 'credismart')
+              .catch(() => null);
+            if (fallbackUser) {
+              setClientId(fallbackUser.client_id);
+              setCurrentUser({
+                id: fallbackUser.id,
+                email: fallbackUser.email,
+                client_id: fallbackUser.client_id,
+                role: fallbackUser.role,
+                name: fallbackUser.name,
+                active: fallbackUser.active,
+              });
+              navigate('/', { replace: true });
+              return;
+            }
+          }
+          // Otros errores → continuar al modo 2 (fallback legacy)
           console.warn('[Login] Auth real falló, usando fallback:', msg);
         }
       }

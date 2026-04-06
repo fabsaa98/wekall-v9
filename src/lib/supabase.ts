@@ -22,7 +22,13 @@ export interface AppUser {
  * Si la cuenta no existe en auth.users, lanzará error (lo captura Login.tsx para fallback).
  */
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  // Timeout de 8 segundos para evitar esperas de 30s+
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('auth_timeout')), 8000)
+  );
+  const authPromise = supabase.auth.signInWithPassword({ email, password });
+  const result = await Promise.race([authPromise, timeoutPromise]) as Awaited<typeof authPromise>;
+  const { data, error } = result;
   if (error) throw error;
   return data;
 }
