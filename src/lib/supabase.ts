@@ -22,15 +22,41 @@ export interface AppUser {
  * Si la cuenta no existe en auth.users, lanzará error (lo captura Login.tsx para fallback).
  */
 export async function signIn(email: string, password: string) {
-  // Timeout de 8 segundos para evitar esperas de 30s+
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('auth_timeout')), 8000)
-  );
-  const authPromise = supabase.auth.signInWithPassword({ email, password });
-  const result = await Promise.race([authPromise, timeoutPromise]) as Awaited<typeof authPromise>;
-  const { data, error } = result;
-  if (error) throw error;
-  return data;
+  // Usar fetch directo para evitar timeouts del cliente JS de Supabase
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const resp = await fetch(
+      `${supabase.supabaseUrl}/auth/v1/token?grant_type=password`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabase.supabaseKey,
+        },
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeout);
+    const json = await resp.json();
+    if (!resp.ok || json.error) {
+      throw new Error(json.error_description || json.error || 'auth_error');
+    }
+    // Sincronizar sesión con el cliente de supabase
+    if (json.access_token) {
+      await supabase.auth.setSession({
+        access_token: json.access_token,
+        refresh_token: json.refresh_token,
+      });
+    }
+    return { user: json.user, session: json };
+  } catch (err: unknown) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') throw new Error('auth_timeout');
+    throw err;
+  }
 }
 
 /** Sign out de Supabase Auth */
