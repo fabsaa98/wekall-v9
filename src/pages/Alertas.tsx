@@ -6,18 +6,20 @@ import { Switch } from '@/components/ui/switch';
 import { buildAlertsFromCDR, type Alert } from '@/data/mockData';
 import { useCDRData } from '@/hooks/useCDRData';
 import { insertAlertLog, getRecentAlertLog, type AlertLogEntry } from '@/lib/supabase';
+import { useClient } from '@/contexts/ClientContext';
 import { cn } from '@/lib/utils';
 
-// ─── Umbrales de alerta configurados ─────────────────────────────────────────
-// Fuente de verdad: si los KPIs del último CDR superan estos umbrales, se dispara una alerta
+// ─── Umbrales de alerta — DEFAULTS ───────────────────────────────────────────
+// Se sobreescriben con valores desde client_config en Supabase (Fix 1B)
+// Estos son los fallbacks seguros en caso de que Supabase no responda
 
-const ALERT_THRESHOLDS = {
+const DEFAULT_THRESHOLDS = {
   tasa_contacto_critica: 30,    // % — por debajo = crítico
   tasa_contacto_warning: 38,    // % — por debajo = advertencia
   delta_tasa_critico: -5,       // pp — caída vs promedio 7d = crítico
   delta_tasa_warning: -2.5,     // pp — caída vs promedio 7d = advertencia
   volumen_minimo: 5000,         // llamadas — por debajo = advertencia (día no hábil probable)
-} as const;
+};
 
 const exampleChips = [
   'CSAT baje de 3.5',
@@ -140,65 +142,75 @@ function HistorialCard({ entry }: { entry: AlertLogEntry }) {
 }
 
 // ─── Lógica de evaluación de KPIs vs umbrales ─────────────────────────────────
+// Fix 1B: umbrales dinámicos desde client_config en lugar de constantes hardcodeadas
+
+interface AlertThresholds {
+  tasa_contacto_critica: number;
+  tasa_contacto_warning: number;
+  delta_tasa_critico: number;
+  delta_tasa_warning: number;
+  volumen_minimo: number;
+}
 
 function evaluateKPIAlerts(
   latestDay: { fecha: string; total_llamadas: number; contactos_efectivos: number; tasa_contacto_pct: number } | null,
   promedio7d: number,
   deltaTasa: number,
+  thresholds: AlertThresholds,
 ): AlertLogEntry[] {
   if (!latestDay) return [];
   const toFire: AlertLogEntry[] = [];
 
   // 1. Tasa de contacto crítica
-  if (latestDay.tasa_contacto_pct < ALERT_THRESHOLDS.tasa_contacto_critica) {
+  if (latestDay.tasa_contacto_pct < thresholds.tasa_contacto_critica) {
     toFire.push({
       severity: 'critical',
       metric: 'tasa_contacto_pct',
       title: `⚠️ Tasa de contacto crítica: ${latestDay.tasa_contacto_pct}%`,
-      description: `La tasa de contacto cayó a ${latestDay.tasa_contacto_pct}% el ${latestDay.fecha}, por debajo del umbral crítico de ${ALERT_THRESHOLDS.tasa_contacto_critica}%. Promedio 7d: ${promedio7d}%.`,
-      threshold: ALERT_THRESHOLDS.tasa_contacto_critica,
+      description: `La tasa de contacto cayó a ${latestDay.tasa_contacto_pct}% el ${latestDay.fecha}, por debajo del umbral crítico de ${thresholds.tasa_contacto_critica}%. Promedio 7d: ${promedio7d}%.`,
+      threshold: thresholds.tasa_contacto_critica,
       actual_value: latestDay.tasa_contacto_pct,
     });
-  } else if (latestDay.tasa_contacto_pct < ALERT_THRESHOLDS.tasa_contacto_warning) {
+  } else if (latestDay.tasa_contacto_pct < thresholds.tasa_contacto_warning) {
     toFire.push({
       severity: 'warning',
       metric: 'tasa_contacto_pct',
       title: `Tasa de contacto baja: ${latestDay.tasa_contacto_pct}%`,
-      description: `La tasa de contacto del ${latestDay.fecha} (${latestDay.tasa_contacto_pct}%) está por debajo del umbral de ${ALERT_THRESHOLDS.tasa_contacto_warning}%. Monitorear.`,
-      threshold: ALERT_THRESHOLDS.tasa_contacto_warning,
+      description: `La tasa de contacto del ${latestDay.fecha} (${latestDay.tasa_contacto_pct}%) está por debajo del umbral de ${thresholds.tasa_contacto_warning}%. Monitorear.`,
+      threshold: thresholds.tasa_contacto_warning,
       actual_value: latestDay.tasa_contacto_pct,
     });
   }
 
   // 2. Caída brusca vs promedio 7d
-  if (deltaTasa < ALERT_THRESHOLDS.delta_tasa_critico) {
+  if (deltaTasa < thresholds.delta_tasa_critico) {
     toFire.push({
       severity: 'critical',
       metric: 'delta_tasa_contacto_7d',
       title: `Caída brusca de contacto: ${deltaTasa > 0 ? '+' : ''}${deltaTasa}pp vs promedio 7d`,
       description: `El ${latestDay.fecha} la tasa cayó ${Math.abs(deltaTasa)}pp respecto al promedio 7d (${promedio7d}%). Posible incidencia operativa o problema de marcador.`,
-      threshold: ALERT_THRESHOLDS.delta_tasa_critico,
+      threshold: thresholds.delta_tasa_critico,
       actual_value: deltaTasa,
     });
-  } else if (deltaTasa < ALERT_THRESHOLDS.delta_tasa_warning) {
+  } else if (deltaTasa < thresholds.delta_tasa_warning) {
     toFire.push({
       severity: 'warning',
       metric: 'delta_tasa_contacto_7d',
       title: `Tendencia negativa: ${deltaTasa > 0 ? '+' : ''}${deltaTasa}pp vs promedio 7d`,
       description: `La tasa de contacto del ${latestDay.fecha} cayó ${Math.abs(deltaTasa)}pp respecto al promedio 7d (${promedio7d}%).`,
-      threshold: ALERT_THRESHOLDS.delta_tasa_warning,
+      threshold: thresholds.delta_tasa_warning,
       actual_value: deltaTasa,
     });
   }
 
   // 3. Volumen bajo (posible día no hábil o problema de marcador)
-  if (latestDay.total_llamadas < ALERT_THRESHOLDS.volumen_minimo) {
+  if (latestDay.total_llamadas < thresholds.volumen_minimo) {
     toFire.push({
       severity: 'warning',
       metric: 'total_llamadas',
       title: `Volumen inusualmente bajo: ${latestDay.total_llamadas.toLocaleString('es-CO')} llamadas`,
-      description: `El ${latestDay.fecha} se procesaron ${latestDay.total_llamadas.toLocaleString()} llamadas, por debajo del mínimo esperado de ${ALERT_THRESHOLDS.volumen_minimo.toLocaleString()}. ¿Es un día no hábil o hay un problema con el marcador?`,
-      threshold: ALERT_THRESHOLDS.volumen_minimo,
+      description: `El ${latestDay.fecha} se procesaron ${latestDay.total_llamadas.toLocaleString()} llamadas, por debajo del mínimo esperado de ${thresholds.volumen_minimo.toLocaleString()}. ¿Es un día no hábil o hay un problema con el marcador?`,
+      threshold: thresholds.volumen_minimo,
       actual_value: latestDay.total_llamadas,
     });
   }
@@ -210,6 +222,17 @@ function evaluateKPIAlerts(
 
 export default function Alertas() {
   const cdr = useCDRData();
+  const { clientConfig } = useClient(); // Fix 1B: umbrales dinámicos desde Supabase
+
+  // Fix 1B: construir umbrales desde client_config, con fallback a defaults
+  const thresholds: AlertThresholds = {
+    tasa_contacto_critica: clientConfig?.alert_tasa_critica ?? DEFAULT_THRESHOLDS.tasa_contacto_critica,
+    tasa_contacto_warning: clientConfig?.alert_tasa_warning ?? DEFAULT_THRESHOLDS.tasa_contacto_warning,
+    delta_tasa_critico: clientConfig?.alert_delta_critico ?? DEFAULT_THRESHOLDS.delta_tasa_critico,
+    delta_tasa_warning: clientConfig?.alert_delta_warning ?? DEFAULT_THRESHOLDS.delta_tasa_warning,
+    volumen_minimo: clientConfig?.alert_volumen_minimo ?? DEFAULT_THRESHOLDS.volumen_minimo,
+  };
+
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertTab, setAlertTab] = useState('active');
   const [nlInput, setNlInput] = useState('');
@@ -272,7 +295,7 @@ export default function Alertas() {
           threshold: 0,
           actual_value: cdr.latestDay.tasa_contacto_pct,
         }]
-      : evaluateKPIAlerts(cdr.latestDay, cdr.promedio7dTasa, cdr.deltaTasa);
+      : evaluateKPIAlerts(cdr.latestDay, cdr.promedio7dTasa, cdr.deltaTasa, thresholds);
 
     if (toFire.length === 0) {
       setFireMsg('✅ Todos los KPIs dentro del rango normal — sin alertas que disparar');

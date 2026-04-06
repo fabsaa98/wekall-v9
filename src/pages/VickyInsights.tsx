@@ -41,9 +41,12 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
 
 // ─── Export to PDF ───────────────────────────────────────────────────────────
 
-function exportToPDF(content: string, sources?: string[]) {
+// Fix 1F: exportToPDF acepta clientName para eliminar el hardcodeo de "Crediminuto / CrediSmart"
+function exportToPDF(content: string, sources?: string[], clientName?: string) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
+  // Usar clientName dinámico del contexto — fallback a 'WeKall Intelligence'
+  const displayName = clientName || 'WeKall Intelligence';
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
@@ -59,7 +62,7 @@ function exportToPDF(content: string, sources?: string[]) {
     </head>
     <body>
       <h1>WeKall Intelligence — Análisis Ejecutivo</h1>
-      <p style="color:#999;font-size:12px">Crediminuto / CrediSmart · ${new Date().toLocaleDateString('es-CO')}</p>
+      <p style="color:#999;font-size:12px">${displayName} · ${new Date().toLocaleDateString('es-CO')}</p>
       <div style="margin-top:20px;line-height:1.6">${content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
       ${sources ? `<div class="sources"><strong>Fuentes:</strong> ${sources.join(' · ')}</div>` : ''}
       <div class="footer">Generado por Vicky Insights — WeKall Intelligence · ${new Date().toLocaleString('es-CO')}</div>
@@ -72,10 +75,11 @@ function exportToPDF(content: string, sources?: string[]) {
 
 // ─── Chat Bubble ──────────────────────────────────────────────────────────────
 
-function ChatBubble({ msg, onFollowUp, onAction }: {
+function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
   msg: ChatMessage;
   onFollowUp: (q: string) => void;
   onAction: () => void;
+  clientName?: string; // Fix 1F: recibir clientName para PDF sin hardcodeo
 }) {
   const [reasoningOpen, setReasoningOpen] = useState(false);
 
@@ -206,7 +210,7 @@ function ChatBubble({ msg, onFollowUp, onAction }: {
           → Crear acción
         </button>
         <button
-          onClick={() => exportToPDF(msg.content, msg.sources)}
+          onClick={() => exportToPDF(msg.content, msg.sources, clientName)}
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-1.5 hover:bg-secondary transition-colors ml-1"
         >
           <FileText size={12} />
@@ -474,7 +478,7 @@ function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; 
 
 export default function VickyInsights() {
   const location = useLocation();
-  const { clientConfig } = useClient();
+  const { clientConfig, clientId } = useClient(); // Fix 1A + 1F: clientId para RAG seguro
   const cdr = useCDRData();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
   const [input, setInput] = useState('');
@@ -980,8 +984,10 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         },
         body: JSON.stringify(isAgentQuery && USE_PROXY ? {
           // RAG query: el worker busca transcripciones relevantes por similitud semántica
+          // Fix 1A: incluir client_id para aislar transcripciones por cliente (SEGURIDAD CRÍTICA)
           query: text,
           match_count: 5,
+          client_id: clientId,
         } : {
           model: 'gpt-4o',
           messages: [
@@ -1256,6 +1262,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   msg={msg}
                   onFollowUp={sendMessage}
                   onAction={() => setActionOpen(true)}
+                  clientName={clientConfig?.client_name} // Fix 1F
                 />
               ))}
               {loading && (

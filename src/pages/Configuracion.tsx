@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug, Building2, LogOut, Globe, DollarSign, Linkedin, Instagram, Twitter, Facebook, Mail } from 'lucide-react';
+import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug, Building2, LogOut, Globe, DollarSign, Linkedin, Instagram, Twitter, Facebook, Mail, Pencil, Save, X } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useClient } from '@/contexts/ClientContext';
+import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 interface DataSource {
@@ -96,10 +97,65 @@ export default function Configuracion() {
   const { clientConfig, clientBranding, currentUser, setClientId, setCurrentUser } = useClient();
   const navigate = useNavigate();
 
+  // ─── Bloque 3: Edición de branding ───────────────────────────────────────
+  const [editingBranding, setEditingBranding] = useState(false);
+  const [brandingForm, setBrandingForm] = useState({
+    primary_color: clientBranding?.primary_color || '#6334C0',
+    tagline: clientBranding?.tagline || '',
+    website_url: clientBranding?.website_url || '',
+    linkedin_url: clientBranding?.linkedin_url || '',
+    instagram_url: clientBranding?.instagram_url || '',
+    industry_description: clientBranding?.industry_description || '',
+    contact_email: clientBranding?.contact_email || '',
+    phone: clientBranding?.phone || '',
+  });
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  function startEditBranding() {
+    // Sincronizar formulario con datos actuales de Supabase
+    setBrandingForm({
+      primary_color: clientBranding?.primary_color || '#6334C0',
+      tagline: clientBranding?.tagline || '',
+      website_url: clientBranding?.website_url || '',
+      linkedin_url: clientBranding?.linkedin_url || '',
+      instagram_url: clientBranding?.instagram_url || '',
+      industry_description: clientBranding?.industry_description || '',
+      contact_email: clientBranding?.contact_email || '',
+      phone: clientBranding?.phone || '',
+    });
+    setEditingBranding(true);
+    setSaveMsg('');
+  }
+
+  async function saveBranding() {
+    if (!clientConfig?.client_id) return;
+    setSavingBranding(true);
+    setSaveMsg('');
+    try {
+      const { error } = await supabase
+        .from('client_branding')
+        .upsert({
+          client_id: clientConfig.client_id,
+          ...brandingForm,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'client_id' });
+
+      if (error) throw error;
+      setSaveMsg('✅ Cambios guardados correctamente');
+      setEditingBranding(false);
+      setTimeout(() => setSaveMsg(''), 4000);
+    } catch (err) {
+      setSaveMsg(`❌ Error al guardar: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    } finally {
+      setSavingBranding(false);
+    }
+  }
+
   function handleChangeCompany() {
     // Limpiar sesión y redirigir a login
     setCurrentUser(null);
-    setClientId('credismart'); // reset default
+    setClientId(''); // Fix 1G: limpiar sin resetear a 'credismart' hardcodeado
     localStorage.removeItem('wki_client_id');
     localStorage.removeItem('wki_current_user');
     navigate('/login', { replace: true });
@@ -149,8 +205,9 @@ export default function Configuracion() {
                     <p className="text-sm text-muted-foreground mt-0.5">{clientBranding.tagline}</p>
                   )}
                   <div className="flex items-center gap-2 mt-1.5">
+                    {/* Fix 1G: sin hardcodeo de 'credismart' */}
                     <span className="text-[10px] font-semibold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                      {clientConfig?.client_id || 'credismart'}
+                      {clientConfig?.client_id || '—'}
                     </span>
                     {currentUser?.role && (
                       <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -195,119 +252,242 @@ export default function Configuracion() {
             </div>
           </div>
 
-          {/* Branding */}
-          {clientBranding && (
+          {/* Branding — Bloque 3: editable con botón Editar / Guardar */}
+          {(clientBranding || clientConfig) && (
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Branding e identidad</h3>
-
-              {/* Logo + color */}
-              <div className="flex items-center gap-4">
-                {clientBranding.logo_url ? (
-                  <img
-                    src={clientBranding.logo_url}
-                    alt="Logo empresa"
-                    className="h-14 w-14 rounded-xl object-contain border border-border bg-white/5 p-1"
-                  />
-                ) : (
-                  <div
-                    className="h-14 w-14 rounded-xl border border-border flex items-center justify-center shrink-0 text-white font-bold text-xl"
-                    style={{ backgroundColor: clientBranding.primary_color || '#6334C0' }}
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Branding e identidad</h3>
+                {!editingBranding ? (
+                  <button
+                    onClick={startEditBranding}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary border border-border text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
                   >
-                    {(clientBranding.company_name || clientConfig?.client_name || '?')
-                      .split(' ')
-                      .slice(0, 2)
-                      .map((w: string) => w[0])
-                      .join('')
-                      .toUpperCase()}
+                    <Pencil size={12} /> Editar
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setEditingBranding(false); setSaveMsg(''); }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-foreground transition-all"
+                    >
+                      <X size={12} /> Cancelar
+                    </button>
+                    <button
+                      onClick={saveBranding}
+                      disabled={savingBranding}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-white hover:bg-primary/80 disabled:opacity-50 transition-all"
+                    >
+                      <Save size={12} />
+                      {savingBranding ? 'Guardando...' : 'Guardar cambios'}
+                    </button>
                   </div>
                 )}
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{clientBranding.company_name || clientConfig?.client_name}</p>
-                  {clientBranding.tagline && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{clientBranding.tagline}</p>
-                  )}
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: clientBranding.primary_color || '#6334C0' }} />
-                    <code className="text-[11px] text-muted-foreground">{clientBranding.primary_color || '#6334C0'}</code>
-                  </div>
-                </div>
               </div>
 
-              {/* Descripción */}
-              {clientBranding.industry_description && (
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Descripción</p>
-                  <p className="text-sm text-foreground leading-relaxed">{clientBranding.industry_description}</p>
-                </div>
+              {saveMsg && (
+                <p className={cn(
+                  'text-xs font-medium rounded-lg px-3 py-2 border',
+                  saveMsg.startsWith('✅') ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20',
+                )}>
+                  {saveMsg}
+                </p>
               )}
 
-              {/* Contacto y web */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border">
-                {clientBranding.website_url && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Sitio web</p>
-                    <a
-                      href={clientBranding.website_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline flex items-center gap-1.5"
-                    >
-                      <Globe size={12} />
-                      {clientBranding.website_url.replace(/^https?:\/\//, '')}
-                    </a>
-                  </div>
-                )}
-                {clientBranding.contact_email && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email de contacto</p>
-                    <a
-                      href={`mailto:${clientBranding.contact_email}`}
-                      className="text-sm text-foreground hover:text-primary flex items-center gap-1.5"
-                    >
-                      <Mail size={12} className="text-muted-foreground" />
-                      {clientBranding.contact_email}
-                    </a>
-                  </div>
-                )}
-                {clientBranding.phone && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Teléfono</p>
-                    <p className="text-sm text-foreground">{clientBranding.phone}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Redes sociales */}
-              {(clientBranding.linkedin_url || clientBranding.instagram_url || clientBranding.twitter_url || clientBranding.facebook_url) && (
-                <div className="border-t border-border pt-3">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Redes sociales</p>
+              {!editingBranding ? (
+                /* ─── Modo lectura ─── */
+                <>
+                  {/* Logo + color */}
                   <div className="flex items-center gap-4">
-                    {clientBranding.linkedin_url && (
-                      <a href={clientBranding.linkedin_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                        <Linkedin size={14} /> LinkedIn
-                      </a>
+                    {clientBranding?.logo_url ? (
+                      <img
+                        src={clientBranding.logo_url}
+                        alt="Logo empresa"
+                        className="h-14 w-14 rounded-xl object-contain border border-border bg-white/5 p-1"
+                      />
+                    ) : (
+                      <div
+                        className="h-14 w-14 rounded-xl border border-border flex items-center justify-center shrink-0 text-white font-bold text-xl"
+                        style={{ backgroundColor: clientBranding?.primary_color || '#6334C0' }}
+                      >
+                        {(clientBranding?.company_name || clientConfig?.client_name || '?')
+                          .split(' ')
+                          .slice(0, 2)
+                          .map((w: string) => w[0])
+                          .join('')
+                          .toUpperCase()}
+                      </div>
                     )}
-                    {clientBranding.instagram_url && (
-                      <a
-                        href={clientBranding.instagram_url.startsWith('http') ? clientBranding.instagram_url : `https://instagram.com/${clientBranding.instagram_url.replace('@', '')}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-pink-400 transition-colors">
-                        <Instagram size={14} /> Instagram
-                      </a>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{clientBranding?.company_name || clientConfig?.client_name}</p>
+                      {clientBranding?.tagline && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{clientBranding.tagline}</p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: clientBranding?.primary_color || '#6334C0' }} />
+                        <code className="text-[11px] text-muted-foreground">{clientBranding?.primary_color || '#6334C0'}</code>
+                      </div>
+                    </div>
+                  </div>
+
+                  {clientBranding?.industry_description && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Descripción</p>
+                      <p className="text-sm text-foreground leading-relaxed">{clientBranding.industry_description}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border">
+                    {clientBranding?.website_url && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Sitio web</p>
+                        <a href={clientBranding.website_url} target="_blank" rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline flex items-center gap-1.5">
+                          <Globe size={12} />{clientBranding.website_url.replace(/^https?:\/\//, '')}
+                        </a>
+                      </div>
                     )}
-                    {clientBranding.twitter_url && (
-                      <a href={clientBranding.twitter_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-sky-400 transition-colors">
-                        <Twitter size={14} /> Twitter/X
-                      </a>
+                    {clientBranding?.contact_email && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email de contacto</p>
+                        <a href={`mailto:${clientBranding.contact_email}`}
+                          className="text-sm text-foreground hover:text-primary flex items-center gap-1.5">
+                          <Mail size={12} className="text-muted-foreground" />{clientBranding.contact_email}
+                        </a>
+                      </div>
                     )}
-                    {clientBranding.facebook_url && (
-                      <a href={clientBranding.facebook_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-blue-400 transition-colors">
-                        <Facebook size={14} /> Facebook
-                      </a>
+                    {clientBranding?.phone && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Teléfono</p>
+                        <p className="text-sm text-foreground">{clientBranding.phone}</p>
+                      </div>
                     )}
+                  </div>
+
+                  {(clientBranding?.linkedin_url || clientBranding?.instagram_url || clientBranding?.twitter_url || clientBranding?.facebook_url) && (
+                    <div className="border-t border-border pt-3">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Redes sociales</p>
+                      <div className="flex items-center gap-4">
+                        {clientBranding?.linkedin_url && (
+                          <a href={clientBranding.linkedin_url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
+                            <Linkedin size={14} /> LinkedIn
+                          </a>
+                        )}
+                        {clientBranding?.instagram_url && (
+                          <a href={clientBranding.instagram_url.startsWith('http') ? clientBranding.instagram_url : `https://instagram.com/${clientBranding.instagram_url.replace('@', '')}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-pink-400 transition-colors">
+                            <Instagram size={14} /> Instagram
+                          </a>
+                        )}
+                        {clientBranding?.twitter_url && (
+                          <a href={clientBranding.twitter_url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-sky-400 transition-colors">
+                            <Twitter size={14} /> Twitter/X
+                          </a>
+                        )}
+                        {clientBranding?.facebook_url && (
+                          <a href={clientBranding.facebook_url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-blue-400 transition-colors">
+                            <Facebook size={14} /> Facebook
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* ─── Modo edición — Bloque 3 ─── */
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Color primario</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={brandingForm.primary_color}
+                          onChange={e => setBrandingForm(f => ({ ...f, primary_color: e.target.value }))}
+                          className="h-8 w-12 rounded border border-border cursor-pointer bg-card"
+                        />
+                        <input
+                          type="text"
+                          value={brandingForm.primary_color}
+                          onChange={e => setBrandingForm(f => ({ ...f, primary_color: e.target.value }))}
+                          className="flex-1 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/50"
+                          placeholder="#6334C0"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Tagline</label>
+                      <input
+                        type="text"
+                        value={brandingForm.tagline}
+                        onChange={e => setBrandingForm(f => ({ ...f, tagline: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/50"
+                        placeholder="Slogan de tu empresa"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Sitio web</label>
+                      <input
+                        type="url"
+                        value={brandingForm.website_url}
+                        onChange={e => setBrandingForm(f => ({ ...f, website_url: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/50"
+                        placeholder="https://www.empresa.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Email de contacto</label>
+                      <input
+                        type="email"
+                        value={brandingForm.contact_email}
+                        onChange={e => setBrandingForm(f => ({ ...f, contact_email: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/50"
+                        placeholder="contacto@empresa.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Teléfono</label>
+                      <input
+                        type="tel"
+                        value={brandingForm.phone}
+                        onChange={e => setBrandingForm(f => ({ ...f, phone: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/50"
+                        placeholder="+57 300 000 0000"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">LinkedIn</label>
+                      <input
+                        type="url"
+                        value={brandingForm.linkedin_url}
+                        onChange={e => setBrandingForm(f => ({ ...f, linkedin_url: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/50"
+                        placeholder="https://linkedin.com/company/..."
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Instagram</label>
+                      <input
+                        type="text"
+                        value={brandingForm.instagram_url}
+                        onChange={e => setBrandingForm(f => ({ ...f, instagram_url: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/50"
+                        placeholder="@empresa o URL"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descripción de la empresa</label>
+                    <textarea
+                      value={brandingForm.industry_description}
+                      onChange={e => setBrandingForm(f => ({ ...f, industry_description: e.target.value }))}
+                      rows={3}
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none focus:border-primary/50 resize-none"
+                      placeholder="Describe brevemente tu empresa, industria y propuesta de valor..."
+                    />
                   </div>
                 </div>
               )}
@@ -417,11 +597,12 @@ export default function Configuracion() {
         <TabsContent value="profile" className="mt-6 space-y-4">
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
             <h3 className="text-sm font-semibold text-foreground">Información de la empresa</h3>
+            {/* Fix 1G: sin fallbacks hardcodeados de 'Crediminuto / CrediSmart' */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: 'Empresa', value: clientConfig?.client_name || 'Crediminuto / CrediSmart' },
-                { label: 'Industria', value: clientConfig?.industry || 'Servicios empresariales' },
-                { label: 'País', value: clientConfig?.country || 'Colombia' },
+                { label: 'Empresa', value: clientConfig?.client_name || 'Sin configurar' },
+                { label: 'Industria', value: clientConfig?.industry || '—' },
+                { label: 'País', value: clientConfig?.country || '—' },
                 { label: 'Plan', value: 'WeKall Intelligence Pro' },
               ].map(field => (
                 <div key={field.label}>

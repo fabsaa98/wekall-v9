@@ -276,12 +276,14 @@ export const decisionLog: {
 }[] = [];
 
 // ─── Surprise Questions ───────────────────────────────────────────────────────
+// Fix 1E: preguntas genéricas — sin referencias a clientes específicos (Crediminuto/CrediSmart)
+// VickyInsights puede personalizar estas preguntas en runtime usando clientConfig si es necesario
 
 export const surpriseQuestions = [
-  '¿Cuál fue el agente con más llamadas el 30 de marzo y cómo se compara con el promedio?',
-  '¿Qué porcentaje del volumen total de Crediminuto corresponde a cobranzas vs servicio al cliente?',
-  '¿Cuánto podría crecer el volumen de Perú si se escala el equipo un 20%?',
+  '¿Cuál fue el agente con más llamadas el último día registrado y cómo se compara con el promedio?',
+  '¿Qué porcentaje del volumen total corresponde a cada campaña activa?',
+  '¿Cuánto podría crecer el volumen si se escala el equipo un 20%?',
   '¿Cuáles son los 3 agentes con menor productividad y qué los diferencia de los top performers?',
-  '¿Qué impacto tendría en la operación si el dialer automático mejora su tasa de contacto efectivo un 10%?',
-  '¿Cómo está distribuida la carga entre los 81 agentes activos del 30 de marzo?',
+  '¿Qué impacto tendría en la operación si el dialer mejora su tasa de contacto efectivo un 10%?',
+  '¿Cómo está distribuida la carga entre los agentes activos?',
 ];

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, getAppUser } from '@/lib/supabase';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +107,91 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
     setCurrentUserState(user);
   };
+
+  /**
+   * Inicialización de sesión con Supabase Auth.
+   *
+   * Orden de prioridad:
+   * 1. Sesión activa de Supabase Auth → cargar app_user desde DB
+   * 2. localStorage (compatibilidad hacia atrás / modo legacy)
+   * 3. Nada → usuario no autenticado
+   */
+  useEffect(() => {
+    let mounted = true;
+
+    async function initSession() {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData?.session;
+
+        if (session?.user?.email) {
+          // Hay sesión de Supabase Auth activa
+          const storedClientId = localStorage.getItem(LS_CLIENT_ID);
+          const appUser = await getAppUser(
+            session.user.email,
+            storedClientId || undefined
+          );
+
+          if (appUser && mounted) {
+            setClientId(appUser.client_id);
+            setCurrentUser({
+              id: appUser.id,
+              email: appUser.email,
+              client_id: appUser.client_id,
+              role: appUser.role,
+              name: appUser.name,
+              active: appUser.active,
+            });
+          }
+          // Si no hay app_user pero hay sesión auth, dejamos el estado de localStorage
+        }
+        // Si no hay sesión Auth, usar localStorage como estaba (modo legacy)
+      } catch (err) {
+        // No romper si Auth no está disponible
+        console.warn('[ClientContext] Error al verificar sesión Auth:', err);
+      }
+    }
+
+    initSession();
+
+    // Suscribirse a cambios de sesión (login/logout en otra pestaña, expiración, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN' && session?.user?.email) {
+        // Nueva sesión iniciada — cargar app_user
+        const storedClientId = localStorage.getItem(LS_CLIENT_ID);
+        try {
+          const appUser = await getAppUser(
+            session.user.email,
+            storedClientId || undefined
+          );
+          if (appUser) {
+            setClientId(appUser.client_id);
+            setCurrentUser({
+              id: appUser.id,
+              email: appUser.email,
+              client_id: appUser.client_id,
+              role: appUser.role,
+              name: appUser.name,
+              active: appUser.active,
+            });
+          }
+        } catch (err) {
+          console.warn('[ClientContext] Error al cargar app_user en SIGNED_IN:', err);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        // Logout — limpiar usuario pero mantener clientId para UX
+        setCurrentUser(null);
+        localStorage.removeItem(LS_CURRENT_USER);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cargar config y branding cuando cambia el clientId
   useEffect(() => {

@@ -15,6 +15,16 @@ export interface AnomalyResult {
   valorHoy: number;
 }
 
+// ─── Forecast ─────────────────────────────────────────────────────────────────
+
+export interface ForecastPoint {
+  fecha: string;
+  predicted_llamadas: number;
+  predicted_tasa: number;
+  confidence_low: number;    // -1 stdDev del histórico
+  confidence_high: number;   // +1 stdDev del histórico
+}
+
 // ─── Estado del hook ──────────────────────────────────────────────────────────
 
 interface CDRState {
@@ -29,6 +39,7 @@ interface CDRState {
   promedio30dTasa: number;
   deltaTasa: number; // vs promedio 7d
   anomaly: AnomalyResult | null;
+  forecast: ForecastPoint[];
 }
 
 // ─── Helpers estadísticos ─────────────────────────────────────────────────────
@@ -44,12 +55,99 @@ function calcStdDev(values: number[], mean: number): number {
   return Math.sqrt(variance);
 }
 
-const ANOMALY_THRESHOLD = 1.5; // desviaciones estándar
+// ─── Regresión lineal ─────────────────────────────────────────────────────────
+
+function linearRegression(values: number[]): { slope: number; intercept: number; r2: number } {
+  const n = values.length;
+  if (n < 2) return { slope: 0, intercept: values[0] ?? 0, r2: 0 };
+
+  const xMean = (n - 1) / 2;
+  const yMean = calcMean(values);
+
+  let ssXY = 0;
+  let ssXX = 0;
+  let ssYY = 0;
+
+  for (let i = 0; i < n; i++) {
+    const dx = i - xMean;
+    const dy = values[i] - yMean;
+    ssXY += dx * dy;
+    ssXX += dx * dx;
+    ssYY += dy * dy;
+  }
+
+  const slope = ssXX !== 0 ? ssXY / ssXX : 0;
+  const intercept = yMean - slope * xMean;
+  const r2 = ssYY !== 0 ? (ssXY * ssXY) / (ssXX * ssYY) : 0;
+
+  return { slope, intercept, r2 };
+}
+
+// ─── Generar siguiente día hábil ──────────────────────────────────────────────
+
+function nextWorkday(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d.toISOString().split('T')[0];
+}
+
+// ─── Generar 7 días de forecast ───────────────────────────────────────────────
+
+function generateForecast(last30Days: CDRDayMetric[]): ForecastPoint[] {
+  if (last30Days.length < 7) return [];
+
+  const tasaValues = last30Days.map(d => d.tasa_contacto_pct);
+  const volValues = last30Days.map(d => d.total_llamadas);
+
+  const tasaReg = linearRegression(tasaValues);
+  const volReg = linearRegression(volValues);
+
+  const meanTasa = calcMean(tasaValues);
+  const stdDevTasa = calcStdDev(tasaValues, meanTasa);
+  const meanVol = calcMean(volValues);
+  const stdDevVol = calcStdDev(volValues, meanVol);
+
+  const n = last30Days.length;
+
+  // Punto de inicio: último día disponible
+  let lastFecha = last30Days[n - 1].fecha;
+  const forecast: ForecastPoint[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const x = n + i;
+    const nextFecha = nextWorkday(lastFecha);
+
+    const rawTasa = tasaReg.slope * x + tasaReg.intercept;
+    const rawVol = volReg.slope * x + volReg.intercept;
+
+    // Clamp tasa entre 0 y 100
+    const predictedTasa = Math.max(0, Math.min(100, Math.round(rawTasa * 10) / 10));
+    const predictedVol = Math.max(0, Math.round(rawVol));
+
+    forecast.push({
+      fecha: nextFecha,
+      predicted_tasa: predictedTasa,
+      predicted_llamadas: predictedVol,
+      confidence_low: Math.max(0, Math.round((predictedTasa - stdDevTasa) * 10) / 10),
+      confidence_high: Math.min(100, Math.round((predictedTasa + stdDevTasa) * 10) / 10),
+    });
+
+    lastFecha = nextFecha;
+  }
+
+  return forecast;
+}
+
+// ─── Anomaly detection ────────────────────────────────────────────────────────
+
+const ANOMALY_THRESHOLD = 1.5;
 
 function detectAnomaly(last30: CDRDayMetric[], latestDay: CDRDayMetric | null): AnomalyResult | null {
   if (!latestDay || last30.length < 7) return null;
 
-  // Usar los días históricos (excluir el último día para el cálculo de referencia)
   const historical = last30.filter(d => d.fecha !== latestDay.fecha);
   if (historical.length < 5) return null;
 
@@ -94,6 +192,7 @@ export function useCDRData(): CDRState {
     promedio30dTasa: 0,
     deltaTasa: 0,
     anomaly: null,
+    forecast: [],
   });
 
   useEffect(() => {
@@ -108,8 +207,8 @@ export function useCDRData(): CDRState {
         const promedio7d = last7.length > 0 ? last7.reduce((s, d) => s + d.tasa_contacto_pct, 0) / last7.length : 0;
         const promedio30d = last30.length > 0 ? last30.reduce((s, d) => s + d.tasa_contacto_pct, 0) / last30.length : 0;
 
-        // Detectar anomalía en tasa de contacto
         const anomaly = detectAnomaly(last30, lastDay);
+        const forecast = generateForecast(last30);
 
         setState({
           loading: false,
@@ -123,6 +222,7 @@ export function useCDRData(): CDRState {
           promedio30dTasa: Math.round(promedio30d * 10) / 10,
           deltaTasa: lastDay ? Math.round((lastDay.tasa_contacto_pct - promedio7d) * 10) / 10 : 0,
           anomaly,
+          forecast,
         });
       } catch (err: unknown) {
         setState(s => ({ ...s, loading: false, error: err instanceof Error ? err.message : 'Error cargando datos' }));

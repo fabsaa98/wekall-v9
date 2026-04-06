@@ -5,6 +5,58 @@ const SUPABASE_ANON_KEY = 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export interface AppUser {
+  id?: string;
+  email: string;
+  client_id: string;
+  role: string;
+  name?: string;
+  active?: boolean;
+  auth_id?: string;
+}
+
+/**
+ * Sign in con email y password usando Supabase Auth real.
+ * Si la cuenta no existe en auth.users, lanzará error (lo captura Login.tsx para fallback).
+ */
+export async function signIn(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+/** Sign out de Supabase Auth */
+export async function signOut() {
+  await supabase.auth.signOut();
+}
+
+/** Obtener sesión activa de Supabase Auth */
+export async function getSession() {
+  const { data } = await supabase.auth.getSession();
+  return data.session;
+}
+
+/**
+ * Obtener el registro de app_users para el usuario autenticado.
+ * Si se pasa clientId, filtra también por client_id (soporte multi-tenant por email).
+ */
+export async function getAppUser(email: string, clientId?: string): Promise<AppUser | null> {
+  let query = supabase
+    .from('app_users')
+    .select('*')
+    .eq('email', email)
+    .eq('active', true);
+
+  if (clientId) {
+    query = query.eq('client_id', clientId);
+  }
+
+  const { data } = await query.maybeSingle();
+  return data;
+}
+
 // Tipos
 export interface CDRDayMetric {
   fecha: string;
@@ -112,6 +164,12 @@ export interface ClientConfig {
   notas?: string;
   created_at?: string;
   updated_at?: string;
+  // Fix 1B: umbrales de alerta dinámicos por cliente (columnas en Supabase)
+  alert_tasa_critica?: number;    // % — tasa de contacto crítica (default 30)
+  alert_tasa_warning?: number;    // % — tasa de contacto warning (default 38)
+  alert_delta_critico?: number;   // pp — caída vs 7d crítica (default -5)
+  alert_delta_warning?: number;   // pp — caída vs 7d warning (default -2.5)
+  alert_volumen_minimo?: number;  // llamadas/día mínimo (default 5000)
 }
 
 export async function getClientConfig(clientId: string): Promise<ClientConfig | null> {

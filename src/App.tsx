@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { RoleProvider } from '@/contexts/RoleContext';
 import { ClientProvider } from '@/contexts/ClientContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -11,17 +12,75 @@ import Configuracion from '@/pages/Configuracion';
 import DocumentAnalysis from '@/pages/DocumentAnalysis';
 import Login from '@/pages/Login';
 import Admin from '@/pages/Admin';
+import { supabase } from '@/lib/supabase';
 
-// Guard: si no hay client_id en localStorage, redirige a /login
-// IMPORTANTE: Si no hay client_id, usa 'credismart' como default
-// para no romper el acceso actual de Fabián.
+/**
+ * AuthGuard — Control de acceso con doble verificación:
+ *
+ * 1. Sesión activa de Supabase Auth → acceso permitido (autenticación real)
+ * 2. localStorage wki_client_id → acceso permitido (modo legacy / compatibilidad)
+ * 3. Nada → redirigir a /login
+ *
+ * Zero breaking changes: los usuarios existentes con localStorage siguen entrando.
+ */
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const stored = localStorage.getItem('wki_client_id');
-  // Si no hay nada en localStorage, guardamos 'credismart' como default
-  // para mantener compatibilidad con el acceso existente
-  if (!stored) {
-    localStorage.setItem('wki_client_id', 'credismart');
+  const [authState, setAuthState] = useState<'checking' | 'allowed' | 'denied'>('checking');
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        // 1. Verificar sesión Supabase Auth
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          setAuthState('allowed');
+          return;
+        }
+      } catch {
+        // Si falla la verificación de Auth, continuar con fallback
+      }
+
+      // 2. Fallback: verificar localStorage (modo legacy)
+      const stored = localStorage.getItem('wki_client_id');
+      if (stored) {
+        setAuthState('allowed');
+        return;
+      }
+
+      // 3. Sin autenticación → redirigir a login
+      setAuthState('denied');
+    }
+
+    checkAuth();
+
+    // También suscribirse a cambios de sesión en tiempo real
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setAuthState('allowed');
+      } else {
+        // Solo denegar si tampoco hay localStorage
+        const stored = localStorage.getItem('wki_client_id');
+        if (!stored) {
+          setAuthState('denied');
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (authState === 'checking') {
+    // Pantalla de carga mínima mientras verifica auth
+    return (
+      <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
+
+  if (authState === 'denied') {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 }
 

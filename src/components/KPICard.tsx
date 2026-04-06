@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ZoomIn } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import type { KPIData } from '@/data/mockData';
@@ -8,9 +8,10 @@ interface KPICardProps {
   kpi: KPIData;
   className?: string;
   style?: React.CSSProperties;
+  onDrillDown?: (metric: string) => void;
 }
 
-export function KPICard({ kpi, className, style }: KPICardProps) {
+export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
   const isPositive = kpi.change >= 0;
   const isGood = kpi.invertColor ? !isPositive : isPositive;
 
@@ -20,11 +21,25 @@ export function KPICard({ kpi, className, style }: KPICardProps) {
   return (
     <div
       className={cn(
-        'kpi-card rounded-xl border border-border bg-card p-5 flex flex-col gap-3 cursor-default animate-fade-slide-up',
+        'kpi-card rounded-xl border border-border bg-card p-5 flex flex-col gap-3 animate-fade-slide-up relative group',
+        onDrillDown ? 'cursor-pointer hover:border-primary/40 transition-all' : 'cursor-default',
         className,
       )}
       style={style}
+      onClick={() => onDrillDown?.(kpi.id)}
     >
+      {/* Drill-down icon */}
+      {onDrillDown && (
+        <button
+          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20"
+          onClick={(e) => { e.stopPropagation(); onDrillDown(kpi.id); }}
+          title="Ver análisis detallado"
+          aria-label="Drill-down"
+        >
+          <ZoomIn size={14} />
+        </button>
+      )}
+
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">

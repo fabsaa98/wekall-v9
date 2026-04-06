@@ -19,39 +19,40 @@ export interface CalcResult {
 }
 
 // ─── Parámetros operativos — SE CARGAN DESDE SUPABASE (client_config) ────────
-// Valores iniciales = fallback temporal mientras Supabase responde.
-// Actualizar siempre via Supabase, nunca editando este archivo.
+// Fix 1C: valores de fallback NEUTRALIZADOS — sin datos de Crediminuto hardcodeados.
+// Si loadClientConfig() falla, Vicky no calcula con datos de ningún cliente específico.
+// Los cálculos retornarán 0 / "sin datos" hasta que Supabase responda.
 export let OPS = {
   // Volúmenes — se actualizan desde CDR Supabase
-  llamadasTotales: 16129,
-  contactosEfectivos: 6951,
-  tasaContacto: 0.431,
-  promesasPago: 2780,
-  tasaPromesa: 0.40,
+  llamadasTotales: 0,         // sin datos hasta que cargue Supabase
+  contactosEfectivos: 0,
+  tasaContacto: 0,
+  promesasPago: 0,
+  tasaPromesa: 0,
 
   // Agentes — se actualiza desde client_config en Supabase
-  agentesActivos: 81,
-  promedioLlamadasAgente: 110.7,
-  p10Agentes: 49,
-  p25Agentes: 76,
-  p50Agentes: 120,
-  p75Agentes: 143,
-  p90Agentes: 154,
-  topAgente: 261,
+  agentesActivos: 0,
+  promedioLlamadasAgente: 0,
+  p10Agentes: 0,
+  p25Agentes: 0,
+  p50Agentes: 0,
+  p75Agentes: 0,
+  p90Agentes: 0,
+  topAgente: 0,
 
   // Tiempos
-  ahtMinutos: 8.1,
+  ahtMinutos: 0,
   horasTrabajo: 8,
   diasLaborales: 22,
 
   // Costos — SE CARGAN DESDE client_config EN SUPABASE
   // ⚠️ NO hardcodear aquí. Si el salario mínimo cambia o el cliente
   // es de otro país, actualizar en Supabase tabla client_config.
-  costoAgenteMes: 3_000_000,      // cargado desde client_config.costo_agente_mes
-  nominaActivaMes: 243_000_000,   // cargado desde client_config.nomina_total_mes
-  costoAgentePorMinuto: 284,      // calculado: costoAgenteMes / (diasLaborales * horasTrabajo * 60)
-  currency: 'COP',                // cargado desde client_config.currency
-  country: 'colombia',            // cargado desde client_config.country
+  costoAgenteMes: 0,          // cargado desde client_config.costo_agente_mes
+  nominaActivaMes: 0,         // cargado desde client_config.nomina_total_mes
+  costoAgentePorMinuto: 0,    // calculado: costoAgenteMes / (diasLaborales * horasTrabajo * 60)
+  currency: 'COP',            // cargado desde client_config.currency
+  country: 'colombia',        // cargado desde client_config.country
 
   // TRM referencia
   trmCopUsd: 4100,
