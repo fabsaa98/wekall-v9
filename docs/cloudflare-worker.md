@@ -185,7 +185,9 @@ Content-Type: audio/wav
 ---
 
 ### `POST /rag-query`
-**Descripción:** RAG completo — embeds la pregunta, busca transcripciones similares en Supabase pgvector, y responde con contexto real de llamadas.
+**Descripción:** RAG completo con aislamiento por cliente — embeds la pregunta, busca transcripciones del cliente específico en Supabase pgvector, y responde con contexto real de llamadas.
+
+**Actualización V20:** Acepta `client_id` en el body para filtrar transcripciones por cliente. Sin `client_id`, la búsqueda opera sobre todas las transcripciones (backward-compatible).
 
 **Usado para:** Preguntas de Vicky que mencionan agentes, transcripciones, frases específicas.
 
@@ -196,21 +198,30 @@ Content-Type: application/json
 
 {
   "query": "¿Qué objeciones mencionan más los clientes de cobranzas?",
-  "match_count": 5
+  "match_count": 5,
+  "client_id": "credismart"
 }
 ```
 
-**Proceso interno del Worker:**
+**Parámetros del body:**
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `query` | `string` | ✅ | Pregunta en lenguaje natural |
+| `match_count` | `number` | No (default: 5) | Número de transcripciones a recuperar |
+| `client_id` | `string` | No (default: null) | **V20** Filtra transcripciones por cliente — aislamiento RAG |
+
+**Proceso interno del Worker (V20):**
 1. Genera embedding de `query` via `text-embedding-3-small`
-2. Busca las `match_count` transcripciones más similares en Supabase (`search_transcriptions`)
-3. Construye prompt con contexto de transcripciones
+2. Llama a `search_transcriptions` pasando `client_id_filter` — **solo transcripciones del cliente**
+3. Construye prompt con contexto de transcripciones filtradas
 4. Llama a GPT-4o con ese contexto enriquecido
 5. Retorna respuesta + fuentes
 
 **Response:**
 ```json
 {
-  "answer": "Basado en 5 transcripciones reales, las principales objeciones son...",
+  "answer": "Basado en 5 transcripciones reales de credismart, las principales objeciones son...",
   "sources": ["Llamada 2026-03-30 - Agente NELCY", "Llamada 2026-03-28 - Agente ANA MARIA"],
   "context_used": 5
 }

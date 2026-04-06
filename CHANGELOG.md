@@ -2,6 +2,115 @@
 
 ---
 
+## [V20.0.0] — 2026-04-05 — Screening Completo: Seguridad, World-Class, Auth Real
+
+> Versión de madurez: se eliminaron todos los hardcodeos críticos, se implementó auth real con Supabase Auth v2, y se añadieron features world-class (forecasting, drill-down, speech analytics, push proactivo). El producto está listo para escalar a clientes reales.
+
+---
+
+### 🔐 Auth Real — Supabase Auth v2
+
+**Problema resuelto:** El login anterior era un mock sin contraseñas reales — solo verificaba email + company_code en la tabla `app_users`.
+
+**Implementado:**
+
+- **`src/lib/supabase.ts`** — Supabase Auth con `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`
+- **Login dual:** primero intenta `supabase.auth.signInWithPassword()` (Supabase Auth real); si falla, fallback al método legacy (tabla `app_users`)
+- **`ClientContext.tsx`** — actualizado con `onAuthStateChange` para mantener sesión reactiva en tiempo real
+- **`AuthGuard`** mejorado con 3 capas: Auth real (Supabase session) → localStorage → redirect `/login`
+- **Script `create_auth_user.py`:** crea usuarios simultáneamente en Supabase Auth + tabla `app_users`, vinculando `auth_id`
+- **Script `onboard_client.py`** actualizado con parámetro `--password` para crear el usuario con contraseña real desde el onboarding
+- **Usuario `fabian@wekall.co`** creado y vinculado con contraseña `WeKall2026!`
+- **`setup_auth.sql`:** columna `auth_id UUID` en `app_users`, constraint `UNIQUE(email, client_id)`, trigger `on_auth_user_created`, función `get_user_client_id()`
+- **`update_search_function.sql`:** función `search_transcriptions` actualizada con parámetro `client_id_filter` para aislamiento RAG real
+
+---
+
+### 🛡️ Críticos Resueltos — Cero Hardcodeo
+
+#### RAG con `client_id` (aislamiento completo)
+- **`VickyInsights.tsx`** — ahora envía `client_id` al Worker en cada llamada a `/rag-query`
+- **Worker `wekall-vicky-proxy`** — recibe y pasa `client_id` a la función SQL `search_transcriptions`
+- **`update_search_function.sql`** — función SQL actualizada con parámetro `client_id_filter TEXT DEFAULT NULL`; cuando se pasa, filtra `WHERE client_id = client_id_filter` antes de la búsqueda vectorial
+- **Validado:** cliente `wekall` ve 0 transcripciones de `credismart` (aislamiento confirmado)
+
+#### `ALERT_THRESHOLDS` dinámicos
+- **`useAlerts.ts`** — umbrales leídos desde `client_config` en Supabase, no hardcodeados
+- Nuevas columnas en `client_config`: `alert_tasa_critica`, `alert_tasa_warning`, `alert_delta_critico`, `alert_delta_warning`, `alert_volumen_minimo`
+- Cada cliente tiene sus propios umbrales de alerta configurables desde la Consola Admin
+
+#### `OPS` fallback neutralizado
+- **`vickyCalculations.ts`** — `getEstadoOperativo()` ahora inicializa con valores en `0`, eliminando los datos hardcodeados de Crediminuto que aparecían como fallback cuando no había datos reales
+- Antes: si Supabase tardaba, aparecían KPIs de Crediminuto. Ahora: aparecen ceros explícitos hasta que los datos lleguen.
+
+#### Equipos dinámico por área
+- **`Equipos.tsx`** — las áreas se derivan dinámicamente de los valores únicos de la columna `area` en `agents_performance`, no de un array hardcodeado
+- Cero referencias a "Cobranzas" o áreas específicas en el código — todo viene de la data
+
+#### `surpriseQuestions` genéricas
+- **`VickyInsights.tsx`** — preguntas sorpresa sin referencias específicas a Crediminuto o cobranzas
+- Ahora son preguntas genéricas aplicables a cualquier industria de contact center
+
+#### PDF export con nombre dinámico
+- **`VickyInsights.tsx`** — el nombre del archivo exportado usa el nombre real del cliente desde `clientBranding.company_name`, no un string fijo
+
+#### Configuración guarda cambios reales
+- **`Configuracion.tsx`** — el botón "Guardar" ahora ejecuta un `upsert` real en `client_branding` via Supabase con los cambios del usuario
+
+#### Páginas enrutadas
+- **`App.tsx`** — rutas activas: `/transcriptions`, `/transcriptions/:id`, `/upload`, `/search`, `/speech-analytics`
+- **Páginas comentadas con decisión documentada en el código:** `AlertsView` (integrada en Overview), `IntegrationsView` (pendiente V21), `SettingsView` (consolidada en Configuracion), `Dashboard` (renombrado a Overview)
+
+---
+
+### 🚀 World-Class Features
+
+#### Forecasting 7 días (predicción lineal)
+- **`useCDRData.ts`** — regresión lineal sobre los últimos 30 días de `cdr_daily_metrics` para proyectar los próximos 7 días
+- **`Overview.tsx`** — visualización con `ComposedChart` (Recharts): área histórica + línea de forecast + banda de confianza ±1 desviación estándar
+- Botón **"Analizar con Vicky"** que pre-carga la pregunta de forecast en VickyInsights
+- Fórmula: regresión por mínimos cuadrados sobre `total_llamadas` y `tasa_contacto_pct`
+
+#### Drill-down desde KPIs
+- **`KPICard.tsx`** — prop `onDrillDown?: () => void` — al hacer click en un KPI se abre un Sheet lateral
+- El Sheet muestra: sparkline 30 días del KPI, benchmarks vs industria, delta vs período anterior, botón "Diagnosticar con Vicky"
+- Disponible en Overview para los 3 KPIs principales (llamadas, tasa contacto, contactos efectivos)
+
+#### Speech Analytics (`/speech-analytics`)
+- Nueva página completa con 5 módulos de análisis de grabaciones:
+  1. **Temas frecuentes:** word cloud / ranking de temas mencionados en transcripciones
+  2. **Sentimiento por agente:** score de sentimiento promedio (positivo/neutral/negativo) por agente
+  3. **Resultados por campaña:** breakdown de outcomes (promesa de pago, rechazo, no contacto) por campaña
+  4. **Frases de riesgo:** detección de frases que históricamente correlacionan con escalaciones
+  5. **Duración vs resultado:** scatter plot AHT vs outcome para identificar el sweet spot de duración
+
+#### Push proactivo dinámico
+- **`src/lib/proactiveInsights.ts`** — genera insights en tiempo real consultando Supabase directamente
+- Alertas proactivas basadas en: anomalía detectada vs media 30d (>1.5σ), tendencia de 7 días vs promedio, comparación vs benchmark de industria
+- Los insights se muestran en el banner de Overview y en el panel de VickyInsights sin intervención del usuario
+
+---
+
+### 🏢 Multi-Tenant Completado
+
+- **3 clientes activos:** `credismart`, `demo_empresa`, `wekall`
+- **Aislamiento RAG validado:** consultar como `wekall` retorna 0 transcripciones de `credismart`
+- **Consola Admin:** crear clientes nuevos, gestionar usuarios, configurar branding completo desde la UI
+- **`client_config`** actualizado con columnas de umbrales de alerta por cliente (5 columnas nuevas)
+- **`app_users`** actualizado con columna `auth_id UUID` FK a `auth.users` de Supabase
+
+---
+
+### 📋 Scripts de Base de Datos (nuevos en V20)
+
+| Script | Propósito |
+|--------|-----------|
+| `scripts/create_auth_user.py` | Crea usuario en Supabase Auth + app_users, vincula auth_id |
+| `scripts/setup_auth.sql` | Migración: auth_id en app_users, constraint, trigger, función |
+| `scripts/update_search_function.sql` | Función search_transcriptions con client_id_filter |
+
+---
+
 ## [V19.0.0] — 2026-04-05 — Arquitectura Multi-Tenant
 
 ### Migración de single-tenant a multi-tenant

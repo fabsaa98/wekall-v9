@@ -4,7 +4,7 @@
 > Plataforma multi-tenant de inteligencia operativa para contact centers — datos reales, análisis en lenguaje natural, alertas proactivas.
 
 **Producción:** https://wekall-intelligence.pages.dev  
-**Versión actual:** V19.0.0 (Multi-Tenant)  
+**Versión actual:** V20.0.0 (Auth Real + World-Class Features)  
 **Stack:** React 18 + TypeScript + Vite + Supabase + Cloudflare Pages/Workers
 
 ---
@@ -13,8 +13,8 @@
 
 WeKall Intelligence transforma los datos brutos del CDR (Call Detail Records) de un contact center en inteligencia ejecutiva accionable. El CEO y su C-Suite (VP Ventas, VP CX, COO) acceden en tiempo real a KPIs operativos, tendencias, alertas automáticas, análisis de grabaciones y consultas en lenguaje natural con Vicky Insights (IA sobre GPT-4o + RAG).
 
-**Clientes actuales:** Crediminuto Colombia (`credismart`)  
-**Modelo:** SaaS multi-tenant — un deployment, múltiples empresas aisladas por `client_id`
+**Clientes activos:** `credismart` (CrediSmart/Crediminuto), `demo_empresa`, `wekall`  
+**Modelo:** SaaS multi-tenant — un deployment, múltiples empresas aisladas por `client_id` y Supabase Auth
 
 ---
 
@@ -95,32 +95,42 @@ WeKall Intelligence transforma los datos brutos del CDR (Call Detail Records) de
 - KPIs en tiempo real desde Supabase: total llamadas, contactos efectivos, tasa de contacto %
 - Sparklines de 7 y 30 días (llamadas + tasa de contacto)
 - **Anomaly Detection:** banner proactivo cuando |hoy − media 30d| > 1.5 desviaciones estándar
+- **Forecasting 7 días:** regresión lineal con banda de confianza ±1σ, botón "Analizar con Vicky"
+- **Drill-down desde KPIs:** Sheet lateral con sparkline 30d, benchmarks y diagnóstico Vicky
+- **Push proactivo dinámico:** insights generados en tiempo real desde `proactiveInsights.ts`
 - BSC (Balanced Scorecard) — 4 perspectivas CEO
 - Motor EBITDA: impacto en nómina, AHT, escenarios A/B/C
 
 ### 🤖 Vicky Insights (IA Conversacional)
 - Chat en lenguaje natural con GPT-4o via Cloudflare Worker
 - Function Calling: LLM decide el análisis, TypeScript ejecuta el cálculo
-- RAG: búsqueda en 50+ transcripciones reales via pgvector (cosine similarity)
+- **RAG con aislamiento por `client_id`:** búsqueda en transcripciones reales via pgvector — cada cliente solo ve sus propias transcripciones
 - Input de voz: Whisper-1 via Worker → texto en chat (~$0.003/consulta)
 - Decision Log: registro de decisiones con timestamp
 - **Tab Historial:** últimas 20 conversaciones guardadas en Supabase, colapsables
 - Multi-país: benchmarks Colombia / Perú / México
 - Respuestas en prosa ejecutiva (post-procesamiento anti-markdown)
+- PDF export con nombre de cliente dinámico
+
+### 🎙️ Speech Analytics (`/speech-analytics`)
+- 5 módulos de análisis sobre transcripciones reales:
+  1. **Temas frecuentes** — ranking de temas mencionados
+  2. **Sentimiento por agente** — score positivo/neutral/negativo
+  3. **Resultados por campaña** — breakdown de outcomes
+  4. **Frases de riesgo** — correlación con escalaciones
+  5. **Duración vs resultado** — scatter AHT vs outcome
 
 ### 🚨 Alertas
-- Evaluación automática de umbrales desde datos CDR Supabase
-- Botón "Probar alerta" — disparo manual
+- **Umbrales dinámicos por cliente:** leídos desde `client_config` (no hardcodeados)
+- Columnas: `alert_tasa_critica`, `alert_tasa_warning`, `alert_delta_critico`, `alert_delta_warning`, `alert_volumen_minimo`
 - Historial de las últimas 10 alertas con severidad (critical / warning / info)
 - Almacenamiento en tabla `alert_log` Supabase
-- Soporte para notificación futura por webhook/wacli
 
 ### 👥 Equipos
-- 22 agentes reales de Crediminuto × 30 días hábiles (660 registros en Supabase)
-- Cálculo de promedios y tendencias (7d vs 30d) en tiempo real
+- 22 agentes × 30 días hábiles (660 registros en Supabase)
+- **Áreas derivadas dinámicamente** de `agents_performance.area` — sin hardcodeo
 - Indicador de tendencia: ↑ mejora / ↓ empeora / → estable (umbral ±3%)
 - KPIs por agente: Tasa Contacto, Tasa Promesa, AHT, CSAT, FCR, Escalaciones
-- Datos 100% desde `agents_performance` en Supabase (sin mock)
 
 ### 📄 Document Analysis
 - Análisis inteligente de documentos con Vicky
@@ -129,14 +139,32 @@ WeKall Intelligence transforma los datos brutos del CDR (Call Detail Records) de
 
 ### ⚙️ Configuración
 - **Tab "Mi Empresa":** datos del cliente desde Supabase (`client_config` + `client_branding`)
-- Hotwords, integraciones, configuración de alertas
-- Pestaña de usuarios y roles (lectura)
+- **Guardar cambios reales:** upsert en `client_branding` via Supabase
+- Hotwords, integraciones, configuración de alertas por cliente
 
-### 🔐 Autenticación (Mock — V19)
-- Login page: email + código de empresa → consulta `app_users` en Supabase
-- AuthGuard: default `credismart` si no hay sesión (zero breaking changes)
+### 🔐 Autenticación Real (V20)
+- **Supabase Auth v2:** `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`
+- **Login dual:** Supabase Auth real → fallback legacy (tabla `app_users`)
+- **AuthGuard:** Auth session → localStorage → redirect `/login`
+- **3 capas de aislamiento:** queries con `client_id` + RAG con `client_id_filter` + Auth JWT
 - Roles: CEO, VP Ventas, VP CX, COO, admin
-- Sesión persistida en localStorage
+- Credencial activa: `fabian@wekall.co` / `WeKall2026!`
+
+### 📡 Rutas de la Aplicación
+
+| Ruta | Descripción |
+|------|-------------|
+| `/` → `/overview` | Dashboard ejecutivo con KPIs, forecasting, drill-down |
+| `/vicky` | Chat IA con Vicky Insights |
+| `/equipos` | Performance de agentes |
+| `/document-analysis` | Análisis de documentos |
+| `/configuracion` | Configuración del cliente |
+| `/speech-analytics` | **NUEVO** — Análisis de grabaciones (5 módulos) |
+| `/transcriptions` | **NUEVO** — Listado de transcripciones |
+| `/transcriptions/:id` | **NUEVO** — Detalle de transcripción individual |
+| `/upload` | **NUEVO** — Subida de grabaciones al pipeline |
+| `/search` | **NUEVO** — Búsqueda semántica sobre transcripciones |
+| `/login` | Autenticación |
 
 ---
 
@@ -350,6 +378,8 @@ Las migraciones se ejecutan manualmente en el **Supabase SQL Editor**:
 Scripts disponibles en `scripts/`:
 - `create_agents_table.sql` — crea tablas V18 (agents_performance, alert_log, vicky_conversations)
 - `migrate_multitenant.sql` — migración V19 (client_id, app_users, client_branding)
+- `setup_auth.sql` — **NUEVO V20** — auth_id en app_users, constraint UNIQUE(email,client_id), trigger, función get_user_client_id()
+- `update_search_function.sql` — **NUEVO V20** — función search_transcriptions con parámetro client_id_filter
 
 ---
 
@@ -360,6 +390,7 @@ Scripts disponibles en `scripts/`:
 ```bash
 export SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
 
+# V20: incluir --password para crear usuario con auth real
 python3 scripts/onboard_client.py \
   --client-id empresa_xyz \
   --client-name "Empresa XYZ" \
@@ -367,13 +398,27 @@ python3 scripts/onboard_client.py \
   --country "Colombia" \
   --email ceo@empresa.com \
   --name "Nombre CEO" \
-  --role CEO
+  --role CEO \
+  --password "ContraseñaSegura123!"
 ```
 
 El script crea en un solo comando:
 1. Registro en `client_config`
 2. Registro en `client_branding`
-3. Usuario inicial en `app_users`
+3. Usuario en Supabase Auth (con contraseña real)
+4. Registro vinculado en `app_users` (con `auth_id`)
+
+### Crear usuario adicional (sin onboarding completo)
+
+```bash
+# Para un cliente ya existente, agregar solo un usuario con auth real:
+python3 scripts/create_auth_user.py \
+  --email vpventas@empresa.com \
+  --password "ContraseñaSegura123!" \
+  --client-id empresa_xyz \
+  --name "VP de Ventas" \
+  --role "VP Ventas"
+```
 
 ### Cómo funciona el aislamiento
 
@@ -402,10 +447,12 @@ Ver documentación completa en [`docs/cloudflare-worker.md`](docs/cloudflare-wor
 
 ## Roadmap (Qué Falta)
 
-### V20 — Auth Real (Prioridad Alta)
-- [ ] Migrar de mock auth a **Supabase Auth v2** (email/password)
-- [ ] RLS policies reales: `client_id = auth.jwt() ->> 'client_id'`
-- [ ] Refresh tokens automáticos
+### ✅ V20 — Auth Real (COMPLETADO)
+- [x] Migrado a **Supabase Auth v2** (email/password) con login dual
+- [x] RAG con `client_id_filter` — aislamiento validado
+- [x] Umbrales de alerta dinámicos por cliente
+- [x] Forecasting 7 días, drill-down, speech analytics, push proactivo
+- [ ] RLS policies reales en base de datos: `client_id = auth.jwt() ->> 'client_id'` *(preparado con `get_user_client_id()`, pendiente activación)*
 - [ ] Recuperación de contraseña por email
 
 ### V21 — Pipeline CDR Automático
@@ -425,10 +472,12 @@ Ver documentación completa en [`docs/cloudflare-worker.md`](docs/cloudflare-wor
 
 ### Deuda Técnica
 - [ ] Tests unitarios (cobertura actual: mínima)
-- [ ] RLS real por client_id en Supabase
+- [ ] Activar RLS real por `client_id` en Supabase (función `get_user_client_id()` ya lista, falta activar policies)
+- [ ] Recuperación de contraseña por email
 - [ ] Error boundaries en páginas
 - [ ] Loading skeletons consistentes
 - [ ] Refactorizar mockData.ts (mezcla datos reales con mock)
+- [ ] Escalar RAG de 50 a 375 transcripciones (metodología COPC)
 
 ---
 
@@ -440,7 +489,7 @@ Ver documentación completa en [`docs/cloudflare-worker.md`](docs/cloudflare-wor
 | Cloudflare Worker como proxy | API key de OpenAI nunca expuesta en frontend |
 | Function Calling para cálculos | LLM interpreta, TypeScript calcula — resultados deterministas |
 | multi-tenant por `client_id` en app | Más simple que múltiples proyectos Supabase; un solo deploy |
-| Mock auth (V19) | Cero breaking changes; auth real llega en V20 |
+| Auth real Supabase Auth v2 (V20) | Login dual: auth real → fallback legacy; sin breaking changes |
 | Mac Mini para diarización | CF Workers tiene límite 128MB RAM; pyannote necesita 2-4GB |
 
 ---

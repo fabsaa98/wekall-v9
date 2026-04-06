@@ -63,6 +63,21 @@ headers = {
 | `notas` | `text` | Notas libres del cliente |
 | `created_at` | `timestamptz` | Fecha de creación |
 | `updated_at` | `timestamptz` | Última actualización |
+| `alert_tasa_critica` | `numeric` | **V20** Umbral crítico de tasa de contacto (ej: `25.0`) — alerta severity `critical` |
+| `alert_tasa_warning` | `numeric` | **V20** Umbral de advertencia de tasa de contacto (ej: `30.0`) — alerta severity `warning` |
+| `alert_delta_critico` | `numeric` | **V20** Delta máximo permitido vs media 30d antes de disparar alerta crítica (ej: `-10.0`) |
+| `alert_delta_warning` | `numeric` | **V20** Delta de advertencia vs media 30d (ej: `-5.0`) |
+| `alert_volumen_minimo` | `integer` | **V20** Volumen mínimo de llamadas para considerar el día como hábil (ej: `5000`) |
+
+**Migración V20 (agregar columnas nuevas):**
+```sql
+ALTER TABLE public.client_config
+  ADD COLUMN IF NOT EXISTS alert_tasa_critica   numeric DEFAULT 25.0,
+  ADD COLUMN IF NOT EXISTS alert_tasa_warning   numeric DEFAULT 30.0,
+  ADD COLUMN IF NOT EXISTS alert_delta_critico  numeric DEFAULT -10.0,
+  ADD COLUMN IF NOT EXISTS alert_delta_warning  numeric DEFAULT -5.0,
+  ADD COLUMN IF NOT EXISTS alert_volumen_minimo integer DEFAULT 5000;
+```
 
 **RLS:** Lectura pública para `anon` y `authenticated`.
 
@@ -91,36 +106,68 @@ VALUES ('credismart', 'CrediSmart / Crediminuto', 'Cobranzas Crediminuto Colombi
 ---
 
 ### `app_users`
-**Propósito:** Usuarios de la plataforma por empresa. Usada para el login mock (V19) — un usuario pertenece a un solo cliente.
+**Propósito:** Usuarios de la plataforma por empresa. En V20, cada usuario está vinculado a Supabase Auth via `auth_id`. Un usuario pertenece a un solo cliente.
 
 | Columna | Tipo | Descripción |
 |---------|------|-------------|
 | `id` | `uuid` PK | UUID autogenerado |
-| `email` | `text` UNIQUE | Email del usuario (clave de login) |
+| `email` | `text` | Email del usuario (clave de login) |
 | `client_id` | `text` NOT NULL FK→`client_config` | A qué empresa pertenece |
 | `role` | `text` | Rol: `CEO`, `VP Ventas`, `VP CX`, `COO`, `admin` |
 | `name` | `text` | Nombre completo |
 | `active` | `boolean` | Si el usuario está activo |
 | `created_at` | `timestamptz` | Fecha de alta |
 | `last_login` | `timestamptz` | Último inicio de sesión (actualizado en cada login) |
+| `auth_id` | `uuid` | **V20** UUID del usuario en `auth.users` de Supabase Auth — FK para vincular sesión real con perfil de app |
 
-**Constraint:** `CHECK (role IN ('CEO', 'VP Ventas', 'VP CX', 'COO', 'admin'))`
+**Constraints (V20):**
+- `UNIQUE(email, client_id)` — un email puede existir en múltiples clientes, pero no duplicado en el mismo
+- `CHECK (role IN ('CEO', 'VP Ventas', 'VP CX', 'COO', 'admin'))`
 
 **Índices:**
 - `idx_app_users_client_id` — queries por empresa
 - `idx_app_users_email` — lookup rápido en login
+- `idx_app_users_auth_id` — **V20** lookup por sesión Supabase Auth
 
-**RLS:** Lectura pública para `anon` y `authenticated`. (Auth real en V20 restringirá esto.)
+**RLS:** Lectura pública para `anon` y `authenticated`. Con `auth_id` ya disponible, el siguiente paso es restringir via JWT claims.
 
-**Cómo hace login el frontend:**
+**Migración V20 (agregar auth_id):**
+```sql
+-- Ver setup_auth.sql para migración completa
+ALTER TABLE public.app_users
+  ADD COLUMN IF NOT EXISTS auth_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- Constraint de unicidad por cliente
+ALTER TABLE public.app_users
+  DROP CONSTRAINT IF EXISTS app_users_email_key;
+ALTER TABLE public.app_users
+  ADD CONSTRAINT app_users_email_client_unique UNIQUE (email, client_id);
+```
+
+**Cómo hace login el frontend (V20 — dual):**
 ```typescript
-const { data } = await supabase
-  .from('app_users')
-  .select('id, email, client_id, role, name, active')
-  .eq('email', email)
-  .eq('client_id', companyCode)
-  .eq('active', true)
-  .maybeSingle();
+// Primero intenta Supabase Auth real
+const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
+
+if (!error && authData.session) {
+  // Obtiene el client_id desde app_users usando auth_id
+  const { data: userProfile } = await supabase
+    .from('app_users')
+    .select('client_id, role, name')
+    .eq('auth_id', authData.user.id)
+    .eq('active', true)
+    .maybeSingle();
+  setClientId(userProfile.client_id);
+} else {
+  // Fallback legacy (tabla app_users sin password)
+  const { data } = await supabase
+    .from('app_users')
+    .select('id, email, client_id, role, name, active')
+    .eq('email', email)
+    .eq('client_id', companyCode)
+    .eq('active', true)
+    .maybeSingle();
+}
 ```
 
 ---
@@ -285,16 +332,109 @@ const { data } = await supabase
 | `client_id` | `text` | ID del cliente |
 | `created_at` | `timestamptz` | — |
 
-**Función especial — `search_transcriptions`:**
+**Función especial — `search_transcriptions` (actualizada en V20):**
 ```sql
--- Búsqueda semántica por cosine similarity (pgvector)
+-- V20: incluye client_id_filter para aislamiento RAG por cliente
 SELECT * FROM search_transcriptions(
-  query_embedding => '[...]'::vector,
-  match_count     => 5,
-  match_threshold => 0.7
+  query_embedding  => '[...]'::vector,
+  match_count      => 5,
+  match_threshold  => 0.7,
+  client_id_filter => 'credismart'  -- NUEVO en V20
 );
 ```
-Esta función es la base del RAG: el Worker embeds la pregunta del usuario, busca las transcripciones más similares y las incluye como contexto para GPT-4o.
+
+**Implementación actualizada (`update_search_function.sql`):**
+```sql
+CREATE OR REPLACE FUNCTION search_transcriptions(
+  query_embedding  vector(1536),
+  match_count      int     DEFAULT 5,
+  match_threshold  float   DEFAULT 0.7,
+  client_id_filter text    DEFAULT NULL   -- NULL = sin filtro (backward-compatible)
+)
+RETURNS TABLE (
+  id         bigint,
+  agent_id   text,
+  agent_name text,
+  campaign_id text,
+  call_date  date,
+  transcript text,
+  summary    text,
+  client_id  text,
+  similarity float
+)
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    t.id, t.agent_id, t.agent_name, t.campaign_id,
+    t.call_date, t.transcript, t.summary, t.client_id,
+    1 - (t.embedding <=> query_embedding) AS similarity
+  FROM transcriptions t
+  WHERE
+    1 - (t.embedding <=> query_embedding) > match_threshold
+    AND (client_id_filter IS NULL OR t.client_id = client_id_filter)
+  ORDER BY t.embedding <=> query_embedding
+  LIMIT match_count;
+$$;
+```
+
+**Por qué importa:** Con `client_id_filter`, la búsqueda vectorial solo considera transcripciones del cliente correcto — aislamiento RAG real. El Worker pasa `client_id` en cada `/rag-query` desde V20.
+
+Esta función es la base del RAG: el Worker embeds la pregunta del usuario, filtra por cliente, busca las transcripciones más similares y las incluye como contexto para GPT-4o.
+
+---
+
+### Funciones y Triggers de Auth (V20 — `setup_auth.sql`)
+
+#### Función `get_user_client_id()`
+
+```sql
+-- Retorna el client_id del usuario autenticado actualmente (basado en auth.uid())
+-- Usada para RLS real cuando se activen las policies restrictivas
+CREATE OR REPLACE FUNCTION public.get_user_client_id()
+RETURNS text
+LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT client_id FROM public.app_users
+  WHERE auth_id = auth.uid()
+    AND active = true
+  LIMIT 1;
+$$;
+```
+
+**Propósito:** Preparar el terreno para RLS real. Cuando se activen las policies restrictivas, cada query puede llamar a `get_user_client_id()` para obtener el `client_id` del usuario autenticado desde el JWT de Supabase Auth.
+
+**Ejemplo de uso en RLS (pendiente activación):**
+```sql
+CREATE POLICY "Tenant isolation"
+  ON public.cdr_daily_metrics
+  FOR ALL
+  USING (client_id = public.get_user_client_id());
+```
+
+#### Trigger `on_auth_user_created`
+
+```sql
+-- Se dispara cuando se crea un usuario en auth.users
+-- Actualiza automáticamente auth_id en app_users si el email ya existe
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.app_users
+  SET auth_id = NEW.id
+  WHERE email = NEW.email
+    AND auth_id IS NULL;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
+```
+
+**Propósito:** Garantizar que al crear un usuario en Supabase Auth, se vincule automáticamente con su perfil existente en `app_users` — útil cuando se crean usuarios primero vía script y después se registran en Auth, o vice versa.
 
 ---
 
