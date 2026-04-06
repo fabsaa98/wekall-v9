@@ -1,7 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RoleProvider } from '@/contexts/RoleContext';
 import { ClientProvider } from '@/contexts/ClientContext';
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, staleTime: 60_000 } },
+});
 import { TooltipProvider } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/AppLayout';
 import Overview from '@/pages/Overview';
@@ -18,6 +23,8 @@ import TranscriptionList from '@/pages/TranscriptionList';
 import TranscriptionDetail from '@/pages/TranscriptionDetail';
 import UploadRecording from '@/pages/UploadRecording';
 import SearchView from '@/pages/SearchView';
+// Feature V20: Speech Analytics
+import SpeechAnalytics from '@/pages/SpeechAnalytics';
 // Fix 2D: ChatRAG NO se enruta — es redundante con VickyInsights (misma función de RAG/chat).
 // Fix 2E: AlertsView, IntegrationsView, SettingsView y Dashboard son redundantes con
 //   Alertas y Configuracion actuales — NO se enrutan para evitar fragmentación de UX.
@@ -94,6 +101,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <TooltipProvider delayDuration={300}>
       <ClientProvider>
         <RoleProvider>
@@ -124,6 +132,7 @@ export default function App() {
                 <Route path="/upload" element={<UploadRecording />} />
                 {/* Fix 2C: Búsqueda semántica global */}
                 <Route path="/search" element={<SearchView />} />
+                <Route path="/speech-analytics" element={<SpeechAnalytics />} />
               </Route>
 
               {/* Fallback */}
@@ -133,5 +142,6 @@ export default function App() {
         </RoleProvider>
       </ClientProvider>
     </TooltipProvider>
+    </QueryClientProvider>
   );
 }
