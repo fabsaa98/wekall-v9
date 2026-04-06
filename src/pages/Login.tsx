@@ -59,94 +59,56 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // === MODO PRINCIPAL: Autenticación via Worker proxy ===
-      // El Worker llama a Supabase Auth directamente (evita bloqueos del cliente JS en redes móviles)
-      let clientId: string | null = null;
-
+      // === AUTENTICACIÓN VIA WORKER PROXY ===
       try {
         const authResult = await signInProxy(email.trim().toLowerCase(), password);
-        clientId = authResult.client_id || null;
+        const clientId = authResult.client_id || 'credismart';
+        const userEmail = authResult.user?.email || email.trim().toLowerCase();
+        const userMeta = authResult.user?.user_metadata as Record<string, string> | undefined;
+        const role = userMeta?.role || 'user';
 
-        // Con client_id del token, cargar el perfil desde app_users
-        if (clientId) {
-          const { data, error: dbError } = await supabase
-            .from('app_users')
-            .select('id, email, client_id, role, name, active')
-            .eq('email', email.trim().toLowerCase())
-            .eq('client_id', clientId)
-            .eq('active', true)
-            .limit(1);
+        // Construir usuario mínimo desde el token (sin query a DB)
+        const userObj = {
+          id: authResult.user?.id || '',
+          email: userEmail,
+          client_id: clientId,
+          role: role,
+          name: userMeta?.name || userEmail,
+          active: true,
+        };
 
-          if (!dbError && data && data.length > 0) {
-            const user = data[0];
-            setClientId(user.client_id);
-            setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
-            setPersistedSession(user, rememberMe);
-            supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
-            navigate('/', { replace: true });
-            return;
-          }
-        }
+        // Guardar sesión y navegar INMEDIATAMENTE
+        setClientId(clientId);
+        setCurrentUser(userObj);
+        setPersistedSession(userObj, rememberMe);
 
-        // Si no hay client_id en el token, buscar por email
-        const { data, error: dbError } = await supabase
+        // Actualizar last_login en background (no bloquear)
+        supabase
           .from('app_users')
-          .select('id, email, client_id, role, name, active')
-          .eq('email', email.trim().toLowerCase())
-          .eq('active', true)
-          .limit(1);
+          .update({ last_login: new Date().toISOString() })
+          .eq('email', userEmail)
+          .eq('client_id', clientId)
+          .then(() => {});
 
-        if (!dbError && data && data.length > 0) {
-          const user = data[0];
-          setClientId(user.client_id);
-          setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
-          setPersistedSession(user, rememberMe);
-          supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
-          navigate('/', { replace: true });
-          return;
-        }
-
-        setError('Usuario no encontrado. Contacta a soporte.');
+        setLoading(false);
+        navigate('/', { replace: true });
         return;
 
       } catch (authErr: unknown) {
         const msg = authErr instanceof Error ? authErr.message : '';
 
-        // Credenciales incorrectas — no hacer fallback
         if (msg === 'Credenciales incorrectas' || msg === 'auth_error') {
           setError('Contraseña incorrecta. Verifica tus credenciales.');
           return;
         }
 
-        // Timeout o error de red — intentar fallback de emergencia
-        if (msg === 'auth_timeout' || msg === 'Failed to fetch' || msg.includes('abort')) {
-          console.warn('[Login] Worker proxy falló, intentando modo emergencia (solo email)...');
-
-          // === MODO EMERGENCIA: búsqueda directa en app_users (sin contraseña) ===
-          // Usar solo cuando el Worker no responde. NO es autenticación real.
-          const { data, error: dbError } = await supabase
-            .from('app_users')
-            .select('id, email, client_id, role, name, active')
-            .eq('email', email.trim().toLowerCase())
-            .eq('active', true)
-            .limit(1);
-
-          if (!dbError && data && data.length > 0) {
-            const user = data[0];
-            setClientId(user.client_id);
-            setCurrentUser({ id: user.id, email: user.email, client_id: user.client_id, role: user.role, name: user.name, active: user.active });
-            setPersistedSession(user, rememberMe);
-            supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', user.id).then(() => {});
-            navigate('/', { replace: true });
-            return;
-          }
-
-          setError('Error de conexión. Intenta de nuevo.');
+        // Timeout o error de red — fallback directo
+        if (msg === 'auth_timeout' || msg === 'Failed to fetch' || msg.includes('abort') || msg.includes('network')) {
+          setError('Error de conexión. Verifica tu red e intenta de nuevo.');
           return;
         }
 
-        // Otro error inesperado
-        setError('Error de conexión. Intenta de nuevo.');
+        setError('Error de autenticación. Intenta de nuevo.');
       }
 
     } catch (err: unknown) {
