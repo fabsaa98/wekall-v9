@@ -39,8 +39,8 @@ const severityConfig = {
   warning: {
     icon: <AlertTriangle size={16} />,
     label: 'Advertencia',
-    classes: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    dot: 'bg-amber-400',
+    classes: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
+    dot: 'bg-sky-400',
   },
   info: {
     icon: <Info size={16} />,
@@ -387,7 +387,7 @@ export default function Alertas() {
         <div className={cn(
           'rounded-lg border px-4 py-2.5 text-sm font-medium animate-fade-in',
           fireMsg.startsWith('✅') ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
-          fireMsg.startsWith('⚠️') ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
+          fireMsg.startsWith('⚠️') ? 'border-sky-500/30 bg-sky-500/10 text-sky-400' :
           'border-red-500/30 bg-red-500/10 text-red-400',
         )}>
           {fireMsg}

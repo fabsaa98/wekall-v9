@@ -78,13 +78,13 @@ export default function Overview() {
   const brief = briefs[role] || briefs['CEO'];
 
   const iconMap = {
-    warning: <AlertTriangle size={16} className="text-amber-400" />,
+    warning: <AlertTriangle size={16} className="text-sky-400" />,
     success: <TrendingUp size={16} className="text-emerald-400" />,
     info: <BarChart2 size={16} className="text-blue-400" />,
   };
 
   const bgMap = {
-    warning: 'border-amber-500/20 bg-amber-500/5',
+    warning: 'border-sky-500/20 bg-sky-500/5',
     success: 'border-emerald-500/20 bg-emerald-500/5',
     info: 'border-blue-500/20 bg-blue-500/5',
   };

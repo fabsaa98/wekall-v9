@@ -109,7 +109,7 @@ function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
                 'ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-semibold border',
                 msg.confidence === 'Alta'
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                  : 'bg-sky-500/10 text-sky-400 border-sky-500/20',
               )}>
                 Confianza {msg.confidence}
               </span>
@@ -149,8 +149,8 @@ function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
           {/* Projection */}
           {msg.projection && (
             <div className="mt-3 border-t border-border pt-3">
-              <div className="flex items-start gap-2 rounded-lg bg-slate-50 border border-amber-200 px-3 py-2">
-                <AlertCircle size={13} className="text-amber-600 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 rounded-lg bg-slate-50 border border-sky-200 px-3 py-2">
+                <AlertCircle size={13} className="text-sky-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-slate-700 leading-relaxed">{msg.projection}</p>
               </div>
             </div>
@@ -425,7 +425,7 @@ function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; 
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${
                       conv.confidence === 'Alta'
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
                     }`}>
                       {conv.confidence}
                     </span>
@@ -1143,7 +1143,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
   }
 
   const statusMap: Record<string, string> = {
-    'En progreso': 'text-amber-800 bg-amber-100 border-amber-300',
+    'En progreso': 'text-sky-800 bg-sky-100 border-sky-300',
     'Completada': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     'Planificada': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     'Pendiente': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
@@ -1263,7 +1263,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             <div className="flex items-end gap-1 min-w-max sm:min-w-0">
               {([
                 { value: 'chat',      label: 'Chat',         icon: <MessageSquare size={15} />, color: 'text-blue-500',    colorMuted: 'text-blue-300' },
-                { value: 'upload',    label: 'Documento',    icon: <FileText size={15} />,      color: 'text-amber-500',   colorMuted: 'text-amber-300',   tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
+                { value: 'upload',    label: 'Documento',    icon: <FileText size={15} />,      color: 'text-sky-500',   colorMuted: 'text-sky-300',   tooltip: 'Sube un informe, presentación, audio o Excel. Vicky lo cruzará con los datos de tu operación para un análisis integrado.' },
                 { value: 'decisions', label: 'Decisiones',   icon: <ClipboardList size={15} />, color: 'text-emerald-500', colorMuted: 'text-emerald-300', tooltip: 'Convierte los insights de Vicky en decisiones. Cierra el loop: Insight → Decisión → Responsable → Resultado.' },
                 { value: 'history',   label: 'Historial',    icon: <History size={15} />,       color: 'text-violet-400',  colorMuted: 'text-violet-300',  tooltip: 'Historial de conversaciones guardadas en Supabase. Clic en una para recargarla en el chat.' },
               ] as Array<{ value: string; label: string; icon: React.ReactNode; color: string; colorMuted: string; tooltip?: string }>).map(tab => (
@@ -1425,7 +1425,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                                 const stored = JSON.parse(localStorage.getItem('wekall_decision_log') || '[]');
                                 localStorage.setItem('wekall_decision_log', JSON.stringify(stored.map((x: {id: string}) => x.id === d.id ? { ...x, estado: 'En progreso' } : x)));
                               }}
-                              className="text-[10px] px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-600 hover:bg-amber-500/10 transition-colors"
+                              className="text-[10px] px-1.5 py-0.5 rounded border border-sky-500/40 text-sky-600 hover:bg-sky-500/10 transition-colors"
                             >
                               Iniciar
                             </button>

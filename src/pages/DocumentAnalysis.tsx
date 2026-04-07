@@ -74,7 +74,7 @@ function fileTypeIcon(ft: FileType) {
     case 'excel':
     case 'csv': return <FileSpreadsheet size={20} className="text-green-400" />;
     case 'word': return <FileText size={20} className="text-blue-500" />;
-    case 'image': return <ImageIcon size={20} className="text-amber-600" />;
+    case 'image': return <ImageIcon size={20} className="text-sky-600" />;
     case 'whatsapp': return <MessageCircle size={20} className="text-green-500" />;
     default: return <FileText size={20} className="text-muted-foreground" />;
   }
@@ -473,7 +473,7 @@ export default function DocumentAnalysis() {
                 { icon: <FileText size={13} className="text-red-400" />, label: 'PDF', desc: 'Extracción automática de texto', available: true },
                 { icon: <FileSpreadsheet size={13} className="text-green-400" />, label: 'Excel / CSV', desc: 'Análisis de datos y tablas', available: true },
                 { icon: <FileText size={13} className="text-blue-500" />, label: 'Word', desc: 'Documentos .docx', available: true },
-                { icon: <ImageIcon size={13} className="text-amber-600" />, label: 'Imágenes', desc: 'JPG, PNG → GPT-4o Vision', available: true },
+                { icon: <ImageIcon size={13} className="text-sky-600" />, label: 'Imágenes', desc: 'JPG, PNG → GPT-4o Vision', available: true },
                 { icon: <MessageCircle size={13} className="text-green-500" />, label: 'Chat WhatsApp', desc: 'Exportación .txt de conversaciones', available: true },
               ].map(({ icon, label, desc, available }) => (
                 <div key={label} className="flex items-center gap-2">

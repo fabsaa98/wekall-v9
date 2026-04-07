@@ -133,7 +133,7 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
         <div className="flex items-center gap-3">
           <div className={cn(
             'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-            rank === 1 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+            rank === 1 ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' :
             rank === 2 ? 'bg-slate-500/20 text-slate-300 border border-slate-500/30' :
             rank === 3 ? 'bg-orange-800/20 text-orange-400 border border-orange-500/30' :
             'bg-primary/10 text-primary border border-primary/20',

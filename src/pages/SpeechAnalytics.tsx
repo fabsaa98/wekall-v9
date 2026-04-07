@@ -365,7 +365,7 @@ export default function SpeechAnalytics() {
         <div className="flex items-center gap-2">
           <span className={cn(
             "text-xs font-semibold px-3 py-1.5 rounded-full",
-            tasaExito >= 40 ? "bg-emerald-500/15 text-emerald-400" : tasaExito >= 20 ? "bg-amber-500/15 text-amber-400" : "bg-red-500/15 text-red-400"
+            tasaExito >= 40 ? "bg-emerald-500/15 text-emerald-400" : tasaExito >= 20 ? "bg-sky-500/15 text-sky-400" : "bg-red-500/15 text-red-400"
           )}>
             {tasaExito}% tasa de conversión
           </span>
@@ -417,11 +417,11 @@ export default function SpeechAnalytics() {
 
         {brechaConversion > 15 && mejorAgente && peorAgente && (
           <p className="text-sm text-foreground/80 leading-relaxed">
-            Existe una <span className="font-bold text-amber-400">brecha de conversión de {brechaConversion}pp</span> entre el mejor agente
+            Existe una <span className="font-bold text-sky-400">brecha de conversión de {brechaConversion}pp</span> entre el mejor agente
             (<span className="font-semibold text-emerald-400">{mejorAgente.name}: {mejorAgente.tasaConversion}%</span>) y el de menor rendimiento
             (<span className="font-semibold text-red-400">{peorAgente.name}: {peorAgente.tasaConversion}%</span>).
             Replicar el patrón del top performer puede incrementar la tasa global en{' '}
-            <span className="font-bold text-amber-400">+{Math.round(brechaConversion * 0.3)}pp estimado</span>.
+            <span className="font-bold text-sky-400">+{Math.round(brechaConversion * 0.3)}pp estimado</span>.
           </p>
         )}
 
@@ -630,7 +630,7 @@ export default function SpeechAnalytics() {
                       <td className="px-5 py-3">
                         <span className={cn(
                           "text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center",
-                          i === 0 ? "bg-amber-500/20 text-amber-400" : i === 1 ? "bg-slate-500/20 text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-400" : "text-muted-foreground"
+                          i === 0 ? "bg-sky-500/20 text-sky-400" : i === 1 ? "bg-slate-500/20 text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-400" : "text-muted-foreground"
                         )}>
                           {i + 1}
                         </span>
@@ -674,8 +674,8 @@ export default function SpeechAnalytics() {
 
           {/* Insight de brecha */}
           {brechaConversion > 10 && top3.length > 0 && bottom3.length > 0 && (
-            <div className="px-5 py-3 border-t border-border bg-amber-500/5">
-              <p className="text-xs text-amber-400/90">
+            <div className="px-5 py-3 border-t border-border bg-sky-500/5">
+              <p className="text-xs text-sky-400/90">
                 <span className="font-semibold">⚡ Oportunidad de mejora:</span> Existe una brecha de <span className="font-bold">{brechaConversion}pp</span> entre los 3 mejores y los 3 de menor rendimiento.
                 Capacitar a {bottom3.map(a => a.name).join(', ')} en los patrones de conversación de{' '}
                 {top3[0].name} puede generar <span className="font-bold">+{potencialCapacitacion} promesas adicionales</span> con el volumen actual.
@@ -688,7 +688,7 @@ export default function SpeechAnalytics() {
       {/* ═══ SECCIÓN 4 — MAPA DE OBJECIONES ═════════════════════════════════════ */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <AlertTriangle size={16} className="text-amber-400" />
+          <AlertTriangle size={16} className="text-sky-400" />
           <h2 className="text-sm font-bold text-foreground">Mapa de Objeciones</h2>
           <span className="text-xs text-muted-foreground">— Frecuencia y tasa de resolución por categoría</span>
         </div>
@@ -709,7 +709,7 @@ export default function SpeechAnalytics() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-muted-foreground">Tasa de resolución</span>
-                  <span className={cn("font-bold", obj.tasaResolucion >= 50 ? "text-emerald-400" : obj.tasaResolucion >= 25 ? "text-amber-400" : "text-red-400")}>
+                  <span className={cn("font-bold", obj.tasaResolucion >= 50 ? "text-emerald-400" : obj.tasaResolucion >= 25 ? "text-sky-400" : "text-red-400")}>
                     {obj.tasaResolucion}%
                   </span>
                 </div>
@@ -740,7 +740,7 @@ export default function SpeechAnalytics() {
       {/* ═══ SECCIÓN 5 — RECOMENDACIONES EJECUTIVAS ══════════════════════════════ */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Lightbulb size={16} className="text-amber-400" />
+          <Lightbulb size={16} className="text-sky-400" />
           <h2 className="text-sm font-bold text-foreground">Recomendaciones Ejecutivas</h2>
           <span className="text-xs text-muted-foreground">— 3 acciones con mayor impacto en recuperación de cartera</span>
         </div>
@@ -864,7 +864,7 @@ export default function SpeechAnalytics() {
           <AlertCircle size={12} className="text-muted-foreground flex-shrink-0" />
           <p className="text-[11px] text-muted-foreground">
             Análisis basado en {total} transcripciones. Los porcentajes e insights se calculan en tiempo real desde los summaries y transcripts almacenados.
-            {total < 30 && <span className="text-amber-400/80"> Para mayor confiabilidad estadística se recomiendan mínimo 50 transcripciones.</span>}
+            {total < 30 && <span className="text-sky-400/80"> Para mayor confiabilidad estadística se recomiendan mínimo 50 transcripciones.</span>}
           </p>
         </div>
       </div>

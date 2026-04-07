@@ -110,7 +110,7 @@ const INDUSTRY_COLORS: Record<string, string> = {
   cobranzas: 'bg-red-500/15 text-red-400 border-red-500/30',
   servicio: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   ventas: 'bg-green-500/15 text-green-400 border-green-500/30',
-  soporte: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
+  soporte: 'bg-sky-500/15 text-sky-600 border-sky-500/30',
   banca: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
   salud: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
   retail: 'bg-orange-500/15 text-orange-400 border-orange-500/30',

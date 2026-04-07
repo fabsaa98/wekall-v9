@@ -90,7 +90,7 @@ export default function UploadRecording() {
   const statusConfig: Record<JobStatus, { icon: React.ReactNode; label: string; classes: string }> = {
     idle: { icon: null, label: '', classes: '' },
     uploading: { icon: <Spinner size={16} className="animate-spin" />, label: 'Subiendo...', classes: 'text-blue-500' },
-    processing: { icon: <Clock size={16} className="animate-pulse" />, label: 'Transcribiendo con Whisper...', classes: 'text-amber-500' },
+    processing: { icon: <Clock size={16} className="animate-pulse" />, label: 'Transcribiendo con Whisper...', classes: 'text-sky-500' },
     completed: { icon: <CheckCircle size={16} />, label: 'Completado', classes: 'text-green-600' },
     failed: { icon: <Warning size={16} />, label: 'Error', classes: 'text-red-500' },
   };

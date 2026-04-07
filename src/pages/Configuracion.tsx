@@ -76,7 +76,7 @@ const integrations: Integration[] = [
 function StatusBadge({ status }: { status: 'connected' | 'pending' | 'error' }) {
   const config = {
     connected: { label: 'Conectado', classes: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle size={11} /> },
-    pending: { label: 'Pendiente', classes: 'bg-amber-500/10 text-amber-400 border-amber-500/20', icon: <AlertCircle size={11} /> },
+    pending: { label: 'Pendiente', classes: 'bg-sky-500/10 text-sky-400 border-sky-500/20', icon: <AlertCircle size={11} /> },
     error: { label: 'Error', classes: 'bg-red-500/10 text-red-400 border-red-500/20', icon: <AlertCircle size={11} /> },
   }[status];
 
