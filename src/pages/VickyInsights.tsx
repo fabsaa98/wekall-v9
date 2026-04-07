@@ -693,26 +693,8 @@ export default function VickyInsights() {
 - AHT real: ${_aht} min promedio (rango: 5.2-16.3 min)
 - Total llamadas hoy: ${_llamadasHoy.toLocaleString('es-CO')}
 
-## RESUMEN ANUAL CDR (datos reales Supabase — fuente autorizada para preguntas anuales)
-### 2024 (enero–diciembre 2024, 366 días con datos):
-- Total llamadas: 3,871,361
-- Contactos efectivos: 949,179
-- Tasa de contacto promedio: 32.3%
-
-### 2025 (enero–diciembre 2025, 365 días con datos):
-- Total llamadas: 6,485,460
-- Contactos efectivos: 848,488
-- Tasa de contacto promedio: 14.6%
-- Crecimiento volumen vs 2024: +67.5%
-
-### 2026 (enero–abril 2026, 91 días con datos):
-- Total llamadas: 1,726,701
-- Contactos efectivos: 195,369
-- Tasa de contacto promedio: 13.4%
-
-### Total acumulado (ene 2024 – abr 2026):
-- Total llamadas: 12,083,522
-- Total contactos efectivos: 1,993,036
+## RESUMEN ANUAL CDR
+Para obtener totales anuales, mensuales o tendencias históricas del CDR, usa la función query_cdr_data con el query_type apropiado. Los datos se consultan en tiempo real desde Supabase.
 
 ## ANÁLISIS REAL DE 50 GRABACIONES (Whisper + NLP)
 ### Resultados de contacto (fuente: transcripciones reales):
@@ -1025,6 +1007,36 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             },
           },
         },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'query_cdr_data',
+            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, o comparativos por rango de fechas. Siempre usa este tool cuando el usuario pregunte por datos históricos anuales, mensuales, o por períodos específicos que no están en el contexto inicial.',
+            parameters: {
+              type: 'object',
+              properties: {
+                query_type: {
+                  type: 'string',
+                  enum: ['annual_summary', 'monthly_summary', 'date_range', 'top_agents', 'daily_trend'],
+                  description: 'Tipo de consulta: annual_summary=totales por año, monthly_summary=totales por mes (requiere year), date_range=rango específico de fechas (requiere from_date y to_date), top_agents=ranking de agentes por llamadas, daily_trend=últimos N días',
+                },
+                params: {
+                  type: 'object',
+                  description: 'Parámetros adicionales según query_type: {year} para monthly_summary, {from_date, to_date} para date_range (formato YYYY-MM-DD), {limit, order} para top_agents (order: asc|desc), {days} para daily_trend',
+                  properties: {
+                    year: { type: 'number', description: 'Año (ej: 2024, 2025)' },
+                    from_date: { type: 'string', description: 'Fecha inicio YYYY-MM-DD' },
+                    to_date: { type: 'string', description: 'Fecha fin YYYY-MM-DD' },
+                    limit: { type: 'number', description: 'Cantidad de agentes a retornar (default 10)' },
+                    order: { type: 'string', enum: ['asc', 'desc'], description: 'Orden: desc=top performers, asc=bottom performers' },
+                    days: { type: 'number', description: 'Últimos N días para daily_trend (default 30)' },
+                  },
+                },
+              },
+              required: ['query_type'],
+            },
+          },
+        },
       ];
 
       // ─── Llamada a la API con Function Calling ──────────────────────────────
@@ -1081,6 +1093,23 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
               mensaje: 'Búsqueda web en tiempo real requiere integración adicional. Usar datos disponibles en el contexto o indicar al CEO que el dato necesita verificación externa.',
               alternativa: 'Si el dato es salarial: Colombia=COP $3M/mes (Decreto 2381/2023), Perú≈COP $1.6M/mes (RMV PEN 1,025 + prestaciones). Para otros países, citar OIT/CEPAL como referencia.',
             };
+          }
+          else if (fnName === 'query_cdr_data') {
+            // Consulta dinámica al CDR via worker /cdr-stats
+            try {
+              const cdrResp = await fetch(BASE_PROXY + '/cdr-stats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  client_id: clientId || 'credismart',
+                  query_type: fnArgs.query_type,
+                  params: fnArgs.params || {},
+                }),
+              });
+              calcResult = await cdrResp.json();
+            } catch (cdrErr) {
+              calcResult = { error: 'No se pudo consultar el CDR', detail: String(cdrErr) };
+            }
           }
           else calcResult = { error: 'Función no encontrada' };
 
