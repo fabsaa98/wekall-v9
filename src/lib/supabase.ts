@@ -119,16 +119,35 @@ export interface CDRHourlyMetric {
   total_llamadas: number;
 }
 
+// ─── Proxy helper — enruta queries por el Worker para evitar bloqueos en redes móviles ──
+
+const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
+
+async function proxyQuery<T>(payload: object): Promise<T> {
+  const resp = await fetch(`${PROXY_URL}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({})) as Record<string, string>;
+    throw new Error(err.error || `query_error_${resp.status}`);
+  }
+  return resp.json() as Promise<T>;
+}
+
 // Queries
 export async function getLastNDays(n: number, clientId = 'credismart'): Promise<CDRDayMetric[]> {
-  const { data, error } = await supabase
-    .from('cdr_daily_metrics')
-    .select('fecha, total_llamadas, contactos_efectivos, tasa_contacto_pct')
-    .eq('client_id', clientId)
-    .gte('total_llamadas', 5000) // solo días hábiles
-    .order('fecha', { ascending: false })
-    .limit(n);
-  if (error) throw error;
+  const data = await proxyQuery<CDRDayMetric[]>({
+    table: 'cdr_daily_metrics',
+    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct',
+    filters: {
+      'client_id': `eq.${clientId}`,
+      'total_llamadas': 'gte.5000',
+    },
+    order: 'fecha.desc',
+    limit: n,
+  });
   return (data || []).reverse();
 }
 
