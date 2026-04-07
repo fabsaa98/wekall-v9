@@ -125,12 +125,19 @@ export default function SpeechAnalytics() {
     async function load() {
       try {
         setLoading(true);
-        const { data, error: err } = await supabase
-          .from('transcriptions')
-          .select('id, agent_name, call_date, call_type, summary, transcript, campaign, client_id')
-          .eq('client_id', clientId)
-          .limit(200);
-        if (err) throw err;
+        const PROXY = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
+        const resp = await fetch(`${PROXY}/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'transcriptions',
+            select: 'id,agent_name,call_date,call_type,summary,transcript,campaign,client_id',
+            filters: { 'client_id': `eq.${clientId}` },
+            limit: 200,
+          }),
+        });
+        if (!resp.ok) throw new Error(`Error ${resp.status}`);
+        const data = await resp.json() as Transcription[];
         setTranscriptions(data || []);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Error cargando transcripciones');
