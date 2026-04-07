@@ -198,10 +198,14 @@ export function useCDRData(): CDRState {
   useEffect(() => {
     async function load() {
       try {
-        const [last30, lastDay] = await Promise.all([
-          getLastNDays(30, clientId),
-          getLatestDay(clientId)
-        ]);
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Tiempo de espera agotado. Verifica tu conexión.')), 12000)
+        );
+
+        const [last30, lastDay] = await Promise.race([
+          Promise.all([getLastNDays(30, clientId), getLatestDay(clientId)]),
+          timeout,
+        ]) as [Awaited<ReturnType<typeof getLastNDays>>, Awaited<ReturnType<typeof getLatestDay>>];
 
         const last7 = last30.slice(-7);
         const promedio7d = last7.length > 0 ? last7.reduce((s, d) => s + d.tasa_contacto_pct, 0) / last7.length : 0;
