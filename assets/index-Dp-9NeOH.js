@@ -503,11 +503,31 @@ Tengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 mi
 
 ## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
 - Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)
-- Referencia histórica: volumen creció de ~4,000 llamadas/día (ene 2024) a 30,000+ llamadas/día (abr 2026)
 - Campañas principales: Cobranzas ${ta.charAt(0).toUpperCase()+ta.slice(1)} · Cobranzas Perú · Servicio ${ta.charAt(0).toUpperCase()+ta.slice(1)} · Servicio Perú
-- Tasa de contacto efectivo hoy: ${(Ae*100).toFixed(1)}% (promedio histórico ~20-25%, ver datos más recientes en Supabase)
+- Tasa de contacto efectivo hoy: ${(Ae*100).toFixed(1)}%
 - AHT real: ${ot} min promedio (rango: 5.2-16.3 min)
 - Total llamadas hoy: ${je.toLocaleString("es-CO")}
+
+## RESUMEN ANUAL CDR (datos reales Supabase — fuente autorizada para preguntas anuales)
+### 2024 (enero–diciembre 2024, 366 días con datos):
+- Total llamadas: 3,871,361
+- Contactos efectivos: 949,179
+- Tasa de contacto promedio: 32.3%
+
+### 2025 (enero–diciembre 2025, 365 días con datos):
+- Total llamadas: 6,485,460
+- Contactos efectivos: 848,488
+- Tasa de contacto promedio: 14.6%
+- Crecimiento volumen vs 2024: +67.5%
+
+### 2026 (enero–abril 2026, 91 días con datos):
+- Total llamadas: 1,726,701
+- Contactos efectivos: 195,369
+- Tasa de contacto promedio: 13.4%
+
+### Total acumulado (ene 2024 – abr 2026):
+- Total llamadas: 12,083,522
+- Total contactos efectivos: 1,993,036
 
 ## ANÁLISIS REAL DE 50 GRABACIONES (Whisper + NLP)
 ### Resultados de contacto (fuente: transcripciones reales):
