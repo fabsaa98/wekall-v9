@@ -30,13 +30,13 @@ import SpeechAnalytics from '@/pages/SpeechAnalytics';
 //   Alertas y Configuracion actuales — NO se enrutan para evitar fragmentación de UX.
 
 /**
- * AuthGuard — Control de acceso con doble verificación:
+ * AuthGuard — Control de acceso estricto:
  *
- * 1. Sesión activa de Supabase Auth → acceso permitido (autenticación real)
- * 2. localStorage wki_client_id → acceso permitido (modo legacy / compatibilidad)
- * 3. Nada → redirigir a /login
+ * 1. Sesión activa de Supabase Auth → acceso permitido
+ * 2. Sin sesión → redirigir a /login (siempre, sin excepciones)
  *
- * Zero breaking changes: los usuarios existentes con localStorage siguen entrando.
+ * El localStorage wki_client_id solo se usa para recordar el cliente activo,
+ * NO para saltarse la autenticación.
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<'checking' | 'allowed' | 'denied'>('checking');
@@ -44,39 +44,26 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function checkAuth() {
       try {
-        // 1. Verificar sesión Supabase Auth
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           setAuthState('allowed');
-          return;
+        } else {
+          setAuthState('denied');
         }
       } catch {
-        // Si falla la verificación de Auth, continuar con fallback
+        // Si falla la verificación → denegar por seguridad
+        setAuthState('denied');
       }
-
-      // 2. Fallback: verificar localStorage (modo legacy)
-      const stored = localStorage.getItem('wki_client_id');
-      if (stored) {
-        setAuthState('allowed');
-        return;
-      }
-
-      // 3. Sin autenticación → redirigir a login
-      setAuthState('denied');
     }
 
     checkAuth();
 
-    // También suscribirse a cambios de sesión en tiempo real
+    // Suscribirse a cambios de sesión en tiempo real
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setAuthState('allowed');
       } else {
-        // Solo denegar si tampoco hay localStorage
-        const stored = localStorage.getItem('wki_client_id');
-        if (!stored) {
-          setAuthState('denied');
-        }
+        setAuthState('denied');
       }
     });
 
