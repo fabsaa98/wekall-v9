@@ -169,22 +169,22 @@ export async function getVolumeSparkline(days: number, clientId = 'credismart'):
 export async function getLatestCampaigns(): Promise<CDRCampaignMetric[]> {
   const latest = await getLatestDay();
   if (!latest) return [];
-  const { data, error } = await supabase
-    .from('cdr_campaign_metrics')
-    .select('*')
-    .eq('fecha', latest.fecha)
-    .order('total_llamadas', { ascending: false });
-  if (error) throw error;
+  const data = await proxyQuery<CDRCampaignMetric[]>({
+    table: 'cdr_campaign_metrics',
+    select: '*',
+    filters: { 'fecha': `eq.${latest.fecha}` },
+    order: 'total_llamadas.desc',
+  });
   return data || [];
 }
 
 export async function getHourlyDistribution(fecha: string): Promise<CDRHourlyMetric[]> {
-  const { data, error } = await supabase
-    .from('cdr_hourly_metrics')
-    .select('*')
-    .eq('fecha', fecha)
-    .order('hora', { ascending: true });
-  if (error) throw error;
+  const data = await proxyQuery<CDRHourlyMetric[]>({
+    table: 'cdr_hourly_metrics',
+    select: '*',
+    filters: { 'fecha': `eq.${fecha}` },
+    order: 'hora.asc',
+  });
   return data || [];
 }
 
@@ -232,25 +232,23 @@ export interface ClientConfig {
 }
 
 export async function getClientConfig(clientId: string): Promise<ClientConfig | null> {
-  const { data, error } = await supabase
-    .from('client_config')
-    .select('*')
-    .eq('client_id', clientId)
-    .single();
-  if (error) return null;
-  return data;
+  const data = await proxyQuery<ClientConfig[]>({
+    table: 'client_config',
+    select: '*',
+    filters: { 'client_id': `eq.${clientId}` },
+    limit: 1,
+  });
+  return data?.[0] ?? null;
 }
 
 export async function getActiveClientConfig(): Promise<ClientConfig | null> {
-  // Trae el cliente activo (el más reciente o el único configurado)
-  const { data, error } = await supabase
-    .from('client_config')
-    .select('*')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .single();
-  if (error) return null;
-  return data;
+  const data = await proxyQuery<ClientConfig[]>({
+    table: 'client_config',
+    select: '*',
+    order: 'updated_at.desc',
+    limit: 1,
+  });
+  return data?.[0] ?? null;
 }
 
 // ─── Alert Log ────────────────────────────────────────────────────────────────
@@ -271,6 +269,7 @@ export interface AlertLogEntry {
 }
 
 export async function insertAlertLog(entry: AlertLogEntry): Promise<void> {
+  // INSERT goes direct — proxy only supports GET queries; writes use supabase client directly
   const { error } = await supabase
     .from('alert_log')
     .insert({
@@ -282,12 +281,12 @@ export async function insertAlertLog(entry: AlertLogEntry): Promise<void> {
 }
 
 export async function getRecentAlertLog(limit = 10): Promise<AlertLogEntry[]> {
-  const { data, error } = await supabase
-    .from('alert_log')
-    .select('*')
-    .order('fired_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
+  const data = await proxyQuery<AlertLogEntry[]>({
+    table: 'alert_log',
+    select: '*',
+    order: 'fired_at.desc',
+    limit,
+  });
   return (data || []) as AlertLogEntry[];
 }
 
@@ -320,17 +319,14 @@ export async function saveVickyConversation(entry: VickyConversation): Promise<v
 }
 
 export async function getVickyHistory(sessionId?: string, limit = 20): Promise<VickyConversation[]> {
-  let query = supabase
-    .from('vicky_conversations')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (sessionId) {
-    query = query.eq('session_id', sessionId);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
+  const filters: Record<string, string> = {};
+  if (sessionId) filters['session_id'] = `eq.${sessionId}`;
+  const data = await proxyQuery<VickyConversation[]>({
+    table: 'vicky_conversations',
+    select: '*',
+    filters,
+    order: 'created_at.desc',
+    limit,
+  });
   return (data || []) as VickyConversation[];
 }
