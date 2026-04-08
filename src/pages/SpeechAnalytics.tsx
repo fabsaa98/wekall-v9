@@ -730,33 +730,38 @@ export default function SpeechAnalytics() {
               <span className="ml-auto text-xs text-muted-foreground">{nFallidas} llamadas</span>
             </div>
 
-            {/* Patrones ausentes en exitosas / presentes en fallidas */}
+            {/* Patrones ausentes — los que más diferencian exitosas de fallidas */}
+            {/* Muestra los patrones donde la BRECHA es mayor (exitosas >> fallidas) */}
             <div className="space-y-2.5">
-              {patronesExitosos.filter(p => p.ventaja < 0 || p.tasaEnFallidas > 30).slice(0, 5).length > 0
-                ? patronesExitosos.filter(p => p.ventaja < 0 || p.tasaEnFallidas > 30).slice(0, 5).map(p => (
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Patrones ausentes en llamadas fallidas</p>
+              {patronesExitosos
+                .filter(p => p.ventaja > 0)
+                .sort((a, b) => b.ventaja - a.ventaja)
+                .slice(0, 5)
+                .map(p => (
                   <div key={p.id} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-foreground/80">{p.label}</span>
-                      <span className="font-semibold text-red-400">{p.tasaEnFallidas}%</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-emerald-600 dark:text-emerald-400 text-[10px]">✓ {p.tasaEnExitosas}% exitosas</span>
+                        <span className="font-semibold text-red-500">✗ {p.tasaEnFallidas}% fallidas</span>
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-red-900/30 rounded-full">
-                      <div className="h-full bg-red-500 rounded-full" style={{ width: `${p.tasaEnFallidas}%` }} />
+                    <div className="relative h-1.5 bg-border rounded-full">
+                      {/* Barra exitosas (verde, referencia) */}
+                      <div className="absolute h-full bg-emerald-500/30 rounded-full" style={{ width: `${p.tasaEnExitosas}%` }} />
+                      {/* Barra fallidas (roja, lo que falta) */}
+                      <div className="absolute h-full bg-red-500 rounded-full" style={{ width: `${p.tasaEnFallidas}%` }} />
                     </div>
-                  </div>
-                ))
-                : patronesExitosos.slice(0, 5).map(p => (
-                  <div key={p.id} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-foreground/60 line-through">{p.label}</span>
-                      <span className="font-semibold text-red-400">{p.tasaEnFallidas}%</span>
-                    </div>
-                    <div className="h-1.5 bg-red-900/30 rounded-full">
-                      <div className="h-full bg-red-400 rounded-full" style={{ width: `${p.tasaEnFallidas}%` }} />
-                    </div>
-                    <p className="text-[10px] text-red-400/70">Ausente en {100 - p.tasaEnFallidas}% de los cierres fallidos</p>
+                    {p.ventaja >= 10 && (
+                      <p className="text-[10px] text-red-500/80">Brecha de {p.ventaja}pp — este patrón falta en la mayoría de las llamadas sin cierre</p>
+                    )}
                   </div>
                 ))
               }
+              {patronesExitosos.filter(p => p.ventaja > 0).length === 0 && (
+                <p className="text-xs text-muted-foreground italic">No se detectaron patrones diferenciadores con el volumen actual de datos.</p>
+              )}
             </div>
 
             {/* Temas frecuentes en fallidas */}
@@ -813,18 +818,58 @@ export default function SpeechAnalytics() {
           <span className="text-xs text-muted-foreground">— Tasa de conversión vs promedio de operación</span>
         </div>
 
+        {/* Mobile: cards — Desktop: tabla */}
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Vista móvil — cards */}
+          <div className="divide-y divide-border sm:hidden">
+            {agentes.map((a, i) => {
+              const vsPromedio = a.tasaConversion - tasaExito;
+              const isTop = i < 3;
+              const isBottom = i >= agentes.length - 3 && agentes.length > 3;
+              // Normalizar nombre: Title Case
+              const nombre = a.name.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+              return (
+                <div key={a.name} className={cn("p-4", isTop && "bg-emerald-500/3", isBottom && "bg-red-500/3")}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className={cn(
+                      "text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0",
+                      i === 0 ? "bg-sky-500/20 text-sky-400" : i === 1 ? "bg-slate-500/20 text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-400" : "bg-muted text-muted-foreground"
+                    )}>{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{nombre}</p>
+                      <p className="text-[11px] text-muted-foreground">{a.total} llamadas · {a.exitosas} promesas</p>
+                    </div>
+                    {isTop && <span className="text-[9px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full shrink-0">TOP</span>}
+                    {isBottom && a.total >= 2 && <span className="text-[9px] bg-red-500/15 text-red-500 px-1.5 py-0.5 rounded-full shrink-0">OPORTUNIDAD</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 rounded-full bg-emerald-500/15">
+                      <div className="h-full rounded-full bg-emerald-500" style={{ width: `${a.tasaConversion}%` }} />
+                    </div>
+                    <span className={cn("text-sm font-bold tabular-nums w-12 text-right", a.tasaConversion >= tasaExito ? "text-emerald-600 dark:text-emerald-400" : "text-red-500")}>
+                      {a.tasaConversion}%
+                    </span>
+                    <span className={cn("text-xs font-semibold w-14 text-right", vsPromedio > 0 ? "text-emerald-600 dark:text-emerald-400" : vsPromedio < 0 ? "text-red-500" : "text-muted-foreground")}>
+                      {vsPromedio > 0 ? `+${vsPromedio}pp` : vsPromedio < 0 ? `${vsPromedio}pp` : '—'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Vista desktop — tabla */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-card/80">
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Posición</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Agente</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Llamadas</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-emerald-400 uppercase tracking-wide">Tasa de Cierre</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Tono del cliente</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Promesas</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">vs Promedio</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">#</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Agente</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Llamadas</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Tasa de Cierre</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Tono</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Promesas</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">vs Prom.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -834,47 +879,35 @@ export default function SpeechAnalytics() {
                   const isBottom = i >= agentes.length - 3 && agentes.length > 3;
                   const tonoColor = a.tonoScore > 10 ? 'text-emerald-400' : a.tonoScore < -10 ? 'text-red-400' : 'text-slate-400';
                   const tonoLabel = a.tonoScore > 10 ? 'Positivo' : a.tonoScore < -10 ? 'Negativo' : 'Neutral';
+                  // Normalizar nombre: Title Case
+                  const nombre = a.name.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
                   return (
-                    <tr key={a.name} className={cn(
-                      "hover:bg-secondary/20 transition-colors",
-                      isTop && "bg-emerald-500/3",
-                      isBottom && "bg-red-500/3"
-                    )}>
-                      <td className="px-5 py-3">
-                        <span className={cn(
-                          "text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center",
+                    <tr key={a.name} className={cn("hover:bg-secondary/20 transition-colors", isTop && "bg-emerald-500/3", isBottom && "bg-red-500/3")}>
+                      <td className="px-4 py-3">
+                        <span className={cn("text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center",
                           i === 0 ? "bg-sky-500/20 text-sky-400" : i === 1 ? "bg-slate-500/20 text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-400" : "text-muted-foreground"
-                        )}>
-                          {i + 1}
-                        </span>
+                        )}>{i + 1}</span>
                       </td>
-                      <td className="px-5 py-3 font-semibold text-foreground">
+                      <td className="px-4 py-3 font-semibold text-foreground">
                         <div className="flex items-center gap-2">
-                          {a.name}
-                          {isTop && <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full">TOP</span>}
-                          {isBottom && a.total >= 2 && <span className="text-[9px] bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-full">OPORTUNIDAD</span>}
+                          <span className="truncate max-w-[160px]">{nombre}</span>
+                          {isTop && <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full shrink-0">TOP</span>}
+                          {isBottom && a.total >= 2 && <span className="text-[9px] bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-full shrink-0">OPORT.</span>}
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-muted-foreground">{a.total}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3 text-muted-foreground">{a.total}</td>
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 rounded-full bg-emerald-500/15 w-24">
+                          <div className="h-1.5 rounded-full bg-emerald-500/15 w-16">
                             <div className="h-full rounded-full bg-emerald-500" style={{ width: `${a.tasaConversion}%` }} />
                           </div>
-                          <span className={cn("text-xs font-bold tabular-nums", a.tasaConversion >= tasaExito ? "text-emerald-400" : "text-red-400")}>
-                            {a.tasaConversion}%
-                          </span>
+                          <span className={cn("text-xs font-bold tabular-nums", a.tasaConversion >= tasaExito ? "text-emerald-400" : "text-red-400")}>{a.tasaConversion}%</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
-                        <span className={cn("text-xs font-medium", tonoColor)}>{tonoLabel}</span>
-                      </td>
-                      <td className="px-5 py-3 text-muted-foreground text-xs">{a.exitosas}</td>
-                      <td className="px-5 py-3">
-                        <span className={cn(
-                          "text-xs font-semibold",
-                          vsPromedio > 0 ? "text-emerald-400" : vsPromedio < 0 ? "text-red-400" : "text-muted-foreground"
-                        )}>
+                      <td className="px-4 py-3"><span className={cn("text-xs font-medium", tonoColor)}>{tonoLabel}</span></td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{a.exitosas}</td>
+                      <td className="px-4 py-3">
+                        <span className={cn("text-xs font-semibold", vsPromedio > 0 ? "text-emerald-400" : vsPromedio < 0 ? "text-red-400" : "text-muted-foreground")}>
                           {vsPromedio > 0 ? `+${vsPromedio}pp` : vsPromedio < 0 ? `${vsPromedio}pp` : '—'}
                         </span>
                       </td>
