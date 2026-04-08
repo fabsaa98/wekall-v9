@@ -257,18 +257,29 @@ export default function Overview() {
                 : ' La operación muestra un desempeño excepcional hoy.'}
             </p>
           </div>
-          <button
-            onClick={() => navigate(`/vicky?q=${anomalyVickyQuestion}`)}
-            className={cn(
-              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
-              anomaly.direction === 'down'
-                ? 'border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20'
-                : 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20',
+          <div className="flex flex-col gap-2 shrink-0">
+            <button
+              onClick={() => navigate(`/vicky?q=${anomalyVickyQuestion}`)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
+                anomaly.direction === 'down'
+                  ? 'border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                  : 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20',
+              )}
+            >
+              <Zap size={13} />
+              Ver en Vicky
+            </button>
+            {/* Feature 3: Drill-to-source — ver transcripciones del día de la anomalía */}
+            {cdr.latestDay?.fecha && (
+              <button
+                onClick={() => navigate('/transcriptions?date=' + cdr.latestDay!.fecha + '&filter=fallidas')}
+                className="text-xs text-muted-foreground underline hover:text-foreground transition-colors text-center"
+              >
+                Ver transcripciones del día →
+              </button>
             )}
-          >
-            <Zap size={13} />
-            Ver en Vicky
-          </button>
+          </div>
         </div>
       )}
 

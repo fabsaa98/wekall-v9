@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, KeyboardEvent, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Send, ChevronDown, ChevronRight, Paperclip, Upload,
   FileAudio, CheckCircle, Clock, Zap, Brain, Database, AlertCircle, FileText, Info,
   Mic, MicOff, Loader2, MessageSquare, ClipboardList, Bell, BookOpen, CalendarPlus, CheckCircle2,
-  History,
+  History, RefreshCw,
 } from 'lucide-react';
 import { saveVickyConversation, getVickyHistory, type VickyConversation } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -476,11 +476,22 @@ function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; 
   );
 }
 
+// ─── Action Suggestions (Feature 4) ─────────────────────────────────────────
+
+interface ActionSuggestion {
+  label: string;
+  icon: string;
+  action: () => void;
+}
+
 export default function VickyInsights() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { clientConfig, clientId } = useClient(); // Fix 1A + 1F: clientId para RAG seguro
   const cdr = useCDRData();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
+  // Feature 1: Conversation memory
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user'|'assistant', content: string}>>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [actionOpen, setActionOpen] = useState(false);
@@ -520,6 +531,36 @@ export default function VickyInsights() {
     setSurpriseLoading(false);
     setActiveTab('chat');
     await sendMessage(question);
+  }
+
+  // Feature 4: Detect contextual action suggestions from Vicky's response
+  function detectActionSuggestions(response: string): ActionSuggestion[] {
+    const suggestions: ActionSuggestion[] = [];
+    const r = response.toLowerCase();
+
+    if (r.includes('agente') && (r.includes('brecha') || r.includes('coaching') || r.includes('bajo rendimiento') || r.includes('bottom') || r.includes('peor cuartil'))) {
+      suggestions.push({
+        label: 'Programar sesión de coaching',
+        icon: '🎯',
+        action: () => navigate('/equipos'),
+      });
+    }
+    if (r.includes('alerta') || r.includes('anomalía') || r.includes('anomalia') || r.includes('cayó') || r.includes('bajó') || r.includes('caída') || r.includes('bajada')) {
+      suggestions.push({
+        label: 'Configurar alerta WhatsApp',
+        icon: '🔔',
+        action: () => navigate('/alertas'),
+      });
+    }
+    if (r.includes('transcripción') || r.includes('transcripcion') || r.includes('grabación') || r.includes('grabacion') || r.includes('llamada') || r.includes('escuchar')) {
+      suggestions.push({
+        label: 'Ver transcripciones',
+        icon: '📞',
+        action: () => navigate('/transcriptions'),
+      });
+    }
+
+    return suggestions;
   }
 
   // Session ID estable por sesión de browser
@@ -1056,6 +1097,8 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           model: 'gpt-4o',
           messages: [
             { role: 'system', content: CONTEXT },
+            // Feature 1: Include conversation history (last 10 turns)
+            ...conversationHistory.slice(-10),
             { role: 'user', content: text },
           ],
           tools: TOOLS,
@@ -1127,6 +1170,8 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             model: 'gpt-4o',
             messages: [
               { role: 'system', content: CONTEXT },
+              // Feature 1: Include conversation history in tool-calling second pass
+              ...conversationHistory.slice(-10),
               { role: 'user', content: text },
               choice.message,
               ...toolCalls.map((call, i: number) => ({
@@ -1169,6 +1214,15 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
     setMessages(prev => [...prev, resp]);
     setLoading(false);
+
+    // Feature 1: Update conversation history with user + assistant turn
+    if (resp.role === 'vicky' && resp.confidence !== 'Baja') {
+      setConversationHistory(prev => [
+        ...prev,
+        { role: 'user' as const, content: text },
+        { role: 'assistant' as const, content: resp.content },
+      ]);
+    }
 
     // Guardar Q&A exitoso en Supabase (vicky_conversations)
     if (resp.role === 'vicky' && resp.confidence !== 'Baja') {
@@ -1337,15 +1391,36 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1">
-              {messages.map(msg => (
-                <ChatBubble
-                  key={msg.id}
-                  msg={msg}
-                  onFollowUp={sendMessage}
-                  onAction={() => setActionOpen(true)}
-                  clientName={clientConfig?.client_name} // Fix 1F
-                />
-              ))}
+              {messages.map((msg, msgIdx) => {
+                // Feature 4: Compute action suggestions for last Vicky message only
+                const isLastVicky = msg.role === 'vicky' && msgIdx === messages.length - 1;
+                const actionSuggestions = isLastVicky ? detectActionSuggestions(msg.content) : [];
+                return (
+                  <React.Fragment key={msg.id}>
+                    <ChatBubble
+                      msg={msg}
+                      onFollowUp={sendMessage}
+                      onAction={() => setActionOpen(true)}
+                      clientName={clientConfig?.client_name} // Fix 1F
+                    />
+                    {/* Feature 4: Contextual action suggestion chips */}
+                    {actionSuggestions.length > 0 && (
+                      <div className="flex gap-2 flex-wrap mt-1 mb-2 px-1">
+                        {actionSuggestions.map((s, i) => (
+                          <button
+                            key={i}
+                            onClick={s.action}
+                            className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20"
+                          >
+                            <span>{s.icon}</span>
+                            <span>{s.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
               {loading && (
                 <div className="flex items-center gap-2 text-muted-foreground animate-fade-in">
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
@@ -1368,7 +1443,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
             {/* Input */}
             <div className="border-t border-border p-4">
-              {/* Botón Sorpréndeme — Tableau Pulse style */}
+              {/* Botón Sorpréndeme + Nueva conversación */}
               <div className="flex items-center gap-2 mb-2.5">
                 <button
                   onClick={handleSorprendeme}
@@ -1378,7 +1453,21 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   {surpriseLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
                   ¿Qué pasó esta semana?
                 </button>
-                <span className="text-[10px] text-muted-foreground">Análisis proactivo automático</span>
+                {/* Feature 1: Nueva conversación button — resets history */}
+                {conversationHistory.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setConversationHistory([]);
+                      setMessages(initialVickyMessages);
+                    }}
+                    title="Nueva conversación (resetea el historial de este hilo)"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-border text-muted-foreground text-xs hover:text-foreground hover:border-primary/40 transition-all"
+                  >
+                    <RefreshCw size={11} />
+                    <span>Nueva conversación</span>
+                  </button>
+                )}
+                <span className="text-[10px] text-muted-foreground ml-auto">Análisis proactivo automático</span>
               </div>
               <div className="chat-input-wrapper flex items-end gap-2 rounded-xl border border-border bg-card px-3 py-2 transition-all">
                 <textarea

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PhoneIncoming, PhoneOutgoing, Clock, Calendar } from '@phosphor-icons/react';
 import { SearchBar } from '@/components/SearchBar';
 import { SentimentBadge } from '@/components/SentimentBadge';
@@ -44,8 +44,16 @@ function ListSkeleton() {
 }
 
 export default function TranscriptionList() {
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  // Feature 3: Read URL query params for drill-to-source navigation
+  const [searchParams] = useSearchParams();
+  const dateFilter = searchParams.get('date') || '';
+  const agentFilter = searchParams.get('agent') || '';
+
+  const [search, setSearch] = useState(() => {
+    // Pre-populate search with agent name if provided via URL
+    return agentFilter || '';
+  });
+  const [debouncedSearch, setDebouncedSearch] = useState(() => agentFilter || '');
   const [sentimentFilter, setSentimentFilter] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,11 +67,31 @@ export default function TranscriptionList() {
     limit: 50,
   });
 
-  const transcriptions = data?.data ?? [];
+  // Feature 3: Filter transcriptions by date if provided via URL
+  const allTranscriptions = data?.data ?? [];
+  const transcriptions = dateFilter
+    ? allTranscriptions.filter(t => {
+        const tDate = new Date(t.startedAt).toISOString().split('T')[0];
+        return tDate === dateFilter;
+      })
+    : allTranscriptions;
   const sentimentOptions = ['positive', 'negative', 'neutral', 'mixed'] as const;
 
   return (
     <div className="space-y-4 p-4 sm:p-6 overflow-y-auto flex-1 w-full min-w-0">
+      {/* Feature 3: Active filter banner (date or agent from URL) */}
+      {(dateFilter || agentFilter) && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 flex items-center justify-between gap-3 text-sm">
+          <span className="text-primary font-medium">
+            {dateFilter && `📅 Filtrando por fecha: ${dateFilter}`}
+            {agentFilter && `👤 Filtrando por agente: ${agentFilter}`}
+          </span>
+          <a href="/transcriptions" className="text-xs text-muted-foreground underline hover:text-foreground">
+            Ver todos
+          </a>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar en transcripciones..." className="flex-1" />

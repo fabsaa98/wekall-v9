@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,7 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, Loader2, AlertTriangle, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Loader2, AlertTriangle, Users, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ─── Mini Sparkline ───────────────────────────────────────────────────────────
@@ -153,6 +154,7 @@ function EquiposSkeleton() {
 // ─── Fila de agente ───────────────────────────────────────────────────────────
 
 function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
+  const navigate = useNavigate();
   const TrendIcon = agent.trend === 'up' ? TrendingUp : agent.trend === 'down' ? TrendingDown : Minus;
   const trendColor = agent.trend === 'up' ? 'text-emerald-400' : agent.trend === 'down' ? 'text-red-400' : 'text-muted-foreground';
   const trendLabel = agent.trend === 'up' ? 'Subiendo' : agent.trend === 'down' ? 'Bajando' : 'Estable';
@@ -193,6 +195,14 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
               <span className="text-[10px]">{agent.trend_delta > 0 ? '+' : ''}{agent.trend_delta}pp</span>
             )}
           </div>
+          {/* Feature 3: Drill-to-source — ver llamadas del agente */}
+          <button
+            onClick={() => navigate(`/transcriptions?agent=${encodeURIComponent(agent.agent_name)}`)}
+            title="Ver llamadas de este agente"
+            className="ml-1 p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+          >
+            <ExternalLink size={12} />
+          </button>
         </div>
       </td>
     </tr>
