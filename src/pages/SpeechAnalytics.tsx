@@ -151,11 +151,12 @@ export default function SpeechAnalytics() {
   // ── Análisis central ───────────────────────────────────────────────────────
   const analysis = useMemo(() => {
     if (transcriptions.length === 0) return null;
+    try {
 
     // Parsear todas las llamadas
     const calls: ParsedCall[] = transcriptions.map(t => ({
       raw: t,
-      ...parseSummary(t.summary),
+      ...parseSummary(t.summary || ''),
     }));
 
     const total = calls.length;
@@ -296,6 +297,10 @@ export default function SpeechAnalytics() {
       objecionMasFrecuente: mapaObjeciones[0],
       weeklyTrend,
     };
+    } catch (e) {
+      console.error('[SpeechAnalytics] Error en análisis:', e);
+      return null;
+    }
   }, [transcriptions]);
 
   // ── Loading ────────────────────────────────────────────────────────────────
