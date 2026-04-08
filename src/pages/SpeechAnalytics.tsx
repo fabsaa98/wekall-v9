@@ -633,11 +633,47 @@ export default function SpeechAnalytics() {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Temas frecuentes</p>
                 <div className="flex flex-wrap gap-1.5">
                   {topTemasExitosos.map(t => (
-                    <span key={t} className="text-[11px] bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-full">{t}</span>
+                    <span key={t} className="text-[11px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">{t}</span>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* ── Conclusión ejecutiva — llamadas exitosas ── */}
+            {nExitosas >= 5 && (() => {
+              const patronTop = patronesExitosos.filter(p => p.tasaEnExitosas > 0).sort((a, b) => b.ventaja - a.ventaja)[0];
+              const pctExito = tasaExito;
+              const temaTop = topTemasExitosos[0];
+              const totalAnalizadas = total;
+              return (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/5 p-4 space-y-2 mt-2">
+                  <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                    <TrendingUp size={10} /> Conclusión ejecutiva — {totalAnalizadas} llamadas analizadas
+                  </p>
+                  <p className="text-xs text-foreground leading-relaxed">
+                    El <span className="font-semibold text-emerald-700 dark:text-emerald-400">{pctExito}% de las {totalAnalizadas} llamadas</span> resultó en promesa de pago.
+                    {patronTop && patronTop.tasaEnExitosas > 0 && (
+                      <> El patrón más consistente en los cierres exitosos es <span className="font-semibold">"{patronTop.label}"</span> — presente en el <span className="font-semibold text-emerald-700 dark:text-emerald-400">{patronTop.tasaEnExitosas}%</span> de las llamadas que cierran, {patronTop.ventaja > 0 ? <>{patronTop.ventaja}pp por encima de las que no cierran.</> : <>con baja diferenciación respecto a las fallidas — indica que el patrón es necesario pero no suficiente.</>}</>
+                    )}
+                    {temaTop && <> El tema dominante en conversaciones exitosas es <span className="font-semibold">"{temaTop}"</span> — los agentes que anclan la conversación en este eje tienen mayor probabilidad de cierre.</>}
+                    {' '}La recomendación operativa: estandarizar estas prácticas en todos los agentes con el volumen actual generaría un incremento estimado de <span className="font-semibold text-emerald-700 dark:text-emerald-400">+{potencialMejoraScript} promesas adicionales</span> por período.
+                  </p>
+                  {fragmentosSummaryExitosos.length > 0 && (
+                    <details className="mt-1">
+                      <summary className="text-[10px] text-emerald-700 dark:text-emerald-400 cursor-pointer hover:underline">Ver evidencia verbatim ({fragmentosSummaryExitosos.length} extractos)</summary>
+                      <div className="mt-2 space-y-1.5 border-t border-emerald-500/20 pt-2">
+                        {fragmentosSummaryExitosos.slice(0, 5).map((frag, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <span className="flex-shrink-0 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{i + 1}.</span>
+                            <p className="text-[11px] text-foreground/70 leading-relaxed italic">"{frag}"</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Llamadas que NO cierran */}
@@ -683,15 +719,40 @@ export default function SpeechAnalytics() {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Temas frecuentes</p>
                 <div className="flex flex-wrap gap-1.5">
                   {topTemasFallidos.map(t => (
-                    <span key={t} className="text-[11px] bg-red-500/15 text-red-300 px-2 py-0.5 rounded-full">{t}</span>
+                    <span key={t} className="text-[11px] bg-red-500/15 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">{t}</span>
                   ))}
                 </div>
               </div>
             )}
 
+            {/* ── Conclusión ejecutiva — llamadas fallidas ── */}
+            {nFallidas >= 5 && (() => {
+              const objecionTop = [...mapaObjeciones].sort((a, b) => b.frecuencia - a.frecuencia)[0];
+              const temaTopFallida = topTemasFallidos[0];
+              const pctFallidas = total > 0 ? Math.round((nFallidas / total) * 100) : 0;
+              const patronAusenteTop = patronesExitosos.sort((a, b) => b.ventaja - a.ventaja)[0];
+              return (
+                <div className="rounded-lg border border-red-500/30 bg-red-50 dark:bg-red-500/5 p-4 space-y-2 mt-2">
+                  <p className="text-[10px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wider flex items-center gap-1">
+                    <TrendingDown size={10} /> Conclusión ejecutiva — {nFallidas} llamadas sin cierre ({pctFallidas}%)
+                  </p>
+                  <p className="text-xs text-foreground leading-relaxed">
+                    El <span className="font-semibold text-red-700 dark:text-red-400">{pctFallidas}% de las {total} llamadas</span> no resultó en compromiso de pago.
+                    {objecionTop && objecionTop.frecuencia > 0 && (
+                      <> La objeción más recurrente es <span className="font-semibold">"{objecionTop.label}"</span> ({objecionTop.frecuencia} ocurrencias), con una tasa de resolución actual de solo <span className="font-semibold text-red-700 dark:text-red-400">{objecionTop.tasaResolucion}%</span> — lo que indica que los agentes no tienen un protocolo estándar para manejarla.</>
+                    )}
+                    {patronAusenteTop && patronAusenteTop.ventaja > 5 && (
+                      <> El factor de mayor brecha es la ausencia de <span className="font-semibold">"{patronAusenteTop.label}"</span>: solo aparece en el <span className="font-semibold text-red-700 dark:text-red-400">{patronAusenteTop.tasaEnFallidas}%</span> de las llamadas que no cierran, vs el <span className="font-semibold text-emerald-700 dark:text-emerald-400">{patronAusenteTop.tasaEnExitosas}%</span> de las exitosas.</>
+                    )}
+                    {temaTopFallida && <> Los temas dominantes en conversaciones sin cierre giran en torno a <span className="font-semibold">"{temaTopFallida}"</span> — señal de que el agente no logra redirigir la conversación hacia una solución concreta.</>}
+                  </p>
+                </div>
+              );
+            })()}
+
             {nFallidas < 5 && (
               <p className="text-[11px] text-muted-foreground italic border-t border-border/50 pt-2">
-                ⚠️ Requiere mínimo 10 llamadas fallidas para patrones estadísticamente significativos.
+                ⚠️ Requiere mínimo 5 llamadas fallidas para conclusión estadísticamente válida.
               </p>
             )}
           </div>
