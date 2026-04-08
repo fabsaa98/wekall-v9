@@ -29,34 +29,84 @@ interface ParsedCall {
 
 // ─── Parser de summary ──────────────────────────────────────────────────────────
 
-function parseSummary(summary: string): { tema: string; tono: ParsedCall['tono']; resultado: ParsedCall['resultado']; resultadoRaw: string } {
+// ─── Parser multi-estrategia ────────────────────────────────────────────────────
+// Estrategia 1: formato estructurado del Worker (campo "Resultado:", "Tono del cliente:", etc.)
+// Estrategia 2: formato libre — búsqueda semántica por keywords
+// Estrategia 3: inferencia desde el transcript si el summary falla
+function parseSummary(summary: string, transcript?: string): { tema: string; tono: ParsedCall['tono']; resultado: ParsedCall['resultado']; resultadoRaw: string } {
   const s = (summary || '').toLowerCase();
+  const t = (transcript || '').toLowerCase();
+  const full = s + ' ' + t; // combinar ambos para máxima cobertura
 
-  // Extraer tema
+  // ── Tema ────────────────────────────────────────────────────────────────────
   let tema = 'Sin tema';
-  const temaMatch = summary.match(/[Tt]ema[:\s]+([^.]+)/);
-  if (temaMatch) tema = temaMatch[1].trim();
+  // Estrategia 1: campo estructurado "Tema:"
+  const temaMatch = summary.match(/[Tt]ema[:\s]+([^\n.]+)/);
+  if (temaMatch && temaMatch[1].trim().length > 2) {
+    tema = temaMatch[1].trim().replace(/\*+/g, '').trim();
+  }
 
-  // Tono del cliente
+  // ── Tono del cliente ────────────────────────────────────────────────────────
   let tono: ParsedCall['tono'] = 'desconocido';
-  if (s.includes('positivo') || s.includes('receptivo') || s.includes('cooperativo') || s.includes('amable') || s.includes('cordial')) tono = 'positivo';
-  else if (s.includes('negativo') || s.includes('hostil') || s.includes('molesto') || s.includes('enojado') || s.includes('irritado') || s.includes('agresivo')) tono = 'negativo';
-  else if (s.includes('neutral') || s.includes('indiferente')) tono = 'neutral';
 
-  // Resultado
+  // Estrategia 1: campo estructurado "Tono del cliente:"
+  const tonoMatch = summary.match(/[Tt]ono del cliente[:\s]+([^\n.]+)/i);
+  if (tonoMatch) {
+    const tv = tonoMatch[1].toLowerCase();
+    if (tv.includes('positivo') || tv.includes('receptivo') || tv.includes('cooperativo')) tono = 'positivo';
+    else if (tv.includes('negativo') || tv.includes('hostil') || tv.includes('agresivo')) tono = 'negativo';
+    else if (tv.includes('neutral') || tv.includes('indiferente')) tono = 'neutral';
+  }
+
+  // Estrategia 2: búsqueda semántica en todo el texto
+  if (tono === 'desconocido') {
+    if (full.includes('positivo') || full.includes('receptivo') || full.includes('cooperativo') || full.includes('amable') || full.includes('cordial') || full.includes('dispuesto')) tono = 'positivo';
+    else if (full.includes('negativo') || full.includes('hostil') || full.includes('molesto') || full.includes('enojado') || full.includes('irritado') || full.includes('agresivo') || full.includes('alterado')) tono = 'negativo';
+    else if (full.includes('neutral') || full.includes('indiferente') || full.includes('sin emoción')) tono = 'neutral';
+  }
+
+  // ── Resultado ───────────────────────────────────────────────────────────────
   let resultado: ParsedCall['resultado'] = 'desconocido';
   let resultadoRaw = '';
-  const resultadoMatch = summary.match(/[Rr]esultado[:\s]+([^.]+)/);
-  if (resultadoMatch) resultadoRaw = resultadoMatch[1].trim();
 
-  const r = resultadoRaw.toLowerCase() || s;
-  if (r.includes('promesa') || r.includes('acuerdo') || r.includes('compromiso') || r.includes('pagará') || r.includes('pago acordado') || r.includes('exitoso') || r.includes('favorable')) {
-    resultado = 'exitoso';
-  } else if (r.includes('no contesta') || r.includes('no contestó') || r.includes('no responde') || r.includes('buzón') || r.includes('no disponible') || r.includes('no atiende')) {
-    resultado = 'no_contacto';
-  } else if (r.includes('sin acuerdo') || r.includes('negativa') || r.includes('rechazo') || r.includes('no acepta') || r.includes('no quiere') || r.includes('fallido') || r.includes('sin resultado') || r.includes('no hubo')) {
-    resultado = 'fallido';
-  }
+  // Estrategia 1: campo estructurado "Resultado:"
+  const resultadoMatch = summary.match(/[Rr]esultado[:\s]+([^\n.]+)/);
+  if (resultadoMatch) resultadoRaw = resultadoMatch[1].trim().replace(/\*+/g, '').trim();
+
+  // Evaluar en campo estructurado primero, luego en todo el texto
+  const r = (resultadoRaw || '').toLowerCase();
+
+  // Keywords de éxito (promesa de pago) — dominio cobranza
+  const esExitoso = (text: string) =>
+    text.includes('promesa de pago') || text.includes('promesa') || text.includes('acuerdo de pago') ||
+    text.includes('acuerdo') || text.includes('compromiso') || text.includes('pagará') ||
+    text.includes('pago acordado') || text.includes('exitoso') || text.includes('favorable') ||
+    text.includes('comprometi') || text.includes('se comprometió') || text.includes('fecha de pago');
+
+  // Keywords de no-contacto
+  const esNoContacto = (text: string) =>
+    text.includes('no contesta') || text.includes('no contestó') || text.includes('no responde') ||
+    text.includes('buzón') || text.includes('buzon') || text.includes('no disponible') ||
+    text.includes('no atiende') || text.includes('número equivocado') || text.includes('no contacto') ||
+    text.includes('no se logró contactar') || text.includes('sin respuesta');
+
+  // Keywords de fracaso
+  const esFallido = (text: string) =>
+    text.includes('sin acuerdo') || text.includes('negativa') || text.includes('rechazo') ||
+    text.includes('no acepta') || text.includes('no quiere') || text.includes('fallido') ||
+    text.includes('sin resultado') || text.includes('no hubo acuerdo') || text.includes('no pagar') ||
+    text.includes('no puede pagar') || text.includes('rechazó');
+
+  // Evaluar en cascada: campo estructurado → texto completo del summary → transcript
+  if (r && esExitoso(r)) resultado = 'exitoso';
+  else if (r && esNoContacto(r)) resultado = 'no_contacto';
+  else if (r && esFallido(r)) resultado = 'fallido';
+  else if (esExitoso(s)) resultado = 'exitoso';
+  else if (esNoContacto(s)) resultado = 'no_contacto';
+  else if (esFallido(s)) resultado = 'fallido';
+  else if (t && esExitoso(t)) resultado = 'exitoso';
+  else if (t && esNoContacto(t)) resultado = 'no_contacto';
+  else if (t && esFallido(t)) resultado = 'fallido';
 
   return { tema, tono, resultado, resultadoRaw: resultadoRaw || 'No especificado' };
 }
@@ -155,7 +205,7 @@ export default function SpeechAnalytics() {
     // Parsear todas las llamadas
     const calls: ParsedCall[] = transcriptions.map(t => ({
       raw: t,
-      ...parseSummary(t.summary || ''),
+      ...parseSummary(t.summary || '', t.transcript || ''),
     }));
 
     const total = calls.length;
