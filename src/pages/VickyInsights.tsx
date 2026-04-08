@@ -1468,17 +1468,13 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 </button>
                 <button
                   onClick={() => {
-                    const today = new Date();
-                    const from = new Date(today);
-                    from.setDate(today.getDate() - 7);
-                    const fmt = (d: Date) => d.toISOString().substring(0, 10);
-                    sendMessage(`Compara el rendimiento de esta semana (${fmt(from)} al ${fmt(today)}) vs el mismo período del año anterior. Quiero ver: llamadas totales, tasa de contacto, AHT y promesas de pago. Presenta la comparativa en tabla y dime si mejoramos o empeoramos.`);
+                    setInput('¿Cómo estábamos en este mismo período hace un año?');
                   }}
                   disabled={loading || cdr.loading}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-sky-500/30 bg-sky-500/5 text-sky-600 dark:text-sky-400 text-xs font-medium hover:bg-sky-500/15 transition-all disabled:opacity-40"
                 >
                   <span>📅</span>
-                  ¿Cómo íbamos hace un año?
+                  Comparar períodos
                 </button>
                 {/* Feature 1: Nueva conversación button — resets history */}
                 {conversationHistory.length > 0 && (
