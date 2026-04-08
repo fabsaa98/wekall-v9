@@ -739,6 +739,15 @@ export default function VickyInsights() {
 ## RESUMEN ANUAL CDR
 Para obtener totales anuales, mensuales o tendencias históricas del CDR, usa la función query_cdr_data con el query_type apropiado. Los datos se consultan en tiempo real desde Supabase.
 
+## COMPARATIVAS YEAR-OVER-YEAR (YoY)
+Cuando el usuario pregunte por el rendimiento "hace un año", "mismo período año anterior", "cómo íbamos en abril del año pasado", o cualquier comparativa temporal:
+1. Usa query_cdr_data con query_type="year_over_year"
+2. Pasa from_date y to_date del período ACTUAL que el usuario menciona
+3. El sistema calcula el mismo rango del año anterior automáticamente
+4. Presenta la comparativa como tabla: métrica | período actual | año anterior | variación %
+5. Añade interpretación ejecutiva: qué mejoró, qué empeoró, qué explica la diferencia
+Ejemplo: si pregunta "¿cómo estábamos la semana pasada vs hace un año?", calcula la semana pasada y usa year_over_year.
+
 ## ANÁLISIS REAL DE 50 GRABACIONES (Whisper + NLP)
 ### Resultados de contacto (fuente: transcripciones reales):
 - Promesa de pago: 40% de contactos efectivos
@@ -1054,20 +1063,20 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           type: 'function' as const,
           function: {
             name: 'query_cdr_data',
-            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, o comparativos por rango de fechas. Siempre usa este tool cuando el usuario pregunte por datos históricos anuales, mensuales, o por períodos específicos que no están en el contexto inicial.',
+            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, comparativos por rango de fechas, y comparativas Year-over-Year (YoY). IMPORTANTE: para preguntas como "¿cómo estábamos hace un año?", "comparar esta semana vs el año pasado", "mismo período año anterior" — usa query_type="year_over_year" con from_date y to_date del período ACTUAL (el Worker calcula el período anterior automáticamente).',
             parameters: {
               type: 'object',
               properties: {
                 query_type: {
                   type: 'string',
-                  enum: ['annual_summary', 'monthly_summary', 'date_range', 'top_agents', 'daily_trend'],
-                  description: 'Tipo de consulta: annual_summary=totales por año, monthly_summary=totales por mes (requiere year), date_range=rango específico de fechas (requiere from_date y to_date), top_agents=ranking de agentes por llamadas, daily_trend=últimos N días',
+                  enum: ['annual_summary', 'monthly_summary', 'date_range', 'top_agents', 'daily_trend', 'year_over_year'],
+                  description: 'Tipo de consulta: annual_summary=totales por año | monthly_summary=totales por mes (requiere year) | date_range=rango específico (requiere from_date, to_date) | top_agents=ranking agentes | daily_trend=últimos N días | year_over_year=comparativa mismo período año anterior (requiere from_date, to_date del período ACTUAL)',
                 },
                 params: {
                   type: 'object',
-                  description: 'Parámetros adicionales según query_type: {year} para monthly_summary, {from_date, to_date} para date_range (formato YYYY-MM-DD), {limit, order} para top_agents (order: asc|desc), {days} para daily_trend',
+                  description: 'Parámetros según query_type. Para year_over_year: {from_date, to_date} del período ACTUAL — el sistema calcula el mismo rango del año anterior automáticamente.',
                   properties: {
-                    year: { type: 'number', description: 'Año (ej: 2024, 2025)' },
+                    year: { type: 'number', description: 'Año (ej: 2024, 2025) — para monthly_summary' },
                     from_date: { type: 'string', description: 'Fecha inicio YYYY-MM-DD' },
                     to_date: { type: 'string', description: 'Fecha fin YYYY-MM-DD' },
                     limit: { type: 'number', description: 'Cantidad de agentes a retornar (default 10)' },
@@ -1447,8 +1456,8 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
             {/* Input */}
             <div className="border-t border-border p-4">
-              {/* Botón Sorpréndeme + Nueva conversación */}
-              <div className="flex items-center gap-2 mb-2.5">
+              {/* Botón Sorpréndeme + YoY + Nueva conversación */}
+              <div className="flex items-center gap-2 mb-2.5 flex-wrap">
                 <button
                   onClick={handleSorprendeme}
                   disabled={surpriseLoading || loading || cdr.loading}
@@ -1456,6 +1465,20 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 >
                   {surpriseLoading ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
                   ¿Qué pasó esta semana?
+                </button>
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    const from = new Date(today);
+                    from.setDate(today.getDate() - 7);
+                    const fmt = (d: Date) => d.toISOString().substring(0, 10);
+                    sendMessage(`Compara el rendimiento de esta semana (${fmt(from)} al ${fmt(today)}) vs el mismo período del año anterior. Quiero ver: llamadas totales, tasa de contacto, AHT y promesas de pago. Presenta la comparativa en tabla y dime si mejoramos o empeoramos.`);
+                  }}
+                  disabled={loading || cdr.loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-sky-500/30 bg-sky-500/5 text-sky-600 dark:text-sky-400 text-xs font-medium hover:bg-sky-500/15 transition-all disabled:opacity-40"
+                >
+                  <span>📅</span>
+                  ¿Cómo íbamos hace un año?
                 </button>
                 {/* Feature 1: Nueva conversación button — resets history */}
                 {conversationHistory.length > 0 && (
