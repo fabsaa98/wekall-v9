@@ -18,16 +18,48 @@ function AgentSparkline({ data, trend }: { data: number[]; trend: 'up' | 'down' 
   }
   const chartData = data.map((v, i) => ({ i, v }));
   const color = trend === 'up' ? '#22C55E' : trend === 'down' ? '#EF4444' : '#6B7280';
+
+  // Max/min dots — agent sparkline: more calls = better (not inverted)
+  const hasEnough = data.length >= 3;
+  const maxIdx = hasEnough ? chartData.reduce((best, d, i, arr) => d.v > arr[best].v ? i : best, 0) : -1;
+  const minIdx = hasEnough ? chartData.reduce((best, d, i, arr) => d.v < arr[best].v ? i : best, 0) : -1;
+  const showDots = hasEnough && maxIdx !== minIdx;
+
   return (
     <div title={`Últimos ${data.length} días: ${data.join(', ')}%`}>
-      <LineChart width={64} height={24} data={chartData}>
+      <LineChart width={64} height={28} data={chartData} margin={{ top: 8, right: 2, bottom: 0, left: 2 }}>
         <Line
           type="monotone"
           dataKey="v"
           stroke={color}
           strokeWidth={1.5}
-          dot={false}
           isAnimationActive={false}
+          activeDot={false}
+          dot={showDots ? (props: any) => {
+            const { cx, cy, index, value } = props;
+            const isMax = index === maxIdx;
+            const isMin = index === minIdx;
+            if (!isMax && !isMin) return <g key={index} />;
+            const dotColor = isMax ? '#22c55e' : '#ef4444';
+            const fmt = typeof value === 'number'
+              ? (value % 1 === 0 ? String(value) : value.toFixed(1))
+              : String(value);
+            return (
+              <g key={index}>
+                <circle cx={cx} cy={cy} r={2.5} fill={dotColor} stroke="none" />
+                <text
+                  x={cx}
+                  y={isMax ? cy - 4 : cy + 10}
+                  textAnchor="middle"
+                  fontSize={7}
+                  fill={dotColor}
+                  fontWeight="600"
+                >
+                  {fmt}
+                </text>
+              </g>
+            );
+          } : false}
         />
       </LineChart>
     </div>

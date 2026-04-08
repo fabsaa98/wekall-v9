@@ -18,6 +18,18 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
   const sparkData = kpi.sparkline.map((v, i) => ({ i, v }));
   const vsPositive = kpi.vsIndustry >= 0;
 
+  // Sparkline max/min dots
+  const hasEnoughSparkData = sparkData.length >= 3;
+  const sparkMaxIdx = hasEnoughSparkData
+    ? sparkData.reduce((best, d, i, arr) => d.v > arr[best].v ? i : best, 0)
+    : -1;
+  const sparkMinIdx = hasEnoughSparkData
+    ? sparkData.reduce((best, d, i, arr) => d.v < arr[best].v ? i : best, 0)
+    : -1;
+  const showSparkDots = hasEnoughSparkData && sparkMaxIdx !== sparkMinIdx;
+  const sparkMaxColor = kpi.invertColor ? '#ef4444' : '#22c55e';
+  const sparkMinColor = kpi.invertColor ? '#22c55e' : '#ef4444';
+
   return (
     <div
       className={cn(
@@ -57,7 +69,7 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
         {/* Sparkline */}
         <div className="w-20 h-10 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparkData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+            <AreaChart data={sparkData} margin={{ top: 8, right: 2, bottom: 0, left: 2 }}>
               <defs>
                 <linearGradient id={`sg-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6334C0" stopOpacity={0.3} />
@@ -70,7 +82,32 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
                 stroke="#6334C0"
                 strokeWidth={1.5}
                 fill={`url(#sg-${kpi.id})`}
-                dot={false}
+                activeDot={false}
+                dot={showSparkDots ? (props: any) => {
+                  const { cx, cy, index, value } = props;
+                  const isMax = index === sparkMaxIdx;
+                  const isMin = index === sparkMinIdx;
+                  if (!isMax && !isMin) return <g key={index} />;
+                  const color = isMax ? sparkMaxColor : sparkMinColor;
+                  const fmt = typeof value === 'number'
+                    ? (value % 1 === 0 ? String(value) : value.toFixed(1))
+                    : String(value);
+                  return (
+                    <g key={index}>
+                      <circle cx={cx} cy={cy} r={3} fill={color} stroke="none" />
+                      <text
+                        x={cx}
+                        y={isMax ? cy - 5 : cy + 11}
+                        textAnchor="middle"
+                        fontSize={7}
+                        fill={color}
+                        fontWeight="600"
+                      >
+                        {fmt}
+                      </text>
+                    </g>
+                  );
+                } : false}
               />
             </AreaChart>
           </ResponsiveContainer>

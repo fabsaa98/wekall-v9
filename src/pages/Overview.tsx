@@ -554,8 +554,50 @@ export default function Overview() {
                 contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#F9FAFB' }}
               />
-              <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" />
-              <Area type="monotone" dataKey="resolved" name="Contactos" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" />
+              <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" dot={(() => {
+                const totalVals = conversationTrend.map((d: any) => d.total ?? 0);
+                const hasEnough = totalVals.length >= 3;
+                const maxIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v > totalVals[best] ? i : best, 0) : -1;
+                const minIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v < totalVals[best] ? i : best, 0) : -1;
+                const showDots = hasEnough && maxIdx !== minIdx;
+                if (!showDots) return false;
+                return (props: any) => {
+                  const { cx, cy, index, value } = props;
+                  const isMax = index === maxIdx;
+                  const isMin = index === minIdx;
+                  if (!isMax && !isMin) return <g key={index} />;
+                  const color = isMax ? '#22c55e' : '#ef4444';
+                  const fmt = typeof value === 'number' ? (value % 1 === 0 ? String(value) : value.toFixed(1)) : String(value);
+                  return (
+                    <g key={index}>
+                      <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="none" />
+                      <text x={cx} y={isMax ? cy - 7 : cy + 13} textAnchor="middle" fontSize={9} fill={color} fontWeight="600">{fmt}</text>
+                    </g>
+                  );
+                };
+              })()} activeDot={false} />
+              <Area type="monotone" dataKey="resolved" name="Contactos" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" dot={(() => {
+                const resolvedVals = conversationTrend.map((d: any) => d.resolved ?? 0);
+                const hasEnough = resolvedVals.length >= 3;
+                const maxIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v > resolvedVals[best] ? i : best, 0) : -1;
+                const minIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v < resolvedVals[best] ? i : best, 0) : -1;
+                const showDots = hasEnough && maxIdx !== minIdx;
+                if (!showDots) return false;
+                return (props: any) => {
+                  const { cx, cy, index, value } = props;
+                  const isMax = index === maxIdx;
+                  const isMin = index === minIdx;
+                  if (!isMax && !isMin) return <g key={index} />;
+                  const color = isMax ? '#22c55e' : '#ef4444';
+                  const fmt = typeof value === 'number' ? (value % 1 === 0 ? String(value) : value.toFixed(1)) : String(value);
+                  return (
+                    <g key={index}>
+                      <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="none" />
+                      <text x={cx} y={isMax ? cy - 7 : cy + 13} textAnchor="middle" fontSize={9} fill={color} fontWeight="600">{fmt}</text>
+                    </g>
+                  );
+                };
+              })()} activeDot={false} />
             </AreaChart>
           </ResponsiveContainer>
           </div>
@@ -674,7 +716,30 @@ export default function Overview() {
                         labelStyle={{ color: '#F9FAFB' }}
                         formatter={(v: number) => [`${v}${drillDownKPI.unit || ''}`, drillDownKPI.title]}
                       />
-                      <Area type="monotone" dataKey="v" stroke="#6334C0" strokeWidth={2} fill="url(#gDrillDown)" dot={false} />
+                      <Area type="monotone" dataKey="v" stroke="#6334C0" strokeWidth={2} fill="url(#gDrillDown)" activeDot={false} dot={(() => {
+                        const vals = spark30.map(d => d.v);
+                        const hasEnough = vals.length >= 3;
+                        // drill-down metrics: costo_contacto is not invertColor in this context (tasa_contacto_pct = higher is better)
+                        const invertColor = drillDownMetric === 'costo_contacto'; // costo → lower is better
+                        const maxIdx = hasEnough ? vals.reduce((best, v, i) => v > vals[best] ? i : best, 0) : -1;
+                        const minIdx = hasEnough ? vals.reduce((best, v, i) => v < vals[best] ? i : best, 0) : -1;
+                        const showDots = hasEnough && maxIdx !== minIdx;
+                        if (!showDots) return false;
+                        return (props: any) => {
+                          const { cx, cy, index, value } = props;
+                          const isMax = index === maxIdx;
+                          const isMin = index === minIdx;
+                          if (!isMax && !isMin) return <g key={index} />;
+                          const color = isMax ? (invertColor ? '#ef4444' : '#22c55e') : (invertColor ? '#22c55e' : '#ef4444');
+                          const fmt = typeof value === 'number' ? (value % 1 === 0 ? String(value) : value.toFixed(1)) : String(value);
+                          return (
+                            <g key={index}>
+                              <circle cx={cx} cy={cy} r={4} fill={color} stroke="none" />
+                              <text x={cx} y={isMax ? cy - 8 : cy + 14} textAnchor="middle" fontSize={10} fill={color} fontWeight="600">{fmt}</text>
+                            </g>
+                          );
+                        };
+                      })()} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
