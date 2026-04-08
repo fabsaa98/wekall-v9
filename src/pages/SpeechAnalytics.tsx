@@ -76,12 +76,21 @@ function parseSummary(summary: string, transcript?: string): { tema: string; ton
   // Evaluar en campo estructurado primero, luego en todo el texto
   const r = (resultadoRaw || '').toLowerCase();
 
+  // Negaciones — si el texto empieza con o contiene estas frases, NO es exitoso
+  const tieneNegacion = (text: string) =>
+    /\bno prometi|\bno prometió|\bno se comprometió|\bno hubo acuerdo|\bno realizó pago|\bno pudo|\bno quiso|\bsin comprometerse|\bsin prometió|\bnegó\b|\bnegó pagar|\bse negó/.test(text);
+
   // Keywords de éxito (promesa de pago) — dominio cobranza
-  const esExitoso = (text: string) =>
-    text.includes('promesa de pago') || text.includes('promesa') || text.includes('acuerdo de pago') ||
-    text.includes('acuerdo') || text.includes('compromiso') || text.includes('pagará') ||
-    text.includes('pago acordado') || text.includes('exitoso') || text.includes('favorable') ||
-    text.includes('comprometi') || text.includes('se comprometió') || text.includes('fecha de pago');
+  // Orden: primero verificar que no hay negación en el contexto cercano
+  const esExitoso = (text: string) => {
+    if (tieneNegacion(text)) return false; // si el texto tiene negación explícita, no es exitoso
+    return text.includes('promesa de pago') || text.includes('acuerdo de pago') ||
+      text.includes('pago acordado') || text.includes('pagará') ||
+      text.includes('se comprometió a pagar') || text.includes('comprometió pagar') ||
+      text.includes('comprometió a pagar') || text.includes('fecha de pago') ||
+      text.includes('promesa') && !text.includes('no prometió') && !text.includes('sin promesa') ||
+      text.includes('exitoso') || text.includes('compromiso de pago');
+  };
 
   // Keywords de no-contacto
   const esNoContacto = (text: string) =>
@@ -632,26 +641,13 @@ export default function SpeechAnalytics() {
                 );
               }
               if (patronesConDatos.length === 0) {
-                // Fallback: mostrar fragmentos textuales de summaries exitosos
+                // Sin patrones detectados por keywords — la conclusión ejecutiva debajo cubre el análisis
                 return (
-                  <div className="space-y-2">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Extractos de llamadas con promesa de pago</p>
-                    {fragmentosSummaryExitosos.length > 0 ? (
-                      <div className="space-y-2">
-                        {fragmentosSummaryExitosos.map((frag, i) => (
-                          <div key={i} className="flex gap-2 items-start">
-                            <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/15 flex items-center justify-center mt-0.5">
-                              <span className="text-[9px] font-bold text-emerald-400">{i + 1}</span>
-                            </span>
-                            <p className="text-xs text-foreground/80 leading-relaxed">"{frag}"</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        No se encontraron summaries disponibles para las llamadas exitosas.
-                      </p>
-                    )}
+                  <div className="rounded-lg border border-border bg-muted/20 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Los patrones de conversación no se detectaron con suficiente frecuencia para graficar.
+                      La conclusión ejecutiva debajo sintetiza el análisis completo de las <span className="font-semibold text-foreground">{nExitosas} llamadas exitosas</span>.
+                    </p>
                   </div>
                 );
               }
