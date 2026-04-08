@@ -492,6 +492,8 @@ export default function VickyInsights() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
   // Feature 1: Conversation memory
   const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user'|'assistant', content: string}>>([]);
+  // useRef to avoid stale closure in async sendMessage (especially in tool_calls second pass)
+  const conversationHistoryRef = useRef<Array<{role: 'user'|'assistant', content: string}>>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [actionOpen, setActionOpen] = useState(false);
@@ -1097,8 +1099,8 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           model: 'gpt-4o',
           messages: [
             { role: 'system', content: CONTEXT },
-            // Feature 1: Include conversation history (last 10 turns)
-            ...conversationHistory.slice(-10),
+            // Feature 1: Include conversation history (last 10 turns) — use ref to avoid stale closure
+            ...conversationHistoryRef.current.slice(-10),
             { role: 'user', content: text },
           ],
           tools: TOOLS,
@@ -1170,8 +1172,8 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             model: 'gpt-4o',
             messages: [
               { role: 'system', content: CONTEXT },
-              // Feature 1: Include conversation history in tool-calling second pass
-              ...conversationHistory.slice(-10),
+              // Feature 1: Include conversation history in tool-calling second pass — use ref to avoid stale closure
+              ...conversationHistoryRef.current.slice(-10),
               { role: 'user', content: text },
               choice.message,
               ...toolCalls.map((call, i: number) => ({
@@ -1217,11 +1219,13 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
     // Feature 1: Update conversation history with user + assistant turn
     if (resp.role === 'vicky' && resp.confidence !== 'Baja') {
-      setConversationHistory(prev => [
-        ...prev,
+      const newHistory = [
+        ...conversationHistoryRef.current,
         { role: 'user' as const, content: text },
         { role: 'assistant' as const, content: resp.content },
-      ]);
+      ];
+      conversationHistoryRef.current = newHistory;
+      setConversationHistory(newHistory);
     }
 
     // Guardar Q&A exitoso en Supabase (vicky_conversations)
@@ -1457,6 +1461,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 {conversationHistory.length > 0 && (
                   <button
                     onClick={() => {
+                      conversationHistoryRef.current = [];
                       setConversationHistory([]);
                       setMessages(initialVickyMessages);
                     }}

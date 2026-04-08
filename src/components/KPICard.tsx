@@ -67,9 +67,9 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
         </div>
 
         {/* Sparkline */}
-        <div className="w-20 h-10 shrink-0">
+        <div className="w-24 h-12 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparkData} margin={{ top: 8, right: 2, bottom: 0, left: 2 }}>
+            <AreaChart data={sparkData} margin={{ top: 14, right: 2, bottom: 2, left: 2 }}>
               <defs>
                 <linearGradient id={`sg-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6334C0" stopOpacity={0.3} />
@@ -84,7 +84,8 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
                 fill={`url(#sg-${kpi.id})`}
                 activeDot={false}
                 dot={showSparkDots ? (props: any) => {
-                  const { cx, cy, index, value } = props;
+                  const { cx, cy, index, payload } = props;
+                  const value = payload?.v;
                   const isMax = index === sparkMaxIdx;
                   const isMin = index === sparkMinIdx;
                   if (!isMax && !isMin) return <g key={index} />;
@@ -94,14 +95,14 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
                     : String(value);
                   return (
                     <g key={index}>
-                      <circle cx={cx} cy={cy} r={3} fill={color} stroke="none" />
+                      <circle cx={cx} cy={cy} r={4} fill={color} stroke="none" />
                       <text
                         x={cx}
-                        y={isMax ? cy - 5 : cy + 11}
+                        y={isMax ? cy - 10 : cy + 13}
                         textAnchor="middle"
-                        fontSize={7}
+                        fontSize={9}
                         fill={color}
-                        fontWeight="600"
+                        fontWeight={700}
                       >
                         {fmt}
                       </text>

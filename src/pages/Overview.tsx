@@ -167,6 +167,19 @@ export default function Overview() {
     : null;
   const forecastVsHoy = forecastAvg !== null ? Math.round((forecastAvg - latestTasa) * 10) / 10 : null;
 
+  // Forecast max/min dot indices (offset by historical + bridge points)
+  const forecastOnlyValues = cdr.forecast.map(f => f.predicted_tasa);
+  const forecastOffset = cdr.last7Days.length + (cdr.forecast.length > 0 && cdr.last7Days.length > 0 ? 1 : 0);
+  const forecastMaxLocalIdx = forecastOnlyValues.length >= 2
+    ? forecastOnlyValues.reduce((best, v, i, arr) => v > arr[best] ? i : best, 0)
+    : -1;
+  const forecastMinLocalIdx = forecastOnlyValues.length >= 2
+    ? forecastOnlyValues.reduce((best, v, i, arr) => v < arr[best] ? i : best, 0)
+    : -1;
+  const forecastMaxIdx = forecastMaxLocalIdx >= 0 ? forecastOffset + forecastMaxLocalIdx : -1;
+  const forecastMinIdx = forecastMinLocalIdx >= 0 ? forecastOffset + forecastMinLocalIdx : -1;
+  const showForecastDots = forecastMaxIdx >= 0 && forecastMinIdx >= 0 && forecastMaxIdx !== forecastMinIdx;
+
   // ── Drill-down data ──────────────────────────────────────────────────────
   const drillDownKPI = allKPIs.find(k => k.id === drillDownMetric);
   const drillDownBenchmark = INDUSTRY_BENCHMARKS['contact_center_cobranzas'];
@@ -460,9 +473,34 @@ export default function Overview() {
                 stroke="#A78BFA"
                 strokeWidth={2}
                 strokeDasharray="6 3"
-                dot={{ r: 3, fill: '#A78BFA', stroke: '#A78BFA' }}
                 activeDot={{ r: 5, fill: '#A78BFA' }}
                 connectNulls={false}
+                dot={showForecastDots ? (props: any) => {
+                  const { cx, cy, index, payload } = props;
+                  const value = payload?.forecast;
+                  const isMax = index === forecastMaxIdx;
+                  const isMin = index === forecastMinIdx;
+                  if (!isMax && !isMin) return <g key={`fd-${index}`} />;
+                  const color = isMax ? '#22c55e' : '#ef4444';
+                  const fmt = typeof value === 'number'
+                    ? (value % 1 === 0 ? String(value) : value.toFixed(1))
+                    : String(value ?? '');
+                  return (
+                    <g key={`fd-${index}`}>
+                      <circle cx={cx} cy={cy} r={4} fill={color} stroke="none" />
+                      <text
+                        x={cx}
+                        y={isMax ? cy - 10 : cy + 13}
+                        textAnchor="middle"
+                        fontSize={9}
+                        fill={color}
+                        fontWeight={700}
+                      >
+                        {fmt}%
+                      </text>
+                    </g>
+                  );
+                } : { r: 3, fill: '#A78BFA', stroke: '#A78BFA' }}
               />
             </ComposedChart>
           </ResponsiveContainer>
