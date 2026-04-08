@@ -768,23 +768,27 @@ export default function Overview() {
                       <Area type="monotone" dataKey="v" stroke="#6334C0" strokeWidth={2} fill="url(#gDrillDown)" activeDot={false} dot={(() => {
                         const vals = spark30.map(d => d.v);
                         const hasEnough = vals.length >= 3;
-                        // drill-down metrics: costo_contacto is not invertColor in this context (tasa_contacto_pct = higher is better)
-                        const invertColor = drillDownMetric === 'costo_contacto'; // costo → lower is better
+                        // costo_contacto → lower is better (invertColor=true). All others: higher is better.
+                        const invertColor = drillDownMetric === 'costo_contacto';
                         const maxIdx = hasEnough ? vals.reduce((best, v, i) => v > vals[best] ? i : best, 0) : -1;
                         const minIdx = hasEnough ? vals.reduce((best, v, i) => v < vals[best] ? i : best, 0) : -1;
                         const showDots = hasEnough && maxIdx !== minIdx;
                         if (!showDots) return false;
+                        // maxColor: verde si higher=mejor, rojo si lower=mejor
+                        const maxColor = invertColor ? '#ef4444' : '#22c55e';
+                        const minColor = invertColor ? '#22c55e' : '#ef4444';
                         return (props: any) => {
-                          const { cx, cy, index, value } = props;
+                          const { cx, cy, index, payload } = props;
                           const isMax = index === maxIdx;
                           const isMin = index === minIdx;
                           if (!isMax && !isMin) return <g key={index} />;
-                          const color = isMax ? (invertColor ? '#ef4444' : '#22c55e') : (invertColor ? '#22c55e' : '#ef4444');
-                          const fmt = typeof value === 'number' ? (value % 1 === 0 ? String(value) : value.toFixed(1)) : String(value);
+                          const rawVal = payload?.v;
+                          const color = isMax ? maxColor : minColor;
+                          const fmt = typeof rawVal === 'number' ? (rawVal % 1 === 0 ? String(rawVal) : rawVal.toFixed(1)) : String(rawVal ?? '');
                           return (
                             <g key={index}>
                               <circle cx={cx} cy={cy} r={4} fill={color} stroke="none" />
-                              <text x={cx} y={isMax ? cy - 8 : cy + 14} textAnchor="middle" fontSize={10} fill={color} fontWeight="600">{fmt}</text>
+                              <text x={cx} y={isMax ? cy - 10 : cy + 14} textAnchor="middle" fontSize={10} fill={color} fontWeight="700">{fmt}</text>
                             </g>
                           );
                         };
