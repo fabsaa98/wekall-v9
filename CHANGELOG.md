@@ -2,6 +2,121 @@
 
 ---
 
+## [V21.0.0] — 2026-04-07 — Proxy 4G, Function Calling, Insight Ejecutivo, Auth Fix
+
+> Sesión de trabajo: Fabián Saavedra + GlorIA. Enfoque: estabilidad mobile (4G), inteligencia real de Vicky (function calling dinámico), Speech Analytics ejecutivo nivel McKinsey, y seguridad de autenticación.
+
+---
+
+### 🔐 Auth — Fix crítico de bypass
+
+**Problema:** `AuthGuard` tenía un fallback de localStorage que permitía entrar a la plataforma sin credenciales si el navegador tenía `wki_client_id` guardado de sesiones anteriores (modo legacy).
+
+**Corrección (`src/App.tsx`):**
+- Eliminado fallback de localStorage en `AuthGuard`
+- Ahora solo se permite acceso con sesión activa de Supabase Auth
+- Sin excepciones — cualquier usuario nuevo debe autenticarse
+
+**Commit:** `d3d922e`
+
+---
+
+### 📡 Proxy Cloudflare Worker — Fix 4G completo
+
+**Problema:** La red 4G de Claro Colombia bloqueaba conexiones directas a Supabase desde el cliente JS, causando spinners infinitos en Overview, Speech Analytics, Alertas y VickyInsights.
+
+**Arquitectura implementada:**
+- Todo el tráfico de lectura (GET queries) ahora pasa por `wekall-vicky-proxy.fabsaa98.workers.dev`
+- Nuevo endpoint `/query` en el Worker para queries REST a Supabase con soporte de filtros, orden y limit
+- Auth ya iba por el Worker (sin problema). Datos también ahora.
+
+**Archivos modificados:**
+- `src/lib/supabase.ts` — nuevo helper `proxyQuery<T>()` que enruta por Worker
+- `getLastNDays`, `getLatestCampaigns`, `getHourlyDistribution`, `getClientConfig`, `getActiveClientConfig`, `getRecentAlertLog`, `getVickyHistory` → todos migrados al proxy
+- `src/pages/SpeechAnalytics.tsx` → query de transcripciones migrada al proxy
+
+**INSERTs (guardar alertas, historial Vicky):** permanecen en Supabase JS directo — el proxy actual solo maneja GETs.
+
+**Commits:** `067cb9f`, `9717d17`, `30a2643`
+
+---
+
+### ⏱️ Timeout CDR — Fix spinner infinito
+
+**Problema:** Si Supabase no respondía en móvil, `useCDRData` colgaba indefinidamente sin mostrar error.
+
+**Corrección (`src/hooks/useCDRData.ts`):**
+- Timeout de 12 segundos con `Promise.race`
+- Si no hay respuesta en 12s → muestra mensaje de error al usuario en vez de spinner eterno
+
+**Commit:** `75244d4`
+
+---
+
+### 🤖 Function Calling — Vicky consulta datos en tiempo real
+
+**Problema:** Vicky tenía datos hardcodeados en el contexto (snapshot congelado), hacía que preguntas como "¿cuántas llamadas en 2024?" fueran imposibles de responder correctamente. Escalabilidad cero.
+
+**Arquitectura implementada:**
+- **Worker `/cdr-stats`** — nuevo endpoint que consulta Supabase en tiempo real y agrega datos:
+  - `annual_summary` — totales por año
+  - `monthly_summary` — totales por mes (params: `{year}`)
+  - `date_range` — rango de fechas (params: `{from_date, to_date}`)
+  - `daily_trend` — últimos N días (params: `{days}`)
+  - `top_agents` — ranking de agentes (params: `{limit, order}`)
+- **`VickyInsights.tsx`** — implementado OpenAI Function Calling:
+  - Tool `query_cdr_data` definida con schema completo
+  - Manejo de `finish_reason: "tool_calls"`: Vicky detecta qué datos necesita, llama al Worker, recibe la respuesta, genera el análisis
+  - Datos hardcodeados de años eliminados del contexto
+
+**Fix posterior:** campo `call_date` incorrecto en el Worker (la tabla usa `fecha`) — corregido y redesplegado.
+
+**Commits:** `ad48b33` (frontend), Worker versión `96ae00a9` y `0891fb1f`
+
+---
+
+### 🎨 UX — Colores
+
+**Problema:** El color `amber/yellow` no tiene contraste suficiente en fondos oscuros del dashboard — los textos amarillos eran invisibles.
+
+**Corrección:**
+- Reemplazo global `amber` → `sky` en 9 archivos de la app
+- `sky-400/sky-500` es el estándar de dashboards como Linear, Vercel, Datadog
+
+**Archivos:** `SpeechAnalytics.tsx`, `Overview.tsx`, `VickyInsights.tsx`, `Alertas.tsx`, `Equipos.tsx`, `Configuracion.tsx`, `Admin.tsx`, `UploadRecording.tsx`, `DocumentAnalysis.tsx`, `SentimentBadge.tsx`
+
+**Commit:** `5edcfd4`
+
+---
+
+### 🧠 Speech Analytics — Diagnóstico Ejecutivo McKinsey
+
+**Pedido de Fabián:** El bloque de Drivers de Conversión mostraba verbatim (frases sueltas del top 5), pero no entregaba la conclusión ejecutiva que necesita un CEO — la síntesis de TODAS las llamadas como lo haría un consultor senior.
+
+**Implementado:**
+- Nuevo card "Diagnóstico Ejecutivo" encima del grid exitosas/fallidas
+- Analiza el 100% de las transcripciones disponibles (no solo top 5)
+- Identifica patrón diferenciador con ratio multiplicador (ej. "2.3x más cierre")
+- Reencuadra objeciones como oportunidades ("56% no rechaza la deuda — pide tiempo")
+- Cuantifica brecha operativa e impacto estimado si cuartil inferior adopta prácticas del top 25%
+- Solo aparece con ≥5 transcripciones; fallback con mensaje de datos insuficientes
+- Diseño: `border-l-4 border-purple-500 bg-purple-500/5`, badge "✦ Insight IA"
+
+**Commit:** `e51e03f`
+
+---
+
+### 🔧 wacli — Actualización cliente WhatsApp
+
+**Problema:** wacli v0.2.0 (Homebrew) usaba protocolo WhatsApp Web v2.3000 — rechazado por WhatsApp (error 405).
+
+**Solución:**
+- Compilado desde fuente: `github.com/steipete/wacli` con `whatsmeow v0.0.0-20260211` (protocolo actualizado)
+- Instalado en `~/bin/wacli`
+- Script `gloria-send-audio.sh` actualizado para usar el nuevo binario
+
+---
+
 ## [V20.0.0] — 2026-04-05 — Screening Completo: Seguridad, World-Class, Auth Real
 
 > Versión de madurez: se eliminaron todos los hardcodeos críticos, se implementó auth real con Supabase Auth v2, y se añadieron features world-class (forecasting, drill-down, speech analytics, push proactivo). El producto está listo para escalar a clientes reales.
