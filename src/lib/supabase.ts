@@ -141,7 +141,7 @@ async function proxyQuery<T>(payload: object): Promise<T> {
 export async function getLastNDays(n: number, clientId = 'credismart'): Promise<CDRDayMetric[]> {
   const data = await proxyQuery<CDRDayMetric[]>({
     table: 'cdr_daily_metrics',
-    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct,aht_minutos',
+    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct',
     filters: {
       'client_id': `eq.${clientId}`,
       'total_llamadas': 'gte.5000',
