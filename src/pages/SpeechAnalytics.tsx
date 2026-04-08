@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Mic, Loader2, AlertTriangle, TrendingUp, TrendingDown, Users, Target, Lightbulb, CheckCircle2, XCircle, AlertCircle, ArrowUpRight, BarChart2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
 import { cn } from '@/lib/utils';
 
