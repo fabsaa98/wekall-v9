@@ -190,6 +190,10 @@ export default function Overview() {
     ? cdr.last30Days.map((d, i) => ({ i, fecha: d.fecha.slice(5), v: d.total_llamadas }))
     : drillDownMetric === 'contactos_efectivos'
     ? cdr.last30Days.map((d, i) => ({ i, fecha: d.fecha.slice(5), v: d.contactos_efectivos }))
+    : drillDownMetric === 'aht_real'
+    ? cdr.last30Days.map((d, i) => ({ i, fecha: d.fecha.slice(5), v: d.aht_minutos ?? 0 })).filter(d => d.v > 0)
+    : drillDownMetric === 'tasa_contacto'
+    ? cdr.last30Days.map((d, i) => ({ i, fecha: d.fecha.slice(5), v: d.tasa_contacto_pct }))
     : [];
 
   const spark7 = spark30.slice(-7);

@@ -103,6 +103,7 @@ export interface CDRDayMetric {
   total_llamadas: number;
   contactos_efectivos: number;
   tasa_contacto_pct: number;
+  aht_minutos?: number;
 }
 
 export interface CDRCampaignMetric {
@@ -140,7 +141,7 @@ async function proxyQuery<T>(payload: object): Promise<T> {
 export async function getLastNDays(n: number, clientId = 'credismart'): Promise<CDRDayMetric[]> {
   const data = await proxyQuery<CDRDayMetric[]>({
     table: 'cdr_daily_metrics',
-    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct',
+    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct,aht_minutos',
     filters: {
       'client_id': `eq.${clientId}`,
       'total_llamadas': 'gte.5000',
