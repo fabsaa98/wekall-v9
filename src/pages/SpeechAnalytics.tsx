@@ -478,7 +478,7 @@ export default function SpeechAnalytics() {
           ) : null;
 
           return (
-            <div className="rounded-xl border-l-4 border-purple-500 bg-purple-500/5 border border-purple-500/20 p-5 space-y-3">
+            <div className="rounded-xl border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20 p-5 space-y-3">
               {/* Header */}
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
@@ -504,7 +504,7 @@ export default function SpeechAnalytics() {
                 {/* P2: patrón dominante */}
                 {patronDominante && (
                   <p>
-                    <span className="font-semibold text-purple-300">Patrón más diferenciador:</span>{' '}
+                    <span className="font-semibold text-purple-700 dark:text-purple-300">Patrón más diferenciador:</span>{' '}
                     "<span className="italic">{patronDominante.label}</span>" está presente en el{' '}
                     <span className="font-semibold text-foreground">{patronDominante.tasaEnExitosas}%</span> de las llamadas exitosas
                     {ventajaPatron && ventajaPatron !== 'Infinity' && (
@@ -516,7 +516,7 @@ export default function SpeechAnalytics() {
                 {/* P3: objeción dominante como oportunidad */}
                 {principalObstaculo && principalObstaculo.frecuencia > 0 && (
                   <p>
-                    <span className="font-semibold text-purple-300">Objeción dominante:</span>{' '}
+                    <span className="font-semibold text-purple-700 dark:text-purple-300">Objeción dominante:</span>{' '}
                     "<span className="italic">{principalObstaculo.label}</span>" ({pctObstaculo}% de las llamadas) no es una negativa —{' '}
                     {principalObstaculo.tasaResolucion >= 40
                       ? <>se resuelve en el <span className="font-semibold text-emerald-400">{principalObstaculo.tasaResolucion}%</span> de los casos cuando el agente tiene el protocolo correcto.</>
@@ -528,7 +528,7 @@ export default function SpeechAnalytics() {
                 {/* P4: temas dominantes */}
                 {(temaTopExitosa || temaTopFallida) && (
                   <p>
-                    <span className="font-semibold text-purple-300">Señal temática:</span>{' '}
+                    <span className="font-semibold text-purple-700 dark:text-purple-300">Señal temática:</span>{' '}
                     {temaTopExitosa && <>Las conversaciones exitosas giran en torno a "<span className="italic text-emerald-300">{temaTopExitosa}</span>"{' '}</>}
                     {temaTopExitosa && temaTopFallida && <>mientras que las fallidas se concentran en "<span className="italic text-red-300">{temaTopFallida}</span>".</>}
                     {!temaTopExitosa && temaTopFallida && <>Las llamadas sin cierre se concentran en "<span className="italic text-red-300">{temaTopFallida}</span>".</>}
@@ -538,7 +538,7 @@ export default function SpeechAnalytics() {
                 {/* P5: brecha de agentes y oportunidad */}
                 {brechaConversion > 5 && agentes.length >= 2 && (
                   <p>
-                    <span className="font-semibold text-purple-300">Brecha operativa:</span>{' '}
+                    <span className="font-semibold text-purple-700 dark:text-purple-300">Brecha operativa:</span>{' '}
                     Existe una diferencia de <span className="font-semibold text-foreground">{brechaConversion}pp</span> entre el mejor agente y el promedio.
                     {impactoSemanal !== null && impactoSemanal > 0 && (
                       <> Si los <span className="font-semibold">{cuartilInferior.length}</span> agentes de menor desempeño adoptaran las prácticas del cuartil superior,
