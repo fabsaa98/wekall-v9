@@ -487,7 +487,7 @@ export default function SpeechAnalytics() {
                     Diagnóstico Ejecutivo — {total} llamadas analizadas
                   </h3>
                 </div>
-                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
                   ✦ Insight IA
                 </span>
               </div>
