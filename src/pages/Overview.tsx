@@ -423,6 +423,7 @@ export default function Overview() {
               <Tooltip
                 contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#F9FAFB' }}
+                        itemStyle={{ color: '#F9FAFB' }}
                 formatter={(value: number, name: string) => {
                   if (name === 'conf_high' || name === 'conf_low') return null;
                   return [`${value}%`, name === 'historico' ? 'Histórico' : 'Forecast'];
@@ -602,6 +603,7 @@ export default function Overview() {
               <Tooltip
                 contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#F9FAFB' }}
+                        itemStyle={{ color: '#F9FAFB' }}
               />
               <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" dot={(() => {
                 const totalVals = conversationTrend.map((d: any) => d.total ?? 0);
@@ -763,6 +765,7 @@ export default function Overview() {
                       <Tooltip
                         contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
                         labelStyle={{ color: '#F9FAFB' }}
+                        itemStyle={{ color: '#F9FAFB' }}
                         formatter={(v: number) => [`${v}${drillDownKPI.unit || ''}`, drillDownKPI.title]}
                       />
                       <Area type="monotone" dataKey="v" stroke="#6334C0" strokeWidth={2} fill="url(#gDrillDown)" activeDot={false} dot={(() => {
