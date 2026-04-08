@@ -94,7 +94,22 @@ function nextWorkday(dateStr: string): string {
   return d.toISOString().split('T')[0];
 }
 
-// ─── Generar 7 días de forecast ───────────────────────────────────────────────
+// ─── Exponential Smoothing (ETS simple) ──────────────────────────────────────
+// Alpha: peso de los datos recientes. 0.3 = moderado (responde a cambios sin
+// ser demasiado reactivo al ruido de un solo día).
+
+function exponentialSmoothing(values: number[], alpha = 0.3): number[] {
+  if (values.length === 0) return [];
+  const smoothed: number[] = [values[0]];
+  for (let i = 1; i < values.length; i++) {
+    smoothed.push(alpha * values[i] + (1 - alpha) * smoothed[i - 1]);
+  }
+  return smoothed;
+}
+
+// ─── Generar 7 días de forecast (Exponential Smoothing) ──────────────────────
+// Reemplaza la regresión lineal que ignoraba los días más recientes.
+// ETS da más peso a los últimos días → si la tasa cae, el forecast lo refleja.
 
 function generateForecast(last30Days: CDRDayMetric[]): ForecastPoint[] {
   if (last30Days.length < 7) return [];
@@ -102,37 +117,53 @@ function generateForecast(last30Days: CDRDayMetric[]): ForecastPoint[] {
   const tasaValues = last30Days.map(d => d.tasa_contacto_pct);
   const volValues = last30Days.map(d => d.total_llamadas);
 
-  const tasaReg = linearRegression(tasaValues);
-  const volReg = linearRegression(volValues);
+  // Suavizado exponencial — alpha=0.3 para tasa, 0.25 para volumen (más estable)
+  const smoothedTasa = exponentialSmoothing(tasaValues, 0.3);
+  const smoothedVol = exponentialSmoothing(volValues, 0.25);
 
-  const meanTasa = calcMean(tasaValues);
-  const stdDevTasa = calcStdDev(tasaValues, meanTasa);
-  const meanVol = calcMean(volValues);
-  const stdDevVol = calcStdDev(volValues, meanVol);
+  // Último valor suavizado = punto de partida del forecast
+  const lastSmoothedTasa = smoothedTasa[smoothedTasa.length - 1];
+  const lastSmoothedVol = smoothedVol[smoothedVol.length - 1];
+
+  // Tendencia de corto plazo: pendiente de los últimos 7 días suavizados
+  const recentTasa = smoothedTasa.slice(-7);
+  const recentVol = smoothedVol.slice(-7);
+  const tasaTrend = recentTasa.length >= 2
+    ? (recentTasa[recentTasa.length - 1] - recentTasa[0]) / (recentTasa.length - 1)
+    : 0;
+  const volTrend = recentVol.length >= 2
+    ? (recentVol[recentVol.length - 1] - recentVol[0]) / (recentVol.length - 1)
+    : 0;
+
+  // Banda de confianza: desviación estándar de los últimos 14 días
+  const recent14Tasa = tasaValues.slice(-14);
+  const meanRecent = calcMean(recent14Tasa);
+  const stdDevRecent = calcStdDev(recent14Tasa, meanRecent);
 
   const n = last30Days.length;
-
-  // Punto de inicio: último día disponible
   let lastFecha = last30Days[n - 1].fecha;
   const forecast: ForecastPoint[] = [];
 
   for (let i = 0; i < 7; i++) {
-    const x = n + i;
     const nextFecha = nextWorkday(lastFecha);
 
-    const rawTasa = tasaReg.slope * x + tasaReg.intercept;
-    const rawVol = volReg.slope * x + volReg.intercept;
+    // Proyección: valor suavizado + tendencia de corto plazo
+    // Tendencia se atenúa con el tiempo (factor 0.85^i) para evitar extrapolación extrema
+    const dampFactor = Math.pow(0.85, i);
+    const rawTasa = lastSmoothedTasa + tasaTrend * (i + 1) * dampFactor;
+    const rawVol = lastSmoothedVol + volTrend * (i + 1) * dampFactor;
 
-    // Clamp tasa entre 0 y 100
     const predictedTasa = Math.max(0, Math.min(100, Math.round(rawTasa * 10) / 10));
     const predictedVol = Math.max(0, Math.round(rawVol));
 
+    // Banda de confianza se amplía con la distancia (incertidumbre crece)
+    const uncertainty = stdDevRecent * (1 + i * 0.1);
     forecast.push({
       fecha: nextFecha,
       predicted_tasa: predictedTasa,
       predicted_llamadas: predictedVol,
-      confidence_low: Math.max(0, Math.round((predictedTasa - stdDevTasa) * 10) / 10),
-      confidence_high: Math.min(100, Math.round((predictedTasa + stdDevTasa) * 10) / 10),
+      confidence_low: Math.max(0, Math.round((predictedTasa - uncertainty) * 10) / 10),
+      confidence_high: Math.min(100, Math.round((predictedTasa + uncertainty) * 10) / 10),
     });
 
     lastFecha = nextFecha;
