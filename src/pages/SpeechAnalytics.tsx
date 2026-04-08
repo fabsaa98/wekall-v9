@@ -282,6 +282,7 @@ export default function SpeechAnalytics() {
       fallidas: fallidas.length,
       noContacto: noContacto.length,
       tasaExito,
+      calls,
       patronesExitosos,
       fragmentosSummaryExitosos,
       agentes,
@@ -343,7 +344,7 @@ export default function SpeechAnalytics() {
     );
   }
 
-  const { total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend } = analysis;
+  const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend } = analysis;
 
   // ── Headline ejecutivo ──────────────────────────────────────────────────────
   const mejorAgente = agentes[0];
