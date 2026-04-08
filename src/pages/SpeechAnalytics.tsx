@@ -452,6 +452,107 @@ export default function SpeechAnalytics() {
           <span className="text-xs text-muted-foreground">— ¿Qué separa las llamadas que cierran de las que no?</span>
         </div>
 
+        {/* ── Insight Ejecutivo McKinsey ─────────────────────────────────────── */}
+        {calls.length >= 5 ? (() => {
+          // Cálculos para el narrative
+          const patronDominante = patronesExitosos.filter(p => p.tasaEnExitosas > 0).sort((a, b) => b.tasaEnExitosas - a.tasaEnExitosas)[0];
+          const principalObstaculo = [...mapaObjeciones].sort((a, b) => b.frecuencia - a.frecuencia)[0];
+          const temaTopExitosa = topTemasExitosos[0] ?? null;
+          const temaTopFallida = topTemasFallidos[0] ?? null;
+          const pctObstaculo = principalObstaculo && total > 0 ? Math.round((principalObstaculo.frecuencia / total) * 100) : 0;
+          const agentesConDatos = agentes.filter(a => a.total >= 2);
+          const promedio = agentesConDatos.length > 0 ? agentesConDatos.reduce((s, a) => s + a.tasaConversion, 0) / agentesConDatos.length : 0;
+          const cuartilInferior = agentesConDatos.filter(a => a.tasaConversion < promedio);
+          const impactoSemanal = cuartilInferior.length > 0 && brechaConversion > 0
+            ? Math.round(cuartilInferior.reduce((s, a) => s + a.total, 0) * (brechaConversion / 100) * 0.4)
+            : null;
+          const ventajaPatron = patronDominante ? (
+            patronDominante.tasaEnFallidas > 0
+              ? (patronDominante.tasaEnExitosas / patronDominante.tasaEnFallidas).toFixed(1)
+              : null
+          ) : null;
+
+          return (
+            <div className="rounded-xl border-l-4 border-purple-500 bg-purple-500/5 border border-purple-500/20 p-5 space-y-3">
+              {/* Header */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Lightbulb size={16} className="text-purple-400 shrink-0" />
+                  <h3 className="text-sm font-bold text-foreground">
+                    Diagnóstico Ejecutivo — {total} llamadas analizadas
+                  </h3>
+                </div>
+                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  ✦ Insight IA
+                </span>
+              </div>
+
+              {/* Narrative paragraphs */}
+              <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
+                {/* P1: apertura */}
+                <p>
+                  De las <span className="font-semibold text-foreground">{total}</span> llamadas analizadas,{' '}
+                  <span className="font-semibold text-emerald-400">{nExitosas} ({tasaExito}%)</span> cerraron con promesa de pago
+                  {nFallidas > 0 && <> y <span className="font-semibold text-red-400">{nFallidas}</span> no lograron compromiso</>}.
+                </p>
+
+                {/* P2: patrón dominante */}
+                {patronDominante && (
+                  <p>
+                    <span className="font-semibold text-purple-300">Patrón más diferenciador:</span>{' '}
+                    "<span className="italic">{patronDominante.label}</span>" está presente en el{' '}
+                    <span className="font-semibold text-foreground">{patronDominante.tasaEnExitosas}%</span> de las llamadas exitosas
+                    {ventajaPatron && ventajaPatron !== 'Infinity' && (
+                      <> — los agentes que lo aplican cierran <span className="font-semibold text-emerald-400">{ventajaPatron}x</span> más que quienes no lo hacen</>
+                    )}.
+                  </p>
+                )}
+
+                {/* P3: objeción dominante como oportunidad */}
+                {principalObstaculo && principalObstaculo.frecuencia > 0 && (
+                  <p>
+                    <span className="font-semibold text-purple-300">Objeción dominante:</span>{' '}
+                    "<span className="italic">{principalObstaculo.label}</span>" ({pctObstaculo}% de las llamadas) no es una negativa —{' '}
+                    {principalObstaculo.tasaResolucion >= 40
+                      ? <>se resuelve en el <span className="font-semibold text-emerald-400">{principalObstaculo.tasaResolucion}%</span> de los casos cuando el agente tiene el protocolo correcto.</>
+                      : <>solo se resuelve en el <span className="font-semibold text-red-400">{principalObstaculo.tasaResolucion}%</span> de los casos — hay margen de mejora significativo con el protocolo adecuado.</>
+                    }
+                  </p>
+                )}
+
+                {/* P4: temas dominantes */}
+                {(temaTopExitosa || temaTopFallida) && (
+                  <p>
+                    <span className="font-semibold text-purple-300">Señal temática:</span>{' '}
+                    {temaTopExitosa && <>Las conversaciones exitosas giran en torno a "<span className="italic text-emerald-300">{temaTopExitosa}</span>"{' '}</>}
+                    {temaTopExitosa && temaTopFallida && <>mientras que las fallidas se concentran en "<span className="italic text-red-300">{temaTopFallida}</span>".</>}
+                    {!temaTopExitosa && temaTopFallida && <>Las llamadas sin cierre se concentran en "<span className="italic text-red-300">{temaTopFallida}</span>".</>}
+                  </p>
+                )}
+
+                {/* P5: brecha de agentes y oportunidad */}
+                {brechaConversion > 5 && agentes.length >= 2 && (
+                  <p>
+                    <span className="font-semibold text-purple-300">Brecha operativa:</span>{' '}
+                    Existe una diferencia de <span className="font-semibold text-foreground">{brechaConversion}pp</span> entre el mejor agente y el promedio.
+                    {impactoSemanal !== null && impactoSemanal > 0 && (
+                      <> Si los <span className="font-semibold">{cuartilInferior.length}</span> agentes de menor desempeño adoptaran las prácticas del cuartil superior,
+                      el impacto estimado sería de <span className="font-semibold text-emerald-400">+{impactoSemanal} contactos efectivos adicionales</span> en el período analizado.</>
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })() : (
+          calls.length > 0 ? (
+            <div className="rounded-xl border border-border/50 bg-card/50 p-4 flex items-center gap-3 text-muted-foreground text-sm">
+              <Lightbulb size={15} className="text-purple-400/50 shrink-0" />
+              <span>Se necesitan al menos 5 llamadas para generar el diagnóstico ejecutivo. Actualmente hay {calls.length} transcripción{calls.length === 1 ? '' : 'es'}.</span>
+            </div>
+          ) : null
+        )}
+
         {/* 2 columnas: éxito vs fracaso */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Llamadas que SÍ cierran */}
