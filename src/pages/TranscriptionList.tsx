@@ -133,15 +133,13 @@ export default function TranscriptionList() {
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                      {t.agent.name.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
+                      {(t.agentName || 'AG').split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium text-card-foreground">{t.agent.name}</span>
-                    {t.direction === 'inbound' ? <PhoneIncoming size={14} className="text-wk-green" /> : <PhoneOutgoing size={14} className="text-wk-blue" />}
-                    <span className="text-xs text-muted-foreground">→</span>
-                    <span className="text-sm text-muted-foreground">{t.client.name}</span>
+                    <span className="text-sm font-medium text-card-foreground">{t.agentName}</span>
+                    <PhoneOutgoing size={14} className="text-wk-blue" />
                   </div>
                   <div className="flex items-center gap-2">
-                    <SentimentBadge sentiment={t.classification.sentiment} size="sm" />
+                    <SentimentBadge sentiment={t.sentiment} size="sm" />
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${st.classes}`}>{st.label}</span>
                   </div>
                 </div>
@@ -155,7 +153,7 @@ export default function TranscriptionList() {
                 <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                   <span className="flex items-center gap-1"><Calendar size={12} weight="light" />{format(new Date(t.startedAt), "d MMM yyyy, HH:mm", { locale: es })}</span>
                   <span className="flex items-center gap-1"><Clock size={12} weight="light" />{formatDuration(t.duration)}</span>
-                  <span className="rounded-full bg-secondary px-2 py-0.5 font-medium">{callTypeLabels[t.classification.callType]}</span>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 font-medium">{callTypeLabels[t.callType] || t.callType}</span>
                 </div>
               </Link>
             );
