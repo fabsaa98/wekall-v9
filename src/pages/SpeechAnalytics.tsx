@@ -249,11 +249,21 @@ export default function SpeechAnalytics() {
       .slice(0, 10)
       .map(c => {
         const s = c.raw.summary.trim();
-        // Tomar primera oración relevante (hasta el primer punto o 120 chars)
         const firstSentence = s.split(/[.!?]/)[0]?.trim() || s;
         return firstSentence.length > 120 ? firstSentence.substring(0, 120) + '…' : firstSentence;
       })
-      .filter((v, i, arr) => arr.indexOf(v) === i) // deduplicar
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .slice(0, 5);
+
+    const fragmentosSummaryFallidas: string[] = fallidas
+      .filter(c => c.raw.summary && c.raw.summary.trim().length > 10)
+      .slice(0, 10)
+      .map(c => {
+        const s = c.raw.summary.trim();
+        const firstSentence = s.split(/[.!?]/)[0]?.trim() || s;
+        return firstSentence.length > 120 ? firstSentence.substring(0, 120) + '…' : firstSentence;
+      })
+      .filter((v, i, arr) => arr.indexOf(v) === i)
       .slice(0, 5);
 
     // ── Análisis por agente ───────────────────────────────────────────────────
@@ -343,6 +353,7 @@ export default function SpeechAnalytics() {
       calls,
       patronesExitosos,
       fragmentosSummaryExitosos,
+      fragmentosSummaryFallidas,
       agentes,
       top3,
       bottom3,
@@ -402,7 +413,7 @@ export default function SpeechAnalytics() {
     );
   }
 
-  const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend } = analysis;
+  const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, fragmentosSummaryFallidas, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend } = analysis;
 
   // ── Headline ejecutivo ──────────────────────────────────────────────────────
   const mejorAgente = agentes[0];
@@ -797,6 +808,19 @@ export default function SpeechAnalytics() {
                     )}
                     {temaTopFallida && <> Los temas dominantes en conversaciones sin cierre giran en torno a <span className="font-semibold">"{temaTopFallida}"</span> — señal de que el agente no logra redirigir la conversación hacia una solución concreta.</>}
                   </p>
+                  {fragmentosSummaryFallidas.length > 0 && (
+                    <details className="mt-1">
+                      <summary className="text-[10px] text-red-700 dark:text-red-400 cursor-pointer hover:underline">Ver evidencia verbatim ({fragmentosSummaryFallidas.length} extractos)</summary>
+                      <div className="mt-2 space-y-1.5 border-t border-red-500/20 pt-2">
+                        {fragmentosSummaryFallidas.map((frag, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            <span className="flex-shrink-0 text-[9px] font-bold text-red-500 mt-0.5">{i + 1}.</span>
+                            <p className="text-[11px] text-foreground/70 leading-relaxed italic">"{frag}"</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               );
             })()}
