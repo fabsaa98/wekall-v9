@@ -1648,33 +1648,95 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           </h3>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {[
-            {
-              icon: '🔴',
-              label: 'Atención inmediata',
-              text: 'Paola Joya: 4 llamadas el 30 de marzo. Promedio del equipo: 111. Requiere conversación de coaching esta semana.',
-            },
-            {
-              icon: '🟡',
-              label: 'Oportunidad del período',
-              text: 'Hoy es jueves — víspera de quincena. En cobranzas, los viernes de quincena tienen 30-40% más tasa de contacto. ¿Tu operación está preparada para escalar mañana?',
-            },
-            {
-              icon: '🟢',
-              label: 'Fortaleza del equipo',
-              text: 'Teresa Meza: 261 llamadas el 30 de marzo — 2.4x el promedio. Su protocolo de marcación puede replicarse en los 20 agentes del cuartil inferior.',
-            },
-            {
-              icon: '📊',
-              label: 'Benchmark del día',
-              text: 'Contacto efectivo: 43.1%. La mediana del sector en Latam (COPC 2024) es 45%. Estás 2 puntos bajo la mediana — y 12 puntos bajo los líderes del sector.',
-            },
-            {
-              icon: '✅',
-              label: 'Tarea sugerida',
-              text: 'Documenta el protocolo de Teresa Meza antes del 10 de abril. Potencial: +880 llamadas/día si el cuartil inferior sube a la mediana.',
-            },
-          ].map((item, i) => (
+          {(() => {
+            // ── Insights dinámicos calculados desde CDR real ─────────────────
+            const insights: { icon: string; label: string; text: string }[] = [];
+            const latest = cdr.latestDay;
+            const last7 = cdr.last30Days.slice(-7);
+            const last30 = cdr.last30Days;
+            const benchmarkP50 = 45; // COPC Latam p50 cobranzas outbound
+            const benchmarkP75 = 55;
+
+            if (cdr.loading) {
+              insights.push({ icon: '⏳', label: 'Cargando datos', text: 'Consultando CDR en tiempo real desde Supabase...' });
+            } else if (!latest) {
+              insights.push({ icon: '⚠️', label: 'Sin datos CDR', text: 'No hay datos CDR disponibles. Verifica la conexión con Supabase o carga datos reales.' });
+            } else {
+              const tasa = latest.tasa_contacto_pct;
+              const vol = latest.total_llamadas;
+              const contactos = latest.contactos_efectivos;
+              const fechaLatest = latest.fecha;
+
+              // Insight 1 — tasa vs benchmark (siempre presente)
+              const diffP50 = +(tasa - benchmarkP50).toFixed(1);
+              const diffP75 = +(tasa - benchmarkP75).toFixed(1);
+              if (tasa < benchmarkP50) {
+                insights.push({
+                  icon: '🔴',
+                  label: 'Alerta operativa',
+                  text: `Tasa de contacto al ${tasa}% (${fechaLatest}) — ${Math.abs(diffP50)}pp bajo la mediana COPC Latam (${benchmarkP50}%). Con el volumen actual de ${vol.toLocaleString('es-CO')} llamadas, subir a la mediana representaría ~${Math.round(vol * Math.abs(diffP50) / 100).toLocaleString('es-CO')} contactos adicionales.`,
+                });
+              } else if (tasa >= benchmarkP75) {
+                insights.push({
+                  icon: '🟢',
+                  label: 'Rendimiento superior',
+                  text: `Tasa de contacto al ${tasa}% — ${Math.abs(diffP75)}pp sobre el cuartil superior COPC Latam (${benchmarkP75}%). La operación está en el top del sector.`,
+                });
+              } else {
+                insights.push({
+                  icon: '🟡',
+                  label: 'Benchmark del período',
+                  text: `Tasa de contacto al ${tasa}% — ${diffP50 > 0 ? '+' : ''}${diffP50}pp vs mediana COPC Latam (${benchmarkP50}%). A ${Math.abs(diffP75)}pp del cuartil superior (${benchmarkP75}%).`,
+                });
+              }
+
+              // Insight 2 — tendencia 7d vs 30d
+              if (last7.length >= 3 && last30.length >= 7) {
+                const avg7 = last7.reduce((s, d) => s + d.tasa_contacto_pct, 0) / last7.length;
+                const avg30 = last30.reduce((s, d) => s + d.tasa_contacto_pct, 0) / last30.length;
+                const delta = +(avg7 - avg30).toFixed(1);
+                if (Math.abs(delta) >= 1) {
+                  insights.push({
+                    icon: delta > 0 ? '📈' : '📉',
+                    label: 'Tendencia 7 días',
+                    text: `Promedio últimos 7 días: ${avg7.toFixed(1)}% ${delta > 0 ? '(↑' : '(↓'}${Math.abs(delta)}pp vs promedio 30d de ${avg30.toFixed(1)}%). La operación ${delta > 0 ? 'está mejorando' : 'está bajando'} respecto al mes.`,
+                  });
+                }
+              }
+
+              // Insight 3 — volumen
+              if (last7.length >= 2) {
+                const avgVol7 = last7.reduce((s, d) => s + d.total_llamadas, 0) / last7.length;
+                const avgVol30 = last30.length > 0 ? last30.reduce((s, d) => s + d.total_llamadas, 0) / last30.length : avgVol7;
+                const deltaVol = +(((avgVol7 - avgVol30) / avgVol30) * 100).toFixed(1);
+                if (Math.abs(deltaVol) >= 5) {
+                  insights.push({
+                    icon: '📊',
+                    label: 'Volumen operativo',
+                    text: `Volumen promedio últimos 7 días: ${Math.round(avgVol7).toLocaleString('es-CO')} llamadas/día ${deltaVol > 0 ? '(+' : '('}${deltaVol}% vs promedio 30d). ${deltaVol > 10 ? 'Crecimiento significativo — verificar capacidad de agentes.' : deltaVol < -10 ? 'Reducción importante — posibles días no hábiles o base de datos reducida.' : 'Dentro del rango normal.'}`,
+                  });
+                }
+              }
+
+              // Insight 4 — oportunidad de impacto
+              const impactoSubirP50 = vol > 0 && tasa < benchmarkP50
+                ? Math.round(vol * (benchmarkP50 - tasa) / 100)
+                : 0;
+              if (impactoSubirP50 > 0) {
+                insights.push({
+                  icon: '✅',
+                  label: 'Oportunidad de impacto',
+                  text: `Si la tasa de contacto sube de ${tasa}% a la mediana sectorial (${benchmarkP50}%), se generarían ~${impactoSubirP50.toLocaleString('es-CO')} contactos adicionales en el volumen actual. Pregúntale a Vicky cómo lograrlo.`,
+                });
+              }
+            }
+
+            if (insights.length === 0) {
+              insights.push({ icon: '✅', label: 'Operación normal', text: 'Sin alertas activas. Todos los indicadores dentro del rango esperado.' });
+            }
+
+            return insights;
+          })().map((item, i) => (
             <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-secondary text-xs">
               <span className="text-sm shrink-0">{item.icon}</span>
               <div className="flex flex-col gap-0.5">
