@@ -1,8 +1,14 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, signIn as signInProxy } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
 import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
+
+// ─── Preset credentials (URL param: ?preset=crediminuto) ─────────────────────
+const PRESETS: Record<string, { email: string; password: string }> = {
+  crediminuto: { email: 'ceo@crediminuto.com', password: 'Crediminuto2026!' },
+  wekall:      { email: 'fabian@wekall.co',    password: 'WeKall2026!'      },
+};
 
 // Sesión persistente: si remember=true, guardar en localStorage con TTL de 30 días
 // Si remember=false, guardar en sessionStorage (se borra al cerrar browser)
@@ -46,6 +52,49 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem(REMEMBER_KEY));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // ─── Auto-login por preset URL (?preset=crediminuto) ─────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const preset = params.get('preset')?.toLowerCase();
+    if (!preset || !PRESETS[preset]) return;
+
+    const { email: pEmail, password: pPwd } = PRESETS[preset];
+    setEmail(pEmail);
+    setPassword(pPwd);
+    setRememberMe(true);
+
+    // Disparar login automáticamente
+    setLoading(true);
+    setError(null);
+
+    signInProxy(pEmail, pPwd)
+      .then((authResult) => {
+        const clientId = authResult.client_id || 'credismart';
+        const userEmail = authResult.user?.email || pEmail;
+        const userMeta = authResult.user?.user_metadata as Record<string, string> | undefined;
+        const role = userMeta?.role || 'user';
+        const userObj = {
+          id: authResult.user?.id || '',
+          email: userEmail,
+          client_id: clientId,
+          role,
+          name: userMeta?.name || userEmail,
+          active: true,
+        };
+        setClientId(clientId);
+        setCurrentUser(userObj);
+        setPersistedSession(userObj, true);
+        supabase.from('app_users').update({ last_login: new Date().toISOString() })
+          .eq('email', userEmail).eq('client_id', clientId).then(() => {});
+        window.location.href = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/';
+      })
+      .catch((err: unknown) => {
+        setLoading(false);
+        setError(err instanceof Error ? err.message : 'Error de autenticación.');
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
