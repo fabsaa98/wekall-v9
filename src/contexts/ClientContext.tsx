@@ -230,24 +230,45 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadClientData() {
       setLoading(true);
+      const PROXY = (import.meta.env.VITE_PROXY_URL || '').replace(/\/$/, '');
+
+      async function proxyFetch<T>(table: string): Promise<T | null> {
+        if (!PROXY) return null;
+        try {
+          const r = await fetch(`${PROXY}/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table, select: '*', filters: { client_id: `eq.${clientId}` }, limit: 1 }),
+          });
+          if (!r.ok) return null;
+          const data = await r.json() as T[];
+          return Array.isArray(data) ? (data[0] ?? null) : null;
+        } catch { return null; }
+      }
+
       try {
+        // Intentar primero via proxy (funciona en todos los networks)
+        const [configProxy, brandingProxy] = await Promise.all([
+          proxyFetch<ClientConfig>('client_config'),
+          proxyFetch<ClientBranding>('client_branding'),
+        ]);
+
+        if (configProxy || brandingProxy) {
+          setClientConfig(configProxy);
+          setClientBranding(brandingProxy);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback: directo a Supabase
         const [configRes, brandingRes] = await Promise.all([
-          supabase
-            .from('client_config')
-            .select('*')
-            .eq('client_id', clientId)
-            .maybeSingle(),
-          supabase
-            .from('client_branding')
-            .select('*')
-            .eq('client_id', clientId)
-            .maybeSingle(),
+          supabase.from('client_config').select('*').eq('client_id', clientId).maybeSingle(),
+          supabase.from('client_branding').select('*').eq('client_id', clientId).maybeSingle(),
         ]);
 
         setClientConfig(configRes.data as ClientConfig | null);
         setClientBranding(brandingRes.data as ClientBranding | null);
       } catch {
-        // No romper la app si las tablas no existen aún (antes de migración)
         setClientConfig(null);
         setClientBranding(null);
       } finally {
