@@ -20,8 +20,9 @@ export interface AppUser {
 /**
  * Sign in via Worker proxy — evita bloqueos del cliente JS de Supabase en redes móviles.
  * El Worker llama a Supabase Auth REST directamente y retorna { access_token, refresh_token, user, client_id }.
+ * @param clientIdHint — client_id explícito (ej. desde preset URL). El Worker lo prioriza sobre user_metadata.
  */
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string, clientIdHint?: string) {
   const PROXY = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
 
   const controller = new AbortController();
@@ -31,7 +32,7 @@ export async function signIn(email: string, password: string) {
     const resp = await fetch(`${PROXY}/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, ...(clientIdHint ? { client_id_hint: clientIdHint } : {}) }),
       signal: controller.signal,
     });
     clearTimeout(timeoutId);

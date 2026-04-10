@@ -5,9 +5,9 @@ import { useClient } from '@/contexts/ClientContext';
 import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
 
 // ─── Preset credentials (URL param: ?preset=crediminuto) ─────────────────────
-const PRESETS: Record<string, { email: string; password: string }> = {
-  crediminuto: { email: 'ceo@crediminuto.com', password: 'Crediminuto2026!' },
-  wekall:      { email: 'fabian@wekall.co',    password: 'WeKall2026!'      },
+const PRESETS: Record<string, { email: string; password: string; clientId: string }> = {
+  crediminuto: { email: 'ceo@crediminuto.com', password: 'Crediminuto2026!', clientId: 'crediminuto' },
+  wekall:      { email: 'fabian@wekall.co',    password: 'WeKall2026!',      clientId: 'wekall'      },
 };
 
 // Sesión persistente: si remember=true, guardar en localStorage con TTL de 30 días
@@ -59,7 +59,7 @@ export default function Login() {
     const preset = params.get('preset')?.toLowerCase();
     if (!preset || !PRESETS[preset]) return;
 
-    const { email: pEmail, password: pPwd } = PRESETS[preset];
+    const { email: pEmail, password: pPwd, clientId: pClientId } = PRESETS[preset];
     setEmail(pEmail);
     setPassword(pPwd);
     setRememberMe(true);
@@ -68,9 +68,10 @@ export default function Login() {
     setLoading(true);
     setError(null);
 
-    signInProxy(pEmail, pPwd)
+    signInProxy(pEmail, pPwd, pClientId)
       .then((authResult) => {
-        const clientId = authResult.client_id || 'credismart';
+        // Prioridad: preset clientId > worker response > fallback
+        const clientId = pClientId || authResult.client_id || 'credismart';
         const userEmail = authResult.user?.email || pEmail;
         const userMeta = authResult.user?.user_metadata as Record<string, string> | undefined;
         const role = userMeta?.role || 'user';
