@@ -136,25 +136,45 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
         if (session?.user?.email) {
           // Hay sesión de Supabase Auth activa
-          const storedClientId = localStorage.getItem(LS_CLIENT_ID) || 'credismart';
+          // PRIORIDAD: usar el client_id del wki_current_user guardado en localStorage (el login siempre lo setea correctamente)
+          // NO leer wki_client_id solo — puede ser de una sesión anterior de otro usuario
+          let resolvedClientId: string | null = null;
           try {
-            const appUser = await Promise.race([
-              getAppUser(session.user.email, storedClientId),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-            ]);
-
-            if (appUser && mounted) {
-              setCurrentUser({
-                id: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).id,
-                email: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).email,
-                client_id: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).client_id,
-                role: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).role,
-                name: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).name,
-                active: (appUser as {id: string; email: string; client_id: string; role: string; name: string; active: boolean}).active,
-              });
+            const storedUser = localStorage.getItem(LS_CURRENT_USER);
+            if (storedUser) {
+              const parsed = JSON.parse(storedUser) as { email?: string; client_id?: string };
+              // Solo usar si el email coincide con la sesión activa
+              if (parsed.email === session.user.email && parsed.client_id) {
+                resolvedClientId = parsed.client_id;
+              }
             }
-          } catch {
-            // Si getAppUser falla, continuar sin usuario enriquecido
+          } catch { /* ignorar */ }
+
+          // Si no hay usuario guardado que coincida, consultar app_users
+          if (!resolvedClientId) {
+            const storedClientId = localStorage.getItem(LS_CLIENT_ID) || 'credismart';
+            try {
+              const appUser = await Promise.race([
+                getAppUser(session.user.email, storedClientId),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+              ]);
+              if (appUser) resolvedClientId = (appUser as { client_id: string }).client_id;
+            } catch { /* ignorar */ }
+          }
+
+          if (resolvedClientId && mounted) {
+            // Sincronizar clientId con el del usuario autenticado
+            setClientId(resolvedClientId);
+            // Actualizar currentUser si el email coincide
+            try {
+              const storedUser = localStorage.getItem(LS_CURRENT_USER);
+              if (storedUser) {
+                const parsed = JSON.parse(storedUser) as { email?: string; client_id?: string; id?: string; role?: string; name?: string; active?: boolean };
+                if (parsed.email === session.user.email) {
+                  setCurrentUserState({ ...parsed, client_id: resolvedClientId } as AppUser);
+                }
+              }
+            } catch { /* ignorar */ }
           }
         }
         // Si no hay sesión Auth, usar localStorage como estaba (modo legacy)

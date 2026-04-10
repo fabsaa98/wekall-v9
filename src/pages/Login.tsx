@@ -6,7 +6,7 @@ import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
 
 // ─── Preset credentials (URL param: ?preset=crediminuto) ─────────────────────
 const PRESETS: Record<string, { email: string; password: string; clientId: string }> = {
-  crediminuto: { email: 'ceo@crediminuto.com', password: 'Crediminuto2026!', clientId: 'crediminuto' },
+  crediminuto: { email: 'ceo@crediminuto.com', password: 'Crediminuto2026!', clientId: 'credismart' }, // datos en Supabase usan client_id='credismart'
   wekall:      { email: 'fabian@wekall.co',    password: 'WeKall2026!',      clientId: 'wekall'      },
 };
 
