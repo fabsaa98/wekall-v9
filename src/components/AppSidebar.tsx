@@ -57,12 +57,16 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           {!collapsed && (
             <div className="overflow-hidden flex-1">
               <h1 className="text-sm font-bold text-foreground truncate">WeKall Intelligence</h1>
-              <img
-                src="/credismart-logo.png"
-                alt={clientDisplayName}
-                className="h-8 w-auto object-contain mt-0.5"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
+              {clientBranding?.logo_url ? (
+                <img
+                  src={clientBranding.logo_url}
+                  alt={clientDisplayName}
+                  className="h-8 w-auto object-contain mt-0.5"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{clientDisplayName}</p>
+              )}
             </div>
           )}
           {/* Desktop toggle */}
@@ -142,14 +146,16 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           {/* Logo cliente */}
           {!collapsed && (
             <div className="flex items-center justify-center px-2 py-1.5 rounded-lg bg-secondary/50">
-              <img
-                src="/credismart-logo.png"
-                alt={clientDisplayName}
-                className="h-7 w-auto object-contain"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
+              {clientBranding?.logo_url ? (
+                <img
+                  src={clientBranding.logo_url}
+                  alt={clientDisplayName}
+                  className="h-7 w-auto object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <span className="text-xs font-semibold text-muted-foreground truncate">{clientDisplayName}</span>
+              )}
             </div>
           )}
           {/* Usuario y rol */}

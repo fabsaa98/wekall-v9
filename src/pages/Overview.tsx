@@ -28,7 +28,7 @@ export default function Overview() {
   const cdr = useCDRData();
 
   // Nombre del cliente dinámico
-  const clientName = clientBranding?.company_name || clientConfig?.client_name || 'Crediminuto';
+  const clientName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
 
   const [briefExpanded, setBriefExpanded] = useState(false);
   const [drillDownMetric, setDrillDownMetric] = useState<string | null>(null);

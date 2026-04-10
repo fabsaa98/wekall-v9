@@ -31,7 +31,7 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
     role: 'vicky' as const,
     content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros, Supabase) y 50 grabaciones transcritas. Por favor intenta nuevamente en unos segundos — si el problema persiste, verifica la conexión.',
     timestamp: new Date(),
-    sources: ['WeKall CDR · 30-Mar-2026 · Crediminuto/CrediSmart'],
+    sources: ['WeKall CDR · datos en tiempo real · Supabase'],
     confidence: 'Baja' as const,
     rootCauses: [],
     projection: '',
@@ -487,9 +487,24 @@ interface ActionSuggestion {
 export default function VickyInsights() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { clientConfig, clientId } = useClient(); // Fix 1A + 1F: clientId para RAG seguro
+  const { clientConfig, clientBranding, clientId } = useClient(); // Fix 1A + 1F: clientId para RAG seguro
   const cdr = useCDRData();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
+
+  // Actualizar mensaje de bienvenida cuando carga el clientConfig
+  useEffect(() => {
+    if (!clientConfig) return;
+    const _name = clientBranding?.company_name || clientConfig.client_name || 'tu operación';
+    setMessages(prev => {
+      if (prev.length !== 1 || prev[0].id !== 'init-1') return prev; // solo reemplazar el mensaje inicial
+      return [{
+        ...prev[0],
+        content: `**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de **${_name}**:\n- **CDR histórico en tiempo real** · Supabase · datos actualizados\n- **Transcripciones** analizadas con IA · Objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero de cada mejora operativa\n\n¿Qué quieres analizar?`,
+        sources: [`${_name} · CDR · Supabase en tiempo real`],
+        reasoning: `Datos CDR de ${_name} cargados desde Supabase.`,
+      }];
+    });
+  }, [clientConfig?.client_id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Feature 1: Conversation memory
   const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user'|'assistant', content: string}>>([]);
   // useRef to avoid stale closure in async sendMessage (especially in tool_calls second pass)

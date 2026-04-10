@@ -139,13 +139,16 @@ async function proxyQuery<T>(payload: object): Promise<T> {
 }
 
 // Queries
-export async function getLastNDays(n: number, clientId = 'credismart'): Promise<CDRDayMetric[]> {
+export async function getLastNDays(n: number, clientId = 'credismart', minLlamadas?: number): Promise<CDRDayMetric[]> {
+  // minLlamadas: si no se pasa, usar 1 (sin filtro mínimo) — cada cliente tiene volúmenes distintos
+  // El filtro de volumen mínimo debe aplicarse en la capa de presentación usando alert_volumen_minimo del client_config
+  const min = minLlamadas ?? 1;
   const data = await proxyQuery<CDRDayMetric[]>({
     table: 'cdr_daily_metrics',
     select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct',
     filters: {
       'client_id': `eq.${clientId}`,
-      'total_llamadas': 'gte.5000',
+      'total_llamadas': `gte.${min}`,
     },
     order: 'fecha.desc',
     limit: n,
