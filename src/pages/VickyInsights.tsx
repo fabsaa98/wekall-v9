@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
+import { convertirMarkdownAProsa } from '@/lib/vickyMarkdown';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
 
@@ -301,43 +302,7 @@ function UploadTab() {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-// ─── Post-procesamiento: convertir markdown estructural a prosa ──────────────
-function convertirMarkdownAProsa(texto: string): string {
-  if (!texto) return texto;
-
-  // Eliminar headers (##, ###, ####, etc.)
-  let resultado = texto.replace(/^#{1,6}\s+(.+)$/gm, '$1.');
-
-  // Convertir listas numeradas a prosa (1. item → item,)
-  resultado = resultado.replace(/^\d+\.\s+(.+)$/gm, '$1');
-
-  // Convertir listas de viñetas a prosa (- item, * item, • item)
-  resultado = resultado.replace(/^[-*•]\s+(.+)$/gm, '$1');
-
-  // Eliminar líneas en blanco múltiples consecutivas (dejando máx 2)
-  resultado = resultado.replace(/\n{3,}/g, '\n\n');
-
-  // Unir líneas cortas consecutivas que fueron items de lista en un párrafo fluido
-  // (líneas de menos de 200 chars que no tienen punto final se unen con coma)
-  resultado = resultado.split('\n\n').map(parrafo => {
-    const lineas = parrafo.split('\n').filter(l => l.trim());
-    if (lineas.length <= 1) return parrafo;
-
-    // Si hay múltiples líneas cortas (probablemente items convertidos), unirlas
-    const todasCortas = lineas.every(l => l.trim().length < 150);
-    if (todasCortas && lineas.length > 1) {
-      const unidas = lineas.map((l, i) => {
-        const limpia = l.trim().replace(/[,;.]$/, '');
-        if (i === lineas.length - 1) return limpia + '.';
-        return limpia;
-      }).join('. ');
-      return unidas;
-    }
-    return parrafo;
-  }).join('\n\n');
-
-  return resultado.trim();
-}
+// convertirMarkdownAProsa: importada desde @/lib/vickyMarkdown (testeable)
 
 // ─── Historial Tab ─────────────────────────────────────────────────────────────
 // Refactored to VickyChatHistory component (M-2 split). See src/components/VickyChatHistory.tsx
