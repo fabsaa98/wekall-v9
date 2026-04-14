@@ -694,7 +694,8 @@ export default function VickyInsights() {
       const _clientName = clientConfig?.client_name || 'el cliente';
       const _clientIndustry = clientConfig?.industry || 'cobranzas';
       const _clientCountry = clientConfig?.country || 'colombia';
-      const _opType = detectOperationType(`${_clientIndustry} ${_clientCountry} ${_clientName} promesa pago deuda`);
+      // Fix V1: NO hardcodear "promesa pago deuda" — usar solo el contexto real del cliente
+      const _opType = detectOperationType(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _region = detectRegion(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _benchmarkCtx = generateBenchmarkContext(_opType, _region);
       // Fix 3: CDR data real desde Supabase — sin fallbacks hardcodeados

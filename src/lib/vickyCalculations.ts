@@ -297,3 +297,125 @@ export function getEstadoOperativo(): Record<string, string | number> {
     costoAgenteMes: `COP $${OPS.costoAgenteMes.toLocaleString()}/mes`,
   };
 }
+
+// ─── Impacto de conversión para equipos de ventas ─────────────────────────────
+export interface ConversionImpactResult {
+  formula: string;
+  variables: Record<string, string | number>;
+  steps: string[];
+  result: number;
+  unit: string;
+  validation: { ok: boolean; message: string };
+  scenarios?: Record<string, string>;
+}
+
+export function calcularImpactoConversion(
+  tasaConversionObjetivo: number,
+  ticketPromedioUSD: number = 50,
+  trmCopUsd: number = 4100
+): ConversionImpactResult {
+  if (tasaConversionObjetivo <= 0 || tasaConversionObjetivo > 1) {
+    return {
+      formula: 'calcularImpactoConversion',
+      variables: { tasaConversionObjetivo: `${(tasaConversionObjetivo * 100).toFixed(1)}%` },
+      steps: ['Tasa objetivo debe estar entre 0% y 100%'],
+      result: 0,
+      unit: 'COP/mes',
+      validation: { ok: false, message: 'Tasa objetivo inválida' },
+    };
+  }
+
+  const tasaActual = OPS.tasaContacto * 0.40;
+  const contactosDia = OPS.contactosEfectivos;
+  const ventasActualesDia = contactosDia * tasaActual;
+  const ventasObjetivoDia = contactosDia * tasaConversionObjetivo;
+  const ventasAdicionalesDia = ventasObjetivoDia - ventasActualesDia;
+  const ventasAdicionalesMes = ventasAdicionalesDia * OPS.diasLaborales;
+  const revenueAdicionalUSD = ventasAdicionalesMes * ticketPromedioUSD;
+  const revenueAdicionalCOP = revenueAdicionalUSD * trmCopUsd;
+
+  const ok = ventasAdicionalesDia >= 0 && revenueAdicionalCOP <= 10_000_000_000;
+
+  return {
+    formula: 'calcularImpactoConversion',
+    variables: {
+      'Tasa actual': `${(tasaActual * 100).toFixed(1)}%`,
+      'Tasa objetivo': `${(tasaConversionObjetivo * 100).toFixed(1)}%`,
+      'Contactos efectivos/día': contactosDia,
+      'Ticket promedio': `USD $${ticketPromedioUSD}`,
+      'TRM': `COP $${trmCopUsd.toLocaleString()}`,
+    },
+    steps: [
+      `Ventas actuales/día: ${contactosDia} × ${(tasaActual * 100).toFixed(1)}% = ${ventasActualesDia.toFixed(0)}`,
+      `Ventas objetivo/día: ${contactosDia} × ${(tasaConversionObjetivo * 100).toFixed(1)}% = ${ventasObjetivoDia.toFixed(0)}`,
+      `Ventas adicionales/día: ${ventasAdicionalesDia.toFixed(0)}`,
+      `Ventas adicionales/mes: ${ventasAdicionalesDia.toFixed(0)} × ${OPS.diasLaborales} días = ${ventasAdicionalesMes.toFixed(0)}`,
+      `Revenue adicional: ${ventasAdicionalesMes.toFixed(0)} × USD $${ticketPromedioUSD} × TRM ${trmCopUsd} = COP $${revenueAdicionalCOP.toLocaleString()}`,
+    ],
+    result: Math.round(revenueAdicionalCOP),
+    unit: 'COP/mes (revenue adicional)',
+    validation: {
+      ok,
+      message: ok
+        ? `✅ ${ventasAdicionalesMes.toFixed(0)} ventas adicionales/mes → COP $${(revenueAdicionalCOP / 1_000_000).toFixed(0)}M`
+        : '⚠️ Resultado fuera de rango — verificar parámetros',
+    },
+    scenarios: {
+      'Revenue adicional/mes': `COP $${(revenueAdicionalCOP / 1_000_000).toFixed(1)}M`,
+      'Revenue adicional/año': `COP $${(revenueAdicionalCOP * 12 / 1_000_000_000).toFixed(2)}B`,
+      'Para ajustar el ticket promedio': 'Actualiza el parámetro ticketPromedioUSD según tu producto',
+    },
+  };
+}
+
+// ─── Impacto de FCR (First Call Resolution) para equipos de servicio ──────────
+export function calcularImpactoFCR(
+  fcrObjetivo: number,
+  fcrActual: number = 0.65,
+  llamadasTotalesMes: number = OPS.llamadasTotales * OPS.diasLaborales
+): CalcResult {
+  if (fcrObjetivo <= fcrActual || fcrObjetivo > 1) {
+    return {
+      formula: 'calcularImpactoFCR',
+      variables: { fcrObjetivo: `${(fcrObjetivo * 100).toFixed(0)}%` },
+      steps: ['FCR objetivo debe ser mayor al actual y no mayor al 100%'],
+      result: 0,
+      unit: 'COP/mes',
+      validation: { ok: false, message: 'FCR objetivo no válido' },
+    };
+  }
+
+  const llamadasRepetidasActuales = llamadasTotalesMes * (1 - fcrActual);
+  const llamadasRepetidasObjetivo = llamadasTotalesMes * (1 - fcrObjetivo);
+  const llamadasEliminadas = llamadasRepetidasActuales - llamadasRepetidasObjetivo;
+  const costoLlamadaRepetida = OPS.ahtMinutos * OPS.costoAgentePorMinuto;
+  const ahorroMes = llamadasEliminadas * costoLlamadaRepetida;
+
+  return {
+    formula: 'calcularImpactoFCR',
+    variables: {
+      'FCR actual': `${(fcrActual * 100).toFixed(0)}%`,
+      'FCR objetivo': `${(fcrObjetivo * 100).toFixed(0)}%`,
+      'Llamadas totales/mes': llamadasTotalesMes.toLocaleString(),
+      'AHT': `${OPS.ahtMinutos} min`,
+      'Costo/min agente': `COP $${OPS.costoAgentePorMinuto?.toFixed(0)}`,
+    },
+    steps: [
+      `Llamadas repetidas actuales: ${llamadasTotalesMes.toLocaleString()} × ${((1-fcrActual)*100).toFixed(0)}% = ${llamadasRepetidasActuales.toFixed(0)}/mes`,
+      `Llamadas repetidas con FCR ${(fcrObjetivo*100).toFixed(0)}%: ${llamadasRepetidasObjetivo.toFixed(0)}/mes`,
+      `Llamadas eliminadas: ${llamadasEliminadas.toFixed(0)}/mes`,
+      `Ahorro: ${llamadasEliminadas.toFixed(0)} × ${OPS.ahtMinutos} min × COP $${OPS.costoAgentePorMinuto?.toFixed(0)}/min = COP $${ahorroMes.toLocaleString()}`,
+    ],
+    result: Math.round(ahorroMes),
+    unit: 'COP/mes (ahorro en llamadas repetidas)',
+    validation: {
+      ok: ahorroMes > 0 && ahorroMes <= OPS.nominaActivaMes * 2,
+      message: `✅ Eliminar ${llamadasEliminadas.toFixed(0)} llamadas repetidas/mes → ahorro COP $${(ahorroMes/1_000_000).toFixed(1)}M`,
+    },
+    scenarios: {
+      'Ahorro mensual': `COP $${(ahorroMes/1_000_000).toFixed(1)}M`,
+      'Ahorro anual': `COP $${(ahorroMes*12/1_000_000_000).toFixed(2)}B`,
+      'Agentes equivalentes liberados': `${(llamadasEliminadas * OPS.ahtMinutos / (OPS.horasTrabajo * 60 * OPS.diasLaborales)).toFixed(1)} agentes`,
+    },
+  };
+}
