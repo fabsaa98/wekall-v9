@@ -28,6 +28,7 @@ interface ParsedCall {
   resultadoRaw: string;
   campanaEfectiva: string; // campàña explícita o inferida
   churnRisk: 'alto' | 'normal'; // Fix CX1
+  csatEstimado?: number; // Fix CX3 — 1-5, inferido desde tono + resultado
 }
 
 // ─── Inferencia inteligente de campaña ────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ const CHURN_SIGNALS = [
   'no quiero seguir', 'terminar el contrato', 'rescindir', 'no renuevo',
   'me cambio a', 'voy a usar', 'la competencia', 'estoy evaluando otro',
   'no estoy satisfecho', 'muy molesto', 'pésimo servicio', 'no me sirven',
+  'quiero cancelar', 'dar de baja', 'retirarme',
 ];
 
 function parseSummary(summary: string, transcript?: string): { tema: string; tono: ParsedCall['tono']; resultado: ParsedCall['resultado']; resultadoRaw: string; churnRisk: 'alto' | 'normal' } {
