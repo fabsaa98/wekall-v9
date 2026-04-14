@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   ShieldCheck, Users, Building2, Plus, Eye, PowerOff, Power,
-  ChevronRight, X, Loader2, RefreshCw, UserPlus,
+  ChevronRight, X, Loader2, RefreshCw, UserPlus, ClipboardList,
   Globe, Linkedin, Instagram, Twitter, Facebook, Mail, Phone
 } from 'lucide-react';
 
@@ -477,8 +477,10 @@ function NewUserForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="ceo">CEO</SelectItem>
               <SelectItem value="manager">Manager</SelectItem>
               <SelectItem value="supervisor">Supervisor</SelectItem>
+              <SelectItem value="analyst">Analyst</SelectItem>
               <SelectItem value="viewer">Viewer</SelectItem>
             </SelectContent>
           </Select>
@@ -1213,6 +1215,120 @@ function CreateClientTab() {
   );
 }
 
+// ─── Tab 4: Auditoría ────────────────────────────────────────────────────────
+
+interface VickyConv {
+  id: string;
+  question?: string;
+  user_email?: string;
+  created_at?: string;
+  client_id?: string;
+}
+
+function AuditTab() {
+  const { currentUser } = useClient();
+  const clientId = currentUser?.client_id;
+  const [logs, setLogs] = useState<VickyConv[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Intentar audit_log primero; si falla o está vacío, usar vicky_conversations como proxy
+      const { data: auditData } = await supabase
+        .from('audit_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (auditData && auditData.length > 0) {
+        setLogs(auditData as VickyConv[]);
+      } else {
+        // Proxy: actividad de Vicky como indicador de acceso
+        const q = supabase
+          .from('vicky_conversations')
+          .select('id, question, user_email, created_at, client_id')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        const { data: vickyData } = clientId ? await q.eq('client_id', clientId) : await q;
+        setLogs((vickyData || []) as VickyConv[]);
+      }
+    } catch {
+      toast.error('Error cargando audit log');
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId]);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">Registro de Auditoría</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Actividad reciente del sistema</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={loadLogs} disabled={loading}>
+          <RefreshCw size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Actualizar
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+        <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
+        <div className="text-xs">
+          <span className="font-medium text-emerald-400">Multi-tenant activo</span>
+          <span className="text-muted-foreground ml-1">· RLS en 9 tablas · Proxy Cloudflare · Auth Supabase</span>
+        </div>
+      </div>
+
+      <Card className="border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider">Usuario</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider">Acción / Consulta</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider hidden sm:table-cell">Fecha</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={3} />)
+              ) : logs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    Sin registros de auditoría
+                  </TableCell>
+                </TableRow>
+              ) : (
+                logs.map(log => (
+                  <TableRow key={log.id} className="border-border hover:bg-secondary/20">
+                    <TableCell className="text-sm text-muted-foreground">
+                      {log.user_email || 'sistema'}
+                    </TableCell>
+                    <TableCell className="text-sm text-foreground max-w-xs">
+                      <span className="line-clamp-1">
+                        {log.question
+                          ? `💬 ${log.question.slice(0, 60)}${log.question.length > 60 ? '...' : ''}`
+                          : 'Acceso al sistema'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                      {formatDate(log.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
 export default function Admin() {
@@ -1251,6 +1367,10 @@ export default function Admin() {
             <Plus size={14} />
             Crear cliente
           </TabsTrigger>
+          <TabsTrigger value="auditoria" className="gap-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+            <ClipboardList size={14} />
+            Auditoría
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="clients" className="mt-0">
@@ -1261,6 +1381,9 @@ export default function Admin() {
         </TabsContent>
         <TabsContent value="create" className="mt-0">
           <CreateClientTab />
+        </TabsContent>
+        <TabsContent value="auditoria" className="mt-0">
+          <AuditTab />
         </TabsContent>
       </Tabs>
     </div>

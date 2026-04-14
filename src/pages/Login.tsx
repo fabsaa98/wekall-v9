@@ -265,6 +265,11 @@ export default function Login() {
           >
             {loading ? <><Loader2 size={16} className="animate-spin" /> Verificando...</> : <><LogIn size={16} /> Iniciar sesión</>}
           </button>
+
+          {/* MFA / security disclaimer */}
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            🔐 Autenticación segura via Supabase Auth
+          </p>
         </form>
 
         <div className="flex flex-col items-center gap-2">
