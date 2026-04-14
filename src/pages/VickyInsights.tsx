@@ -340,7 +340,7 @@ function convertirMarkdownAProsa(texto: string): string {
 
 // ─── Historial Tab ─────────────────────────────────────────────────────────────
 
-function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; sessionId: string }) {
+function HistorialTab({ onReload, sessionId, clientId }: { onReload: (q: string) => void; sessionId: string; clientId: string }) {
   const [history, setHistory] = useState<VickyConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -351,7 +351,7 @@ function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; 
       setLoading(true);
       setError(null);
       try {
-        const data = await getVickyHistory(undefined, 20);
+        const data = await getVickyHistory(clientId, undefined, 20);
         setHistory(data);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Error cargando historial');
@@ -360,7 +360,7 @@ function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; 
       }
     }
     load();
-  }, [sessionId]);
+  }, [sessionId, clientId]);
 
   if (loading) {
     return (
@@ -1171,7 +1171,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  client_id: clientId || 'credismart',
+                  client_id: clientId, // [Security] H-2: sin fallback inseguro
                   query_type: fnArgs.query_type,
                   params: fnArgs.params || {},
                 }),
@@ -1263,6 +1263,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         sources: resp.sources,
         follow_ups: resp.followUps,
         model_used: 'gpt-4o',
+        client_id: clientId, // [Security] H-2: client_id requerido, sin fallback
       }).catch(err => console.warn('No se pudo guardar conversación en Supabase:', err));
     }
   }
@@ -1647,6 +1648,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <TabsContent value="history" className="flex-1 overflow-y-auto mt-0 data-[state=inactive]:hidden">
             <HistorialTab
               sessionId={sessionId}
+              clientId={clientId}
               onReload={(q) => {
                 setActiveTab('chat');
                 setTimeout(() => sendMessage(q), 100);

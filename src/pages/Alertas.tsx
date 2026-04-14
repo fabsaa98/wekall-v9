@@ -222,7 +222,7 @@ function evaluateKPIAlerts(
 
 export default function Alertas() {
   const cdr = useCDRData();
-  const { clientConfig } = useClient(); // Fix 1B: umbrales dinámicos desde Supabase
+  const { clientConfig, clientId } = useClient(); // Fix 1B + H-2: clientId para multi-tenant security
 
   // Fix 1B: construir umbrales desde client_config, con fallback a defaults
   const thresholds: AlertThresholds = useMemo(() => ({
@@ -250,7 +250,7 @@ export default function Alertas() {
     setHistoryLoading(true);
     setHistoryError(null);
     try {
-      const entries = await getRecentAlertLog(10);
+      const entries = await getRecentAlertLog(clientId, 10);
       setAlertHistory(entries);
     } catch (err) {
       setHistoryError(err instanceof Error ? err.message : 'Error cargando historial');
@@ -308,7 +308,7 @@ export default function Alertas() {
     let fail = 0;
     for (const entry of toFire) {
       try {
-        await insertAlertLog(entry);
+        await insertAlertLog({ ...entry, client_id: clientId });
         ok++;
       } catch (e) {
         console.error('Error insertando alerta:', e);
