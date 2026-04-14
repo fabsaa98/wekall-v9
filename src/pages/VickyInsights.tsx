@@ -649,6 +649,14 @@ Ejemplo: si pregunta "¿cómo estábamos la semana pasada vs hace un año?", cal
 - "Estábamos llamando al de Credit Smart, indica que quería comunicarse con nosotros"
 - Cierre típico: "Le agradezco por haber atendido mi llamada. Contamos con el pago."
 
+### REGLA CRÍTICA — Interpretación del volumen de llamadas y el Dialer automático
+- El "wekall Dialer" es un agente de marcación automática que genera ~44% del volumen total de llamadas
+- En días con >15,000 llamadas totales: el Dialer domina el volumen → la tasa de contacto efectivo cae porque el Dialer tiene ~5-8% de contacto efectivo vs ~40% de los agentes humanos
+- En días con <5,000 llamadas: es operación reducida (fin de semana, festivo) → la tasa de contacto puede ser más alta porque solo operan agentes humanos de alta productividad
+- NUNCA reportar como anomalía negativa una tasa de contacto baja en días de alto volumen sin mencionar el Dialer como causa probable
+- Ejemplo: "El 1-abr: 30,762 llamadas + 7.76% contacto = el Dialer generó ~13,600 llamadas con tasa mínima. Los agentes humanos probablemente mantuvieron su ~40% pero el Dialer diluyó el total."
+- Ejemplo: "El 29-mar: 769 llamadas + 33.81% contacto = operación reducida (sábado), solo agentes humanos activos."
+
 ### Distribución real de volumen por agente (CDR histórico — datos de referencia, 81 agentes humanos activos en días pico):
 - Promedio real: 110.7 llamadas/agente/día (el "137" anterior incluía el marcador automático — dato corregido)
 - P10: 49 llamadas/día
