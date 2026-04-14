@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PhoneIncoming, PhoneOutgoing, Clock, Calendar } from '@phosphor-icons/react';
+import { cn } from '@/lib/utils';
 import { SearchBar } from '@/components/SearchBar';
 import { SentimentBadge } from '@/components/SentimentBadge';
 import { TagPill } from '@/components/TagPill';
@@ -55,17 +56,26 @@ export default function TranscriptionList() {
   });
   const [debouncedSearch, setDebouncedSearch] = useState(() => agentFilter || '');
   const [sentimentFilter, setSentimentFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 25;
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
+  // Resetear página cuando cambian los filtros
+  useEffect(() => { setPage(1); }, [debouncedSearch, sentimentFilter]);
+
   const { data, isLoading, isError } = useTranscriptions({
+    page,
+    limit: ITEMS_PER_PAGE,
     search: debouncedSearch,
     sentiment: sentimentFilter ?? undefined,
-    limit: 25,
   });
+
+  const totalCount = data?.total ?? 0;
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   // Feature 3: Filter transcriptions by date if provided via URL
   const allTranscriptions = data?.data ?? [];
@@ -161,6 +171,50 @@ export default function TranscriptionList() {
           {transcriptions.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground">
               No se encontraron transcripciones.
+            </div>
+          )}
+
+          {/* Controles de paginación */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {((page - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(page * ITEMS_PER_PAGE, totalCount)} de {totalCount.toLocaleString('es-CO')} transcripciones
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-2 py-1 rounded text-xs border border-border hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Anterior
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+                  const pageNum = start + i;
+                  if (pageNum > totalPages) return null;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={cn(
+                        'px-2 py-1 rounded text-xs border transition-colors',
+                        pageNum === page
+                          ? 'bg-primary text-white border-primary'
+                          : 'border-border hover:bg-secondary'
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-2 py-1 rounded text-xs border border-border hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Siguiente →
+                </button>
+              </div>
             </div>
           )}
         </div>

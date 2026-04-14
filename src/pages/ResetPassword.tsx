@@ -2,6 +2,26 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
+// ─── Mapeo de errores Supabase → español ───────────────────────────────
+function mapearErrorSupabase(error: string): string {
+  const mapa: Record<string, string> = {
+    'Invalid login credentials': 'Email o contraseña incorrectos. Verifica tus datos.',
+    'Email not confirmed': 'Tu email no ha sido confirmado. Revisa tu bandeja de entrada.',
+    'User already registered': 'Este email ya está registrado. ¿Olvidaste tu contraseña?',
+    'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
+    'Invalid email': 'El formato del email no es válido.',
+    'Email rate limit exceeded': 'Demasiados intentos. Espera unos minutos antes de intentar de nuevo.',
+    'User not found': 'No encontramos una cuenta con ese email.',
+    'Invalid OTP': 'El código de verificación es inválido o expiró.',
+    'Signup disabled': 'El registro de nuevos usuarios está desactivado.',
+    'Too many requests': 'Demasiadas solicitudes. Intenta en unos minutos.',
+  };
+  for (const [key, value] of Object.entries(mapa)) {
+    if (error.toLowerCase().includes(key.toLowerCase())) return value;
+  }
+  return 'Ocurrió un error inesperado. Por favor intenta de nuevo.';
+}
+
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [done, setDone] = useState(false);
@@ -14,7 +34,7 @@ export default function ResetPassword() {
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) setError(error.message);
+    if (error) setError(mapearErrorSupabase(error.message));
     else { setDone(true); setTimeout(() => navigate('/'), 2000); }
   };
 

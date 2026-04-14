@@ -26,6 +26,40 @@ interface ParsedCall {
   tono: 'positivo' | 'negativo' | 'neutral' | 'desconocido';
   resultado: 'exitoso' | 'fallido' | 'no_contacto' | 'desconocido';
   resultadoRaw: string;
+  campanaEfectiva: string; // campàña explícita o inferida
+}
+
+// ─── Inferencia inteligente de campaña ────────────────────────────────────────────────────
+// Cuando `campaign` es null/undefined, infiere el tipo de llamada desde el contenido
+
+function inferirCampana(t: Transcription): string {
+  const texto = ((t.summary || '') + ' ' + (t.transcript || '')).toLowerCase();
+  if (texto.includes('deuda') || texto.includes('pago') || texto.includes('cobran') || texto.includes('credito')) {
+    return 'Cobranzas';
+  }
+  if (texto.includes('servicio') || texto.includes('soporte') || texto.includes('problema') || texto.includes('falla')) {
+    return 'Servicio';
+  }
+  if (texto.includes('venta') || texto.includes('producto') || texto.includes('precio') || texto.includes('compra')) {
+    return 'Ventas';
+  }
+  return t.call_type === 'collection' ? 'Cobranzas'
+       : t.call_type === 'support'    ? 'Servicio'
+       : t.call_type === 'sale'       ? 'Ventas'
+       : 'General';
+}
+
+// ─── AHT aproximado desde longitud del transcript ────────────────────────────────────────────────
+// Estima duración en minutos a partir de palabras del transcript (~150 wpm conversacional)
+
+function calcAHT(callList: ParsedCall[]): string {
+  if (callList.length === 0) return 'N/A';
+  const avgWords = callList.reduce((s, c) => {
+    const words = (c.raw.transcript || '').split(/\s+/).filter(Boolean).length;
+    return s + words;
+  }, 0) / callList.length;
+  const minutes = Math.round((avgWords / 150) * 10) / 10;
+  return `~${minutes}`;
 }
 
 // ─── Parser de summary ──────────────────────────────────────────────────────────
@@ -216,6 +250,7 @@ export default function SpeechAnalytics() {
     const calls: ParsedCall[] = transcriptions.map(t => ({
       raw: t,
       ...parseSummary(t.summary || '', t.transcript || ''),
+      campanaEfectiva: t.campaign || inferirCampana(t),
     }));
 
     const total = calls.length;
@@ -408,6 +443,10 @@ export default function SpeechAnalytics() {
   }
 
   const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, fragmentosSummaryFallidas, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend } = analysis;
+
+  // Arrays completos (no solo counts) para análisis diferencial
+  const exitosasArr = calls.filter(c => c.resultado === 'exitoso');
+  const fallidasArr = calls.filter(c => c.resultado === 'fallido');
 
   // ── Headline ejecutivo ──────────────────────────────────────────────────────
   const mejorAgente = agentes[0];

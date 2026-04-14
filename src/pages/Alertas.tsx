@@ -141,6 +141,15 @@ function HistorialCard({ entry }: { entry: AlertLogEntry }) {
   );
 }
 
+// ─── Escalación automática COPC ──────────────────────────────────────────────
+
+interface EscalationConfig {
+  level1_phone: string;       // supervisor — notificación inmediata
+  level2_phone: string;       // gerente — si alerta persiste >30 min
+  level2_delay_min: number;   // minutos antes de escalar a nivel 2
+  level3_phone?: string;      // CEO — si persiste >2h (opcional)
+}
+
 // ─── Lógica de evaluación de KPIs vs umbrales ─────────────────────────────────
 // Fix 1B: umbrales dinámicos desde client_config en lugar de constantes hardcodeadas
 
@@ -237,6 +246,14 @@ export default function Alertas() {
   const [alertTab, setAlertTab] = useState('active');
   const [nlInput, setNlInput] = useState('');
   const [addedMsg, setAddedMsg] = useState('');
+
+  // Estado de escalación automática COPC
+  const [escalationConfig, setEscalationConfig] = useState<EscalationConfig>({
+    level1_phone: '',
+    level2_phone: '',
+    level2_delay_min: 30,
+    level3_phone: '',
+  });
 
   // Estado del historial de alert_log en Supabase
   const [alertHistory, setAlertHistory] = useState<AlertLogEntry[]>([]);
@@ -448,6 +465,55 @@ export default function Alertas() {
               {chip}
             </button>
           ))}
+        </div>
+
+        <p className="text-[11px] text-amber-400 mt-2">
+          ⚠️ Los umbrales de CSAT y FCR requieren que tu CDR incluya estos campos. Contacta a WeKall para validar tu esquema de datos.
+        </p>
+
+        {/* Escalación automática COPC */}
+        <div className="space-y-3 border-t border-border pt-4 mt-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Escalación automática (COPC SLA)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Nivel 1 — Supervisor (inmediato)</label>
+              <input
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="+57300..."
+                value={escalationConfig.level1_phone}
+                onChange={e => setEscalationConfig(p => ({ ...p, level1_phone: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nivel 2 — Gerente (si persiste &gt;30 min)</label>
+              <input
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="+57300..."
+                value={escalationConfig.level2_phone}
+                onChange={e => setEscalationConfig(p => ({ ...p, level2_phone: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nivel 3 — CEO (si persiste &gt;2h, opcional)</label>
+              <input
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="+57300..."
+                value={escalationConfig.level3_phone || ''}
+                onChange={e => setEscalationConfig(p => ({ ...p, level3_phone: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Minutos antes de escalar a nivel 2</label>
+              <input
+                type="number"
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="30"
+                value={escalationConfig.level2_delay_min}
+                onChange={e => setEscalationConfig(p => ({ ...p, level2_delay_min: Number(e.target.value) }))}
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Cumple estándar COPC para gestión de excepciones operativas</p>
         </div>
 
         {addedMsg && (

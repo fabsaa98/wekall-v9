@@ -161,6 +161,9 @@ function EquiposSkeleton() {
 
 function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
   const navigate = useNavigate();
+  const handleRowClick = () => {
+    navigate(`/vicky?q=${encodeURIComponent(`Dame el análisis completo de ${agent.agent_name}: rendimiento, tendencia y recomendaciones de coaching`)}`);
+  };
   const TrendIcon = agent.trend === 'up' ? TrendingUp : agent.trend === 'down' ? TrendingDown : Minus;
   const trendColor = agent.trend === 'up' ? 'text-emerald-400' : agent.trend === 'down' ? 'text-red-400' : 'text-muted-foreground';
   const trendLabel = agent.trend === 'up' ? 'Subiendo' : agent.trend === 'down' ? 'Bajando' : 'Estable';
@@ -168,7 +171,11 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
   const initials = agent.agent_name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <tr className="border-b border-border hover:bg-secondary/50 transition-colors">
+    <tr
+      className="border-b border-border hover:bg-secondary/50 transition-colors cursor-pointer"
+      onClick={handleRowClick}
+      title={`Ver análisis completo de ${agent.agent_name} en Vicky`}
+    >
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className={cn(
@@ -203,7 +210,7 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
           </div>
           {/* Feature 3: Drill-to-source — ver llamadas del agente */}
           <button
-            onClick={() => navigate(`/transcriptions?agent=${encodeURIComponent(agent.agent_name)}`)}
+            onClick={(e) => { e.stopPropagation(); navigate(`/transcriptions?agent=${encodeURIComponent(agent.agent_name)}`); }}
             title="Ver llamadas de este agente"
             className="ml-1 p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
           >
@@ -217,11 +224,40 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
 
 // ─── Panel de área ────────────────────────────────────────────────────────────
 
+// ─── Cálculo de percentiles COPC ───────────────────────────────────────────────────────────────
+
+function calcPercentile(sortedArr: number[], pct: number): number {
+  if (sortedArr.length === 0) return 0;
+  const idx = Math.floor((pct / 100) * (sortedArr.length - 1));
+  return sortedArr[Math.max(0, Math.min(idx, sortedArr.length - 1))];
+}
+
+interface AgentStatsPercentiles {
+  p25: number;
+  p50: number;
+  p75: number;
+  p90: number;
+}
+
 function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
   const config = areaConfig[area] ?? areaConfig['Cobranzas'];
 
   // Ordenar por tasa_contacto descendente (más efectivos primero)
   const sorted = [...agents].sort((a, b) => b.avg_tasa_contacto - a.avg_tasa_contacto);
+
+  // Percentiles COPC — llamadas por agente por día
+  const agentStats: AgentStatsPercentiles | null = (() => {
+    if (agents.length < 4) return null;
+    const valores = agents
+      .map(a => a.days_count > 0 ? Math.round(a.total_llamadas / a.days_count) : 0)
+      .sort((a, b) => a - b);
+    return {
+      p25: calcPercentile(valores, 25),
+      p50: calcPercentile(valores, 50),
+      p75: calcPercentile(valores, 75),
+      p90: calcPercentile(valores, 90),
+    };
+  })();
 
   const chartData = sorted.slice(0, 8).map(a => ({
     name: a.agent_name.split(' ')[0],
@@ -324,6 +360,42 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
           </table>
         </div>
       </div>
+
+      {/* Distribución COPC — percentiles de llamadas/agente/día */}
+      {agentStats && (
+        <div className="mt-4 p-4 rounded-xl border border-border bg-card">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Distribución COPC — Llamadas/Agente/Día
+          </p>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { label: 'P25 — Peor cuartil',  value: agentStats.p25, color: 'text-red-400',      action: 'Intervención urgente' },
+              { label: 'P50 — Mediana',        value: agentStats.p50, color: 'text-amber-400',   action: 'Objetivo mínimo' },
+              { label: 'P75 — Buen cuartil',   value: agentStats.p75, color: 'text-emerald-400', action: 'Replicar prácticas' },
+              { label: 'P90 — Top performers', value: agentStats.p90, color: 'text-primary',     action: 'Mentores internos' },
+            ].map(p => (
+              <div key={p.label} className="text-center p-3 rounded-lg bg-secondary">
+                <div className={`text-2xl font-bold ${p.color}`}>{p.value}</div>
+                <div className="text-[10px] text-muted-foreground mt-1">{p.label}</div>
+                <div className="text-[10px] text-primary mt-1 font-medium">{p.action}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Estándar COPC: el P25 debe ser ≥70% del P75 para una fuerza de trabajo eficiente.
+            {agentStats.p75 > 0 && (
+              <span className={cn(
+                'ml-2 font-semibold',
+                agentStats.p25 >= agentStats.p75 * 0.7 ? 'text-emerald-400' : 'text-red-400',
+              )}>
+                Actual: {Math.round((agentStats.p25 / agentStats.p75) * 100)}%
+                {' '}—{' '}
+                {agentStats.p25 >= agentStats.p75 * 0.7 ? '✅ Cumple' : '⚠️ Por debajo del estándar'}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug, Building2, LogOut, Globe, DollarSign, Linkedin, Instagram, Twitter, Facebook, Mail, Pencil, Save, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle, AlertCircle, Phone, MessageSquare, FileText, Zap, User, Palette, Database, Plug, Building2, LogOut, Globe, DollarSign, Linkedin, Instagram, Twitter, Facebook, Mail, Pencil, Save, X, ShieldCheck, TrendingUp } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,43 +18,7 @@ interface DataSource {
   lastSync?: string;
 }
 
-const dataSources: DataSource[] = [
-  {
-    id: 'phone',
-    name: 'WeKall Business Phone',
-    description: 'Llamadas entrantes y salientes · Grabaciones · Transcripciones automáticas',
-    status: 'connected',
-    icon: <Phone size={18} />,
-    records: 12483,
-    lastSync: 'hace 5 min',
-  },
-  {
-    id: 'engage360',
-    name: 'WeKall Engage360',
-    description: 'Contact Center · Omnicanalidad · Gestión de interacciones · ACD · IVR',
-    status: 'connected',
-    icon: <Zap size={18} />,
-    records: 8921,
-    lastSync: 'hace 12 min',
-  },
-  {
-    id: 'messenger',
-    name: 'WeKall Messenger Hub',
-    description: 'WhatsApp · Email · SMS · Redes sociales · Chat web',
-    status: 'connected',
-    icon: <MessageSquare size={18} />,
-    records: 4230,
-    lastSync: 'hace 8 min',
-  },
-  {
-    id: 'notes',
-    name: 'WeKall Notes',
-    description: 'Notas de agentes · Comentarios post-contacto · Tags de interacción',
-    status: 'pending',
-    icon: <FileText size={18} />,
-    lastSync: 'No sincronizado',
-  },
-];
+// dataSources se construye dinámicamente en el componente usando dataCounts
 
 interface Integration {
   id: string;
@@ -94,8 +58,39 @@ export default function Configuracion() {
   const [emailAlerts, setEmailAlerts] = useState(false);
   const [slackAlerts, setSlackAlerts] = useState(true);
 
-  const { clientConfig, clientBranding, currentUser, setClientId, setCurrentUser } = useClient();
+  const { clientConfig, clientBranding, currentUser, setClientId, setCurrentUser, clientId } = useClient();
   const navigate = useNavigate();
+
+  // ─── Counts dinámicos desde Supabase ──────────────────────────────────
+  const [dataCounts, setDataCounts] = useState<Record<string, number | null>>({});
+  const [countsLoading, setCountsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadCounts() {
+      setCountsLoading(true);
+      try {
+        const cId = clientId || clientConfig?.client_id;
+        if (!cId) { setCountsLoading(false); return; }
+
+        const [transcRes, cdrRes, agentRes] = await Promise.all([
+          supabase.from('transcriptions').select('*', { count: 'exact', head: true }).eq('client_id', cId),
+          supabase.from('cdr_daily_metrics').select('*', { count: 'exact', head: true }).eq('client_id', cId),
+          supabase.from('agents_performance').select('*', { count: 'exact', head: true }).eq('client_id', cId),
+        ]);
+
+        setDataCounts({
+          transcriptions: transcRes.count ?? 0,
+          cdr: cdrRes.count ?? 0,
+          agents: agentRes.count ?? 0,
+        });
+      } catch {
+        // fallback silencioso — mostrar '—'
+      } finally {
+        setCountsLoading(false);
+      }
+    }
+    loadCounts();
+  }, [clientId, clientConfig?.client_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Bloque 3: Edición de branding ───────────────────────────────────────
   const [editingBranding, setEditingBranding] = useState(false);
@@ -111,6 +106,45 @@ export default function Configuracion() {
   });
   const [savingBranding, setSavingBranding] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+
+  // ─── Construir dataSources con counts dinámicos ───────────────────────────
+  const dataSources: DataSource[] = [
+    {
+      id: 'phone',
+      name: 'WeKall Business Phone',
+      description: 'Llamadas entrantes y salientes · Grabaciones · Transcripciones automáticas',
+      status: 'connected',
+      icon: <Phone size={18} />,
+      records: countsLoading ? undefined : (dataCounts.transcriptions ?? undefined),
+      lastSync: countsLoading ? 'Cargando...' : 'datos en tiempo real',
+    },
+    {
+      id: 'engage360',
+      name: 'WeKall Engage360',
+      description: 'Contact Center · Omnicanalidad · Gestión de interacciones · ACD · IVR',
+      status: 'connected',
+      icon: <Zap size={18} />,
+      records: countsLoading ? undefined : (dataCounts.cdr ?? undefined),
+      lastSync: countsLoading ? 'Cargando...' : 'datos en tiempo real',
+    },
+    {
+      id: 'messenger',
+      name: 'WeKall Messenger Hub',
+      description: 'WhatsApp · Email · SMS · Redes sociales · Chat web',
+      status: 'connected',
+      icon: <MessageSquare size={18} />,
+      records: countsLoading ? undefined : (dataCounts.agents ?? undefined),
+      lastSync: countsLoading ? 'Cargando...' : 'datos en tiempo real',
+    },
+    {
+      id: 'notes',
+      name: 'WeKall Notes',
+      description: 'Notas de agentes · Comentarios post-contacto · Tags de interacción',
+      status: 'pending',
+      icon: <FileText size={18} />,
+      lastSync: 'No sincronizado',
+    },
+  ];
 
   function startEditBranding() {
     // Sincronizar formulario con datos actuales de Supabase
@@ -540,9 +574,9 @@ export default function Configuracion() {
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{source.description}</p>
                     {source.status === 'connected' && (
                       <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
-                        <span>{source.records?.toLocaleString()} registros</span>
+                        <span>{countsLoading ? '—' : (source.records != null ? source.records.toLocaleString() : '—')} registros</span>
                         <span>·</span>
-                        <span>Sincronizado {source.lastSync}</span>
+                        <span>{source.lastSync}</span>
                       </div>
                     )}
                   </div>

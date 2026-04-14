@@ -227,32 +227,109 @@ function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
 
 function UploadTab() {
   const [dragOver, setDragOver] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadStep, setUploadStep] = useState<'idle' | 'uploading' | 'transcribing' | 'analyzing' | 'done'>('idle');
+  const [fileName, setFileName] = useState('');
+  const [fileQueue, setFileQueue] = useState<{ name: string; size: number }[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [done, setDone] = useState(false);
+
+  const stepLabels: Record<string, string> = {
+    uploading: '1/3 · Subiendo archivo...',
+    transcribing: '2/3 · Transcribiendo con Whisper...',
+    analyzing: '3/3 · Analizando con IA...',
+    done: '✅ Análisis completado',
+  };
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    startUpload();
+    const files = Array.from(e.dataTransfer.files).filter(f =>
+      /\.(mp3|wav|m4a|ogg|flac|webm)$/i.test(f.name),
+    );
+    if (files.length > 0) startUpload(files);
   }
 
-  function startUpload() {
-    setUploading(true);
-    setProgress(0);
-    setDone(false);
-    const interval = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setUploading(false);
-          setDone(true);
-          return 100;
-        }
-        return p + Math.random() * 15;
-      });
-    }, 200);
+  function handleClick() {
+    // Crear input file virtual
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.mp3,.wav,.m4a,.ogg,.flac,.webm,audio/*';
+    input.multiple = true;
+    input.onchange = () => {
+      const files = Array.from(input.files || []);
+      if (files.length > 0) startUpload(files);
+    };
+    input.click();
   }
+
+  function startUpload(files: File[]) {
+    const queue = files.map(f => ({ name: f.name, size: f.size }));
+    setFileQueue(queue);
+    setQueueIndex(0);
+    setProgress(0);
+    setFileName(queue[0]?.name || '');
+    setUploadStep('uploading');
+    runSteps(queue, 0);
+  }
+
+  function runSteps(queue: { name: string; size: number }[], idx: number) {
+    const file = queue[idx];
+    if (!file) return;
+    setFileName(file.name);
+    setQueueIndex(idx);
+
+    // Paso 1: Subiendo (0→33%)
+    setUploadStep('uploading');
+    setProgress(0);
+    const t1 = setInterval(() => {
+      setProgress(p => {
+        if (p >= 33) { clearInterval(t1); return 33; }
+        return p + 3;
+      });
+    }, 80);
+
+    setTimeout(() => {
+      clearInterval(t1);
+      setProgress(33);
+      // Paso 2: Transcribiendo (33→66%)
+      setUploadStep('transcribing');
+      const t2 = setInterval(() => {
+        setProgress(p => {
+          if (p >= 66) { clearInterval(t2); return 66; }
+          return p + 1.5;
+        });
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(t2);
+        setProgress(66);
+        // Paso 3: Analizando (66→100%)
+        setUploadStep('analyzing');
+        const t3 = setInterval(() => {
+          setProgress(p => {
+            if (p >= 100) { clearInterval(t3); return 100; }
+            return p + 2;
+          });
+        }, 80);
+
+        setTimeout(() => {
+          clearInterval(t3);
+          setProgress(100);
+          if (idx + 1 < queue.length) {
+            // Hay más archivos en cola
+            setTimeout(() => runSteps(queue, idx + 1), 800);
+          } else {
+            setUploadStep('done');
+          }
+        }, 2200);
+      }, 3500);
+    }, 1500);
+  }
+
+  const isActive = uploadStep !== 'idle';
+  const progressBarWidth = uploadStep === 'uploading' ? '33%'
+    : uploadStep === 'transcribing' ? '66%'
+    : '100%';
 
   return (
     <div className="p-4 space-y-4">
@@ -264,34 +341,56 @@ function UploadTab() {
           'border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer',
           dragOver ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50',
         )}
-        onClick={startUpload}
+        onClick={handleClick}
       >
         <FileAudio size={32} className="mx-auto text-muted-foreground mb-3" />
         <p className="text-sm font-medium text-foreground">Arrastra tu grabación aquí</p>
-        <p className="text-xs text-muted-foreground mt-1">MP3, WAV, M4A · Máx 500MB</p>
+        <p className="text-xs text-muted-foreground mt-1">MP3, WAV, M4A · Máx 500MB · Múltiples archivos</p>
       </div>
 
-      {(uploading || done) && (
+      {isActive && (
         <div className="rounded-lg border border-border bg-secondary p-3 space-y-2 animate-fade-in">
-          <div className="flex items-center gap-2">
-            {done
-              ? <CheckCircle size={14} className="text-emerald-400" />
-              : <Upload size={14} className="text-primary animate-pulse" />
-            }
-            <span className="text-xs text-foreground font-medium">
-              {done ? 'Análisis completado' : 'Procesando grabación...'}
-            </span>
-            <span className="ml-auto text-xs text-muted-foreground">{Math.round(Math.min(progress, 100))}%</span>
+          {/* Cabecera: nombre de archivo + paso actual */}
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              {uploadStep === 'done'
+                ? <CheckCircle size={14} className="text-emerald-400 shrink-0" />
+                : <Upload size={14} className="text-primary animate-pulse shrink-0" />
+              }
+              <span className="text-foreground font-medium truncate">{fileName}</span>
+            </div>
+            <span className="text-muted-foreground ml-2 shrink-0">{stepLabels[uploadStep]}</span>
           </div>
-          <div className="h-1.5 bg-background rounded-full overflow-hidden">
+
+          {/* Cola de archivos */}
+          {fileQueue.length > 1 && (
+            <p className="text-[11px] text-muted-foreground">
+              Archivo {queueIndex + 1} de {fileQueue.length}
+            </p>
+          )}
+
+          {/* Barra de progreso */}
+          <div className="h-2 bg-background rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-200"
-              style={{ width: `${Math.min(progress, 100)}%` }}
+              className="h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: progressBarWidth }}
             />
           </div>
-          {done && (
+
+          {/* Mensajes contextuales */}
+          {uploadStep === 'transcribing' && (
+            <p className="text-xs text-muted-foreground">
+              Tiempo estimado: ~2 min por cada 5 min de audio
+            </p>
+          )}
+          {uploadStep === 'analyzing' && (
+            <p className="text-xs text-muted-foreground">
+              Identificando objeciones, sentimiento y resultado de llamada...
+            </p>
+          )}
+          {uploadStep === 'done' && (
             <p className="text-xs text-muted-foreground animate-fade-in">
-              Transcribí 24 minutos de audio. Identifiqué 3 oportunidades de mejora. ¿Quieres el análisis completo?
+              Transcribié el audio y analizé {fileQueue.length > 1 ? `${fileQueue.length} archivos` : 'la grabación'}. Identifiqué oportunidades de mejora. ¿Quieres el análisis completo?
             </p>
           )}
         </div>

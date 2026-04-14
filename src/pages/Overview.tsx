@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, TrendingDown,
-  BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar,
+  BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar, FileText,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -36,6 +36,71 @@ interface TrendItem {
   total?: number;
   resolved?: number;
   [key: string]: unknown;
+}
+
+// ─── Export Dashboard PDF ─────────────────────────────────────────────────────────
+interface KPIExport {
+  label: string;
+  value: string;
+  delta?: string;
+  deltaPositive?: boolean;
+}
+
+function exportDashboardPDF(kpis: KPIExport[], insight: string, clientName: string) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const fecha = new Date().toLocaleDateString('es-CO', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>WeKall Intelligence — Reporte Ejecutivo</title>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; color: #12172A; }
+        h1 { color: #6334C0; font-size: 22px; border-bottom: 3px solid #6334C0; padding-bottom: 10px; }
+        h2 { color: #374151; font-size: 16px; margin-top: 24px; }
+        .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+        .kpi { background: #F4F6FB; border-radius: 8px; padding: 16px; border-left: 4px solid #6334C0; }
+        .kpi-value { font-size: 28px; font-weight: bold; color: #6334C0; }
+        .kpi-label { font-size: 12px; color: #6B7280; margin-top: 4px; }
+        .insight { background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 8px; padding: 16px; margin: 16px 0; }
+        .footer { margin-top: 40px; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 12px; }
+        @media print { body { margin: 20px; } .kpis { grid-template-columns: repeat(2, 1fr); } }
+      </style>
+    </head>
+    <body>
+      <h1>WeKall Intelligence — Reporte Ejecutivo</h1>
+      <p style="color:#9CA3AF;font-size:13px">${clientName} · ${fecha}</p>
+
+      <h2>KPIs del Día</h2>
+      <div class="kpis">
+        ${kpis.map(k => `
+          <div class="kpi">
+            <div class="kpi-value">${k.value}</div>
+            <div class="kpi-label">${k.label}</div>
+            ${k.delta ? `<div style="font-size:11px;color:${k.deltaPositive ? '#16A34A' : '#DC2626'};margin-top:4px">${k.delta}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+
+      ${insight ? `
+        <h2>Insight Proactivo de la Semana</h2>
+        <div class="insight">${insight.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
+      ` : ''}
+
+      <div class="footer">
+        Generado por WeKall Intelligence · ${new Date().toLocaleString('es-CO')} · Datos en tiempo real desde Supabase CDR
+      </div>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
 }
 
 export default function Overview() {
@@ -247,8 +312,36 @@ export default function Overview() {
       )
     : '';
 
+  // Preparar KPIs para PDF
+  const kpisParaPDF: KPIExport[] = primaryKPIs.map(k => ({
+    label: k.title,
+    value: k.value,
+    delta: k.changeLabel || undefined,
+    deltaPositive: k.change >= 0 && !k.invertColor,
+  }));
+
+  // Insight para PDF: primer insight dinámico (si existe)
+  const insightParaPDF = dynamicInsights.length > 0
+    ? `${dynamicInsights[0].headline}\n${dynamicInsights[0].body}\n${dynamicInsights[0].action}`
+    : '';
+
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1 w-full min-w-0">
+
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{clientName} · datos en tiempo real</p>
+        </div>
+        <button
+          onClick={() => exportDashboardPDF(kpisParaPDF, insightParaPDF, clientName)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
+          <FileText size={13} />
+          Exportar PDF
+        </button>
+      </div>
 
       {/* Banner de anomalía (si detectada) */}
       {anomaly?.detected && (
