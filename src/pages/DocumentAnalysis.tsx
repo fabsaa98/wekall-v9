@@ -48,7 +48,7 @@ function isWhatsAppChat(text: string): boolean {
 
 function parseWhatsAppChat(text: string): { parsed: string; participants: string[]; messageCount: number } {
   const lines = text.split('\n').filter(l => l.trim());
-  const pattern = /\[[\d\/,\s:]+\]\s([^:]+):\s(.+)/;
+  const pattern = /\[[\d/,\s:]+\]\s([^:]+):\s(.+)/;
   const participants = new Set<string>();
   const messages: string[] = [];
 
@@ -371,7 +371,7 @@ export default function DocumentAnalysis() {
       setError(msg);
       setStatus('error');
     }
-  }, []);
+  }, [CDR_CONTEXT, clientName, clientIndustry, clientCountry]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;

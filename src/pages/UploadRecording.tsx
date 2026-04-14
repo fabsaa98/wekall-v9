@@ -38,7 +38,9 @@ export default function UploadRecording() {
           updateJob(jobId, { status: 'failed', error: data.error || 'Error procesando audio' });
           return;
         }
-      } catch {}
+      } catch (_err) {
+        // Polling fetch failed — retry on next iteration
+      }
       attempts++;
     }
     updateJob(jobId, { status: 'failed', error: 'Timeout — el procesamiento tardó demasiado' });

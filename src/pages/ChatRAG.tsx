@@ -81,7 +81,7 @@ export default function ChatRAG() {
     if (activeConvData?.messages && messages.length === 0) {
       setMessages(activeConvData.messages);
     }
-  }, [activeConvData]);
+  }, [activeConvData, messages.length]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -628,6 +628,7 @@ export default function VickyInsights() {
       // Pequeño delay para que el componente esté listo
       setTimeout(() => sendMessage(decodeURIComponent(q)), 300);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function scrollToBottom() {

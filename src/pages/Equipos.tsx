@@ -11,7 +11,13 @@ import {
 import { TrendingUp, TrendingDown, Minus, Loader2, AlertTriangle, Users, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ─── Mini Sparkline ───────────────────────────────────────────────────────────
+// ─── Mini Sparkline ─────────────────────────────────────────────────
+interface LineDotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  value?: number;
+}
 
 function AgentSparkline({ data, trend }: { data: number[]; trend: 'up' | 'down' | 'stable' }) {
   if (!data || data.length < 2) {
@@ -36,7 +42,7 @@ function AgentSparkline({ data, trend }: { data: number[]; trend: 'up' | 'down' 
           strokeWidth={1.5}
           isAnimationActive={false}
           activeDot={false}
-          dot={showDots ? (props: any) => {
+          dot={showDots ? (props: LineDotProps) => {
             const { cx, cy, index, value } = props;
             const isMax = index === maxIdx;
             const isMin = index === minIdx;

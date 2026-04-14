@@ -52,7 +52,7 @@ export function InfoTooltip({ text, size = 13, className = '' }: InfoTooltipProp
         className={cn('relative inline-flex items-center cursor-pointer shrink-0', className)}
         onMouseEnter={show}
         onMouseLeave={() => setVisible(false)}
-        onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); visible ? setVisible(false) : show(); }}
+        onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); if (visible) { setVisible(false); } else { show(); } }}
         onClick={(e) => e.stopPropagation()}
       >
         <Info

@@ -5,9 +5,10 @@ import { useClient } from '@/contexts/ClientContext';
 import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
 
 // ─── Preset credentials (URL param: ?preset=crediminuto) ─────────────────────
+// ⚠️ Security: passwords loaded from env vars — never hardcode in source
 const PRESETS: Record<string, { email: string; password: string; clientId: string }> = {
-  crediminuto: { email: 'ceo@crediminuto.com', password: 'Crediminuto2026!', clientId: 'credismart' }, // datos en Supabase usan client_id='credismart'
-  wekall:      { email: 'fabian@wekall.co',    password: 'WeKall2026!',      clientId: 'wekall'      },
+  crediminuto: { email: 'ceo@crediminuto.com', password: import.meta.env.VITE_PRESET_CREDIMINUTO_PWD as string || '', clientId: 'credismart' },
+  wekall:      { email: 'fabian@wekall.co',    password: import.meta.env.VITE_PRESET_WEKALL_PWD as string || '',      clientId: 'wekall'      },
 };
 
 // Sesión persistente: si remember=true, guardar en localStorage con TTL de 30 días

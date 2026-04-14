@@ -21,6 +21,22 @@ import {
 } from '@/components/ui/sheet';
 import { INDUSTRY_BENCHMARKS } from '@/data/benchmarks';
 
+// ─── Recharts dot render prop types ──────────────────────────────────────
+interface ChartDotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  value?: number;
+  payload?: Record<string, unknown>;
+}
+
+interface TrendItem {
+  day: string;
+  total?: number;
+  resolved?: number;
+  [key: string]: unknown;
+}
+
 export default function Overview() {
   const { role } = useRole();
   const { clientConfig, clientBranding } = useClient();
@@ -480,7 +496,7 @@ export default function Overview() {
                 strokeDasharray="6 3"
                 activeDot={{ r: 5, fill: '#A78BFA' }}
                 connectNulls={false}
-                dot={showForecastDots ? (props: any) => {
+                dot={showForecastDots ? ( props: ChartDotProps) => {
                   const { cx, cy, index, payload } = props;
                   const value = payload?.forecast;
                   const isMax = index === forecastMaxIdx;
@@ -610,13 +626,13 @@ export default function Overview() {
                         itemStyle={{ color: '#F9FAFB' }}
               />
               <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" dot={(() => {
-                const totalVals = conversationTrend.map((d: any) => d.total ?? 0);
+                const totalVals = conversationTrend.map((d: TrendItem) => d.total ?? 0);
                 const hasEnough = totalVals.length >= 3;
                 const maxIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v > totalVals[best] ? i : best, 0) : -1;
                 const minIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v < totalVals[best] ? i : best, 0) : -1;
                 const showDots = hasEnough && maxIdx !== minIdx;
                 if (!showDots) return false;
-                return (props: any) => {
+                return (props: ChartDotProps) => {
                   const { cx, cy, index, value } = props;
                   const isMax = index === maxIdx;
                   const isMin = index === minIdx;
@@ -632,13 +648,13 @@ export default function Overview() {
                 };
               })()} activeDot={false} />
               <Area type="monotone" dataKey="resolved" name="Contactos" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" dot={(() => {
-                const resolvedVals = conversationTrend.map((d: any) => d.resolved ?? 0);
+                const resolvedVals = conversationTrend.map((d: TrendItem) => d.resolved ?? 0);
                 const hasEnough = resolvedVals.length >= 3;
                 const maxIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v > resolvedVals[best] ? i : best, 0) : -1;
                 const minIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v < resolvedVals[best] ? i : best, 0) : -1;
                 const showDots = hasEnough && maxIdx !== minIdx;
                 if (!showDots) return false;
-                return (props: any) => {
+                return (props: ChartDotProps) => {
                   const { cx, cy, index, value } = props;
                   const isMax = index === maxIdx;
                   const isMin = index === minIdx;
@@ -784,7 +800,7 @@ export default function Overview() {
                         // maxColor: verde si higher=mejor, rojo si lower=mejor
                         const maxColor = invertColor ? '#ef4444' : '#22c55e';
                         const minColor = invertColor ? '#22c55e' : '#ef4444';
-                        return (props: any) => {
+                        return (props: ChartDotProps) => {
                           const { cx, cy, index, payload } = props;
                           const isMax = index === maxIdx;
                           const isMin = index === minIdx;

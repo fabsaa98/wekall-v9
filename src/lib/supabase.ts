@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://iszodrpublcnsyvtgjcg.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
+// ⚠️ Security: load from env vars; fallback only for local dev (never commit real keys to source)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string || 'https://iszodrpublcnsyvtgjcg.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string || 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AlertTriangle, Info, XCircle, Plus, Loader2, Bell, BellOff, History, Zap } from 'lucide-react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
@@ -225,13 +225,13 @@ export default function Alertas() {
   const { clientConfig } = useClient(); // Fix 1B: umbrales dinámicos desde Supabase
 
   // Fix 1B: construir umbrales desde client_config, con fallback a defaults
-  const thresholds: AlertThresholds = {
+  const thresholds: AlertThresholds = useMemo(() => ({
     tasa_contacto_critica: clientConfig?.alert_tasa_critica ?? DEFAULT_THRESHOLDS.tasa_contacto_critica,
     tasa_contacto_warning: clientConfig?.alert_tasa_warning ?? DEFAULT_THRESHOLDS.tasa_contacto_warning,
     delta_tasa_critico: clientConfig?.alert_delta_critico ?? DEFAULT_THRESHOLDS.delta_tasa_critico,
     delta_tasa_warning: clientConfig?.alert_delta_warning ?? DEFAULT_THRESHOLDS.delta_tasa_warning,
     volumen_minimo: clientConfig?.alert_volumen_minimo ?? DEFAULT_THRESHOLDS.volumen_minimo,
-  };
+  }), [clientConfig]);
 
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertTab, setAlertTab] = useState('active');
@@ -326,7 +326,7 @@ export default function Alertas() {
 
     // Recargar historial
     loadHistory();
-  }, [cdr, loadHistory]);
+  }, [cdr, loadHistory, thresholds]);
 
   function toggleAlert(id: string) {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, active: !a.active } : a));
