@@ -170,6 +170,7 @@ python3 scripts/onboard_client.py \
 --email           REQUERIDO  Email del usuario inicial
 --name            OPCIONAL   Nombre completo del usuario inicial
 --role            OPCIONAL   CEO | VP Ventas | VP CX | COO | admin (default: CEO)
+--password        OPCIONAL   V20 — Contraseña para Supabase Auth real. Si se omite, solo crea en app_users (login legacy)
 --tagline         OPCIONAL   Tagline de la empresa
 --logo-url        OPCIONAL   URL del logo
 --primary-color   OPCIONAL   Color primario hex (default: #6334C0)
@@ -178,7 +179,7 @@ python3 scripts/onboard_client.py \
 **Ejemplos:**
 
 ```bash
-# Cliente colombiano de cobranzas
+# V20: cliente con auth real (recomendado)
 python3 scripts/onboard_client.py \
   --client-id credismart \
   --client-name "CrediSmart / Crediminuto" \
@@ -186,7 +187,8 @@ python3 scripts/onboard_client.py \
   --country "Colombia" \
   --email fabian@wekall.co \
   --name "Fabián Saavedra" \
-  --role admin
+  --role admin \
+  --password "WeKall2026!"
 
 # Cliente peruano con branding personalizado
 python3 scripts/onboard_client.py \

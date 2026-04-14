@@ -1,9 +1,13 @@
+/**
+ * useTranscriptions — Fix 2A/2C (V20):
+ * Lee de Supabase directamente en lugar del Worker (/query no existe).
+ * Filtra siempre por clientId del contexto — SEGURIDAD MULTI-TENANT.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { useClient } from '@/contexts/ClientContext';
 import { api, type TranscriptionsParams } from '@/lib/api';
 import type { Tag } from '@/types';
-import { useClient } from '@/contexts/ClientContext';
-
-const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
 
 interface SupabaseTranscription {
   id: string;
@@ -16,16 +20,22 @@ interface SupabaseTranscription {
   client_id?: string;
 }
 
-// Adapter: convierte el formato Supabase → formato esperado por TranscriptionList
+// Adapter: convierte el formato Supabase → formato esperado por TranscriptionList/Detail
 function adaptTranscription(t: SupabaseTranscription) {
   return {
     id: t.id,
+    agent: { name: t.agent_name || 'Agente', id: '' },
+    client: { name: '', phone: '' },
     agentName: t.agent_name || 'Agente',
     clientName: '',
     clientPhone: '',
     startedAt: t.call_date ? `${t.call_date}T08:00:00` : new Date().toISOString(),
     duration: 0,
     status: 'completed' as const,
+    classification: {
+      sentiment: 'neutral' as const,
+      callType: t.call_type || 'collection',
+    },
     sentiment: 'neutral' as const,
     summary: t.summary || '',
     transcript: t.transcript || '',
@@ -33,6 +43,7 @@ function adaptTranscription(t: SupabaseTranscription) {
     callType: t.call_type || 'collection',
     campaign: t.campaign || '',
     client_id: t.client_id || '',
+    direction: 'outbound' as const,
   };
 }
 
@@ -42,38 +53,28 @@ export function useTranscriptions(params: TranscriptionsParams = {}) {
   return useQuery({
     queryKey: ['transcriptions', params, clientId],
     queryFn: async () => {
-      const filters: Record<string, string> = { 'client_id': `eq.${clientId}` };
+      // Consulta Supabase directamente — filtra por client_id del contexto
+      let query = supabase
+        .from('transcriptions')
+        .select('id,agent_name,call_date,call_type,summary,transcript,campaign,client_id')
+        .eq('client_id', clientId)
+        .order('call_date', { ascending: false })
+        .limit(params.limit || 50);
 
-      const resp = await fetch(`${PROXY_URL}/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          table: 'transcriptions',
-          select: 'id,agent_name,call_date,call_type,summary,transcript,campaign,client_id',
-          filters,
-          order: 'call_date.desc',
-          limit: params.limit || 50,
-        }),
-      });
-
-      if (!resp.ok) throw new Error('Error cargando transcripciones');
-      const data = await resp.json() as SupabaseTranscription[];
-
-      // Filtrar por búsqueda si se proporcionó
-      let filtered = data || [];
+      // Búsqueda por texto (ILIKE en agent_name o summary)
       if (params.search) {
-        const q = params.search.toLowerCase();
-        filtered = filtered.filter(t =>
-          (t.agent_name || '').toLowerCase().includes(q) ||
-          (t.summary || '').toLowerCase().includes(q) ||
-          (t.transcript || '').toLowerCase().includes(q) ||
-          (t.call_type || '').toLowerCase().includes(q)
+        query = query.or(
+          `agent_name.ilike.%${params.search}%,summary.ilike.%${params.search}%,transcript.ilike.%${params.search}%`
         );
       }
 
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+
+      const rows = (data || []) as SupabaseTranscription[];
       return {
-        data: filtered.map(adaptTranscription),
-        total: filtered.length,
+        data: rows.map(adaptTranscription),
+        total: rows.length,
         page: 1,
         limit: params.limit || 50,
       };
@@ -84,9 +85,21 @@ export function useTranscriptions(params: TranscriptionsParams = {}) {
 }
 
 export function useTranscription(id: string) {
+  const { clientId } = useClient();
+
   return useQuery({
-    queryKey: ['transcription', id],
-    queryFn: () => api.getTranscription(id),
+    queryKey: ['transcription', id, clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transcriptions')
+        .select('*')
+        .eq('id', id)
+        .eq('client_id', clientId) // Seguridad: verificar que pertenece al cliente activo
+        .single();
+
+      if (error) throw new Error(error.message);
+      return adaptTranscription(data as SupabaseTranscription);
+    },
     enabled: !!id,
     staleTime: 60_000,
   });

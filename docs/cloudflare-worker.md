@@ -232,7 +232,9 @@ Content-Type: application/json
 ---
 
 ### `POST /ingest`
-**Descripción:** Pipeline automático completo post-llamada. Descarga el audio desde una URL, transcribe, resume, genera embedding y guarda todo en Supabase.
+**Descripción:** Pipeline automático completo post-llamada. Descarga el audio desde una URL, transcribe, resume, genera embedding y guarda todo en Supabase. La transcripción queda indexada para RAG aislado por cliente.
+
+**Actualización V20:** Acepta y persiste `client_id` en la tabla `transcriptions` — garantiza que las grabaciones ingresadas queden asociadas al cliente correcto y sean recuperables via `/rag-query` con `client_id_filter`.
 
 **Usado para:** Activar automáticamente desde WeKall como webhook post-llamada.
 
@@ -248,22 +250,36 @@ X-WeKall-Token: <token_secreto>
   "agent_name": "NELCY JOSEFINA CONTASTI GONZALEZ",
   "campaign_id": "cobranzas_crediminuto_co",
   "call_date": "2026-04-05",
-  "call_type": "outbound"
+  "call_type": "outbound",
+  "client_id": "credismart"
 }
 ```
 
-**Proceso interno:**
+**Parámetros del body:**
+
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `audio_url` | `string` | ✅ | URL pública del audio a procesar |
+| `agent_id` | `string` | ✅ | ID del agente en WeKall |
+| `agent_name` | `string` | ✅ | Nombre completo del agente |
+| `campaign_id` | `string` | No | Campaña a la que pertenece la llamada |
+| `call_date` | `string` | No | Fecha de la llamada (ISO YYYY-MM-DD) |
+| `call_type` | `string` | No | `inbound` o `outbound` |
+| `client_id` | `string` | No (default: `credismart`) | **V20** ID del cliente — asocia la transcripción para RAG aislado |
+
+**Proceso interno (V20):**
 1. Descarga audio desde `audio_url`
 2. Transcribe con Whisper-1
 3. Genera resumen ejecutivo con GPT-4o-mini (3 líneas: tema, tono cliente, resultado)
 4. Genera embedding `text-embedding-3-small` del transcript
-5. Guarda todo en `transcriptions` de Supabase
+5. Guarda todo en `transcriptions` de Supabase **con `client_id` del payload**
 
 **Response:**
 ```json
 {
   "status": "ok",
   "agent_id": "10982",
+  "client_id": "credismart",
   "transcript_length": 2847,
   "summary": "Cliente con mora de 45 días. Tono defensivo. Se acordó promesa de pago parcial del 40% para el viernes."
 }
