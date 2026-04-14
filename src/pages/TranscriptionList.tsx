@@ -64,7 +64,7 @@ export default function TranscriptionList() {
   const { data, isLoading, isError } = useTranscriptions({
     search: debouncedSearch,
     sentiment: sentimentFilter ?? undefined,
-    limit: 50,
+    limit: 25,
   });
 
   // Feature 3: Filter transcriptions by date if provided via URL
