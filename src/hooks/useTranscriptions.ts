@@ -56,10 +56,10 @@ export function useTranscriptions(params: TranscriptionsParams = {}) {
       // Consulta Supabase directamente — filtra por client_id del contexto
       let query = supabase
         .from('transcriptions')
-        .select('id,agent_name,call_date,call_type,summary,transcript,campaign,client_id')
+        .select('id,agent_name,call_date,call_type,summary,campaign,client_id')  // transcript se carga solo al abrir el detalle
         .eq('client_id', clientId)
         .order('call_date', { ascending: false })
-        .limit(params.limit || 50);
+        .limit(params.limit || 25);  // reducido para carga más rápida
 
       // Búsqueda por texto (ILIKE en agent_name o summary)
       if (params.search) {
