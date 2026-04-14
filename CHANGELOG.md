@@ -398,6 +398,25 @@ Nueva página `/document-analysis`. Tipos soportados:
 1. Prompt con prohibición absoluta de listas/headers + ejemplos ❌/✅
 2. Post-procesamiento `convertirMarkdownAProsa` en código — garantía estructural independiente del modelo
 
+### V12.6 — Datos 100% reales. Cero hardcodeo de datos del cliente.
+
+**Principio arquitectural:** Ningún dato que deba provenir del cliente puede estar hardcodeado.
+Si no tenemos el dato, lo marcamos como "N/D" o "estimación" — nunca lo inventamos.
+
+**Datos corregidos:**
+- conversationTrend: sparklines 6 días marcados como ¹estimaciones (solo dom 30 es real)
+- alertsData: eliminadas alertas inventadas (a3 "23 agentes sin sesión" no verificado, a4 "7 días de crecimiento Perú" imposible con 1 día de datos). Reemplazadas por alertas calculadas desde umbrales COPC reales.
+- agentsData: eliminados FCR, CSAT, AHT por agente inventados. Ahora solo volumen de llamadas (dato verificado del CDR). Columna "conversions" ahora = llamadas/día del CDR.
+- kpiData sparklines: reemplazados tendencias inventadas con valor real del 30-Mar como baseline plano
+- decisionLog: eliminadas referencias a datos no verificados ("23 agentes sin sesión", "7 días de crecimiento")
+
+**Implementación completa en V15-V17:** Esta intención se completó con la integración Supabase —
+kpiData, alertsData, agentsData y conversationTrend ahora son todos dinámicos (sin hardcodeo).
+
+**Qué sigue necesitando datos reales:**
+- [ ] FCR/CSAT/AHT por agente: requiere integración Engage360
+- [ ] Timestamps de alertas: actualización automática desde WeKall (implementado en V15+)
+
 ### V12.5 — Input de voz (Whisper)
 - Botón micrófono → MediaRecorder → Whisper-1 via `/transcribe` → texto en chat
 - Costo: ~$0.006/min = ~$0.003 por consulta de 30s
