@@ -92,6 +92,47 @@ export default function Configuracion() {
     loadCounts();
   }, [clientId, clientConfig?.client_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── EBITDA / Parámetros financieros ────────────────────────────────────
+  const [costoAgente, setCostoAgente] = useState(
+    String((clientConfig as Record<string, unknown> | null)?.costo_agente_mes ?? '3500000')
+  );
+  const [agentesActivos, setAgentesActivos] = useState(
+    String((clientConfig as Record<string, unknown> | null)?.agentes_activos ?? '12')
+  );
+  const [nominaTotal, setNominaTotal] = useState(
+    String((clientConfig as Record<string, unknown> | null)?.nomina_total_mes ?? '42000000')
+  );
+  const [ahorroAutomatizacion, setAhorroAutomatizacion] = useState(
+    String((clientConfig as Record<string, unknown> | null)?.ahorro_automatizacion_pct ?? '18')
+  );
+  const [savingEBITDA, setSavingEBITDA] = useState(false);
+  const [ebitdaMsg, setEbitdaMsg] = useState('');
+
+  async function guardarParametrosEBITDA() {
+    const cId = clientId || clientConfig?.client_id;
+    if (!cId) return;
+    setSavingEBITDA(true);
+    setEbitdaMsg('');
+    try {
+      const { error } = await supabase
+        .from('client_config')
+        .update({
+          costo_agente_mes: parseInt(costoAgente) || 0,
+          agentes_activos: parseInt(agentesActivos) || 0,
+          nomina_total_mes: parseInt(nominaTotal) || 0,
+          ahorro_automatizacion_pct: parseFloat(ahorroAutomatizacion) || 0,
+        })
+        .eq('client_id', cId);
+      if (error) throw error;
+      setEbitdaMsg('✅ Parámetros financieros actualizados');
+      setTimeout(() => setEbitdaMsg(''), 4000);
+    } catch (err) {
+      setEbitdaMsg(`❌ Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    } finally {
+      setSavingEBITDA(false);
+    }
+  }
+
   // ─── Bloque 3: Edición de branding ───────────────────────────────────────
   const [editingBranding, setEditingBranding] = useState(false);
   const [brandingForm, setBrandingForm] = useState({
@@ -207,6 +248,9 @@ export default function Configuracion() {
           <TabsTrigger value="empresa" className="text-sm">
             <Building2 size={13} className="mr-1.5" />Mi Empresa
           </TabsTrigger>
+          <TabsTrigger value="financiero" className="text-sm">
+            <TrendingUp size={13} className="mr-1.5" />Financiero
+          </TabsTrigger>
           <TabsTrigger value="sources" className="text-sm">
             <Database size={13} className="mr-1.5" />Fuentes
           </TabsTrigger>
@@ -223,6 +267,15 @@ export default function Configuracion() {
 
         {/* ─── Mi Empresa ─────────────────────────────────────────────── */}
         <TabsContent value="empresa" className="mt-6 space-y-4">
+
+          {/* Badge de seguridad multi-tenant */}
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
+            <div className="text-xs">
+              <span className="font-medium text-emerald-400">Multi-tenant activo</span>
+              <span className="text-muted-foreground ml-1">· RLS en 9 tablas · Proxy Cloudflare</span>
+            </div>
+          </div>
 
           {/* Header empresa */}
           <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-5">
@@ -552,6 +605,130 @@ export default function Configuracion() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* ─── Financiero / EBITDA ────────────────────────────────────── */}
+        <TabsContent value="financiero" className="mt-6 space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Parámetros financieros usados para el cálculo de EBITDA y retorno de inversión en WeKall Intelligence.
+          </p>
+
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            {/* Título con badge COPC */}
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-semibold text-foreground">Parámetros EBITDA</p>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                Estándar COPC
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                  Costo agente / mes
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {clientConfig?.currency || 'COP'}
+                  </span>
+                  <input
+                    type="number"
+                    value={costoAgente}
+                    onChange={e => setCostoAgente(e.target.value)}
+                    className="w-full pl-12 pr-3 py-2 rounded-lg border border-border bg-secondary text-sm text-foreground outline-none focus:border-primary/50"
+                    placeholder="3500000"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                  Agentes activos
+                </label>
+                <input
+                  type="number"
+                  value={agentesActivos}
+                  onChange={e => setAgentesActivos(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-secondary text-sm text-foreground outline-none focus:border-primary/50"
+                  placeholder="12"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                  Nómina total / mes
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    {clientConfig?.currency || 'COP'}
+                  </span>
+                  <input
+                    type="number"
+                    value={nominaTotal}
+                    onChange={e => setNominaTotal(e.target.value)}
+                    className="w-full pl-12 pr-3 py-2 rounded-lg border border-border bg-secondary text-sm text-foreground outline-none focus:border-primary/50"
+                    placeholder="42000000"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                  Ahorro automatización (%)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={ahorroAutomatizacion}
+                    onChange={e => setAhorroAutomatizacion(e.target.value)}
+                    className="w-full pr-8 px-3 py-2 rounded-lg border border-border bg-secondary text-sm text-foreground outline-none focus:border-primary/50"
+                    placeholder="18"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+            </div>
+
+            {ebitdaMsg && (
+              <p className={cn(
+                'text-xs font-medium rounded-lg px-3 py-2 border',
+                ebitdaMsg.startsWith('✅') ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20',
+              )}>
+                {ebitdaMsg}
+              </p>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                onClick={guardarParametrosEBITDA}
+                disabled={savingEBITDA}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary/80 disabled:opacity-50 transition-all"
+              >
+                <Save size={13} />
+                {savingEBITDA ? 'Guardando...' : 'Guardar parámetros'}
+              </button>
+            </div>
+          </div>
+
+          {/* Resumen proyectado */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Proyección mensual estimada</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { label: 'Costo total nómina', value: (parseInt(nominaTotal) || 0).toLocaleString('es-CO'), prefix: clientConfig?.currency || 'COP' },
+                { label: 'Costo por agente', value: (parseInt(costoAgente) || 0).toLocaleString('es-CO'), prefix: clientConfig?.currency || 'COP' },
+                { label: 'Ahorro estimado', value: `${ahorroAutomatizacion}%`, prefix: '' },
+              ].map(item => (
+                <div key={item.label} className="rounded-lg border border-border bg-secondary/20 p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">{item.label}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {item.prefix && <span className="text-[10px] text-muted-foreground mr-1">{item.prefix}</span>}
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </TabsContent>
 
         {/* Data Sources */}

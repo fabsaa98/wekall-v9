@@ -867,6 +867,66 @@ export default function SpeechAnalytics() {
         </div>
       </div>
 
+      {/* ═══ SECCIÓN 2B — DIFERENCIAL EXITOSAS vs FALLIDAS ═══════════════════════════════ */}
+      {exitosasArr.length > 0 && fallidasArr.length > 0 && (
+        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+          <p className="text-xs font-semibold text-emerald-400 mb-3">
+            🎯 Diferenciadores: Llamadas exitosas vs fallidas
+          </p>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <p className="font-medium text-emerald-400 mb-1">✅ Llamadas que SÍ cierran ({exitosasArr.length})</p>
+              <p className="text-muted-foreground">
+                Tono positivo: {Math.round(exitosasArr.filter(c => c.tono === 'positivo').length / exitosasArr.length * 100)}%
+              </p>
+              <p className="text-muted-foreground">AHT estimado: {calcAHT(exitosasArr)} min</p>
+              <p className="text-muted-foreground">
+                Tono negativo: {Math.round(exitosasArr.filter(c => c.tono === 'negativo').length / exitosasArr.length * 100)}%
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-red-400 mb-1">❌ Llamadas que NO cierran ({fallidasArr.length})</p>
+              <p className="text-muted-foreground">
+                Tono positivo: {Math.round(fallidasArr.filter(c => c.tono === 'positivo').length / fallidasArr.length * 100)}%
+              </p>
+              <p className="text-muted-foreground">AHT estimado: {calcAHT(fallidasArr)} min</p>
+              <p className="text-muted-foreground">
+                Tono negativo: {Math.round(fallidasArr.filter(c => c.tono === 'negativo').length / fallidasArr.length * 100)}%
+              </p>
+            </div>
+          </div>
+          {/* Por campaña inferida */}
+          {(() => {
+            const byCampaign: Record<string, { exitosas: number; total: number }> = {};
+            for (const c of [...exitosasArr, ...fallidasArr]) {
+              const camp = c.campanaEfectiva;
+              if (!byCampaign[camp]) byCampaign[camp] = { exitosas: 0, total: 0 };
+              byCampaign[camp].total++;
+              if (c.resultado === 'exitoso') byCampaign[camp].exitosas++;
+            }
+            const entries = Object.entries(byCampaign).sort((a, b) => b[1].total - a[1].total);
+            if (entries.length <= 1) return null;
+            return (
+              <div className="mt-3 pt-3 border-t border-emerald-500/20">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Por campaña (inferida si no especificada)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {entries.map(([camp, stats]) => (
+                    <span key={camp} className="text-[11px] px-2 py-1 rounded-full bg-muted border border-border">
+                      <span className="font-medium text-foreground">{camp}</span>
+                      <span className="text-muted-foreground ml-1">
+                        {stats.total} llamadas · {stats.total > 0 ? Math.round(stats.exitosas / stats.total * 100) : 0}% cierre
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* ═══ SECCIÓN 3 — RANKING DE AGENTES ══════════════════════════════════════ */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
