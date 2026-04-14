@@ -2,6 +2,92 @@
 
 ---
 
+## [V22.0.0] — 2026-04-13 — Seguridad Multi-Tenant Completa, RLS Real, UX & Infraestructura
+
+> Sesión de trabajo: Fabián Saavedra + GlorIA. Enfoque: aislamiento multi-tenant a nivel de base de datos (RLS real en 9 tablas), hardening de seguridad crítica (H-1/H-2), nuevas funcionalidades UX (ForgotPassword, ErrorBoundary, Skeletons), refactoring de componentes y resiliencia de infraestructura.
+
+---
+
+### 🔐 Seguridad — Aislamiento Multi-Tenant Completo
+
+**RLS activado en 9 tablas de Supabase:**
+- `transcriptions`, `agents_performance`, `agent_daily_metrics`, `cdr_daily_metrics`
+- `client_config`, `client_branding`, `client_kpi_targets`, `client_labor_costs`, `vicky_conversations`
+
+Cada tabla tiene policy `USING (client_id = public.get_user_client_id())` — aislamiento real a nivel PostgreSQL, no solo a nivel de aplicación.
+
+**H-1 fix — `clientId` explícito en funciones críticas:**
+- `getRecentAlertLog()` y `getVickyHistory()` ahora reciben `clientId` como parámetro obligatorio
+- Eliminado el riesgo de que datos de un cliente aparecieran en sesión de otro
+
+**H-2 fix — eliminado fallback hardcodeado `'credismart'`:**
+- 6 funciones en `src/lib/supabase.ts` tenían fallback `|| 'credismart'`
+- Reemplazado por guard explícito: si no hay `clientId`, se lanza error controlado
+- Cero riesgo de cross-tenant data leakage por valor por defecto
+
+**Auditoría completa de seguridad:**
+- 20 issues corregidos: 2 CRITICAL, 3 HIGH, 12 MEDIUM, 3 LOW
+- Revisión completa de TypeScript/ESLint con foco en seguridad multi-tenant
+
+**`search_transcriptions` — función recreada (DROP + CREATE OR REPLACE):**
+- Parámetro `client_id_filter` ahora es parte de la firma canónica
+- Aislamiento RAG garantizado a nivel SQL, no solo a nivel Worker
+
+---
+
+### ✨ Features — Nuevas Funcionalidades
+
+**Flujo de recuperación de contraseña nativo:**
+- `src/pages/ForgotPassword.tsx` — formulario de solicitud de reset por email
+- `src/pages/ResetPassword.tsx` — formulario de nueva contraseña con token de Supabase Auth
+- Rutas `/forgot-password` y `/reset-password` registradas en `App.tsx`
+- Link "¿Olvidaste tu contraseña?" agregado en `Login.tsx`
+
+**Error Boundaries — protección contra crashes silenciosos:**
+- `src/components/ErrorBoundary.tsx` creado (React class component con fallback UI)
+- Todas las rutas de la app envueltas en `<ErrorBoundary>` en `App.tsx`
+- Fallo de Supabase o componente → pantalla de error informativa en vez de pantalla en blanco
+
+**Loading Skeletons — UX consistente en toda la UI:**
+- `src/components/PageSkeleton.tsx` — dos componentes: `PageSkeleton` y `CardSkeleton`
+- Spinners reemplazados en `Overview.tsx` y `SpeechAnalytics.tsx`
+- Experiencia de carga coherente y profesional en toda la plataforma
+
+---
+
+### 🏗️ Refactoring
+
+**`VickyInsights.tsx` split — separación de responsabilidades:**
+- `src/components/VickyChatHistory.tsx` extraído como componente independiente
+- `VickyInsights.tsx` bajó de 1,921 a 1,784 líneas (-138 líneas)
+- Historial de conversaciones ahora es un componente reutilizable y testeable
+
+**`mockData.ts` — anotaciones de transparencia:**
+- Comentario de cabecera explicando el propósito del archivo
+- Constantes anotadas como `// REAL` (dato de producción) o `// ESTIMACIÓN` (valor mock)
+- Eliminadas todas las referencias directas a clientes específicos (Crediminuto)
+
+**`client_config` — columnas de umbrales de alerta configurables por cliente:**
+- 5 columnas de umbrales de alerta disponibles desde V20, ahora con RLS activo
+- `alert_tasa_critica`, `alert_tasa_warning`, `alert_delta_critico`, `alert_delta_warning`, `alert_volumen_minimo`
+
+---
+
+### 🛡️ Infraestructura — Resiliencia del Sistema
+
+**Gateway watchdog — autoreparación automática:**
+- LaunchAgent `ai.openclaw.gateway.watchdog` creado y activo
+- Corre cada 5 minutos; detecta si el Gateway está caído y lo reinicia automáticamente
+- Envía alerta WhatsApp a Fabián si el gateway no levanta tras 3 intentos
+- Cero downtime manual necesario para recuperar el gateway
+
+**Startup recovery — servicios post-reboot:**
+- LaunchAgent `ai.openclaw.startup-recovery` levanta automáticamente todos los servicios al reiniciar el Mac Mini
+- Incluye: OpenClaw Gateway, túneles Cloudflare, servicios de diarización
+- El Mac Mini es ahora un nodo de producción auto-resiliente
+
+---
+
 ## [V21.0.0] — 2026-04-07 — Proxy 4G, Function Calling, Insight Ejecutivo, Auth Fix
 
 > Sesión de trabajo: Fabián Saavedra + GlorIA. Enfoque: estabilidad mobile (4G), inteligencia real de Vicky (function calling dinámico), Speech Analytics ejecutivo nivel McKinsey, y seguridad de autenticación.

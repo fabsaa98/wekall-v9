@@ -4,7 +4,7 @@
 > Plataforma multi-tenant de inteligencia operativa para contact centers — datos reales, análisis en lenguaje natural, alertas proactivas.
 
 **Producción:** https://wekall-intelligence.pages.dev  
-**Versión actual:** V20.0.0 (Auth Real + World-Class Features)  
+**Versión actual:** V22.0.0 (Seguridad Multi-Tenant Completa — RLS Real + UX + Infraestructura)  
 **Stack:** React 18 + TypeScript + Vite + Supabase + Cloudflare Pages/Workers
 
 ---
@@ -142,13 +142,14 @@ WeKall Intelligence transforma los datos brutos del CDR (Call Detail Records) de
 - **Guardar cambios reales:** upsert en `client_branding` via Supabase
 - Hotwords, integraciones, configuración de alertas por cliente
 
-### 🔐 Autenticación Real (V20)
+### 🔐 Autenticación Real (V20) — Endurecido en V21/V22
 - **Supabase Auth v2:** `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`
 - **Login dual:** Supabase Auth real → fallback legacy (tabla `app_users`)
-- **AuthGuard:** Auth session → localStorage → redirect `/login`
-- **3 capas de aislamiento:** queries con `client_id` + RAG con `client_id_filter` + Auth JWT
+- **AuthGuard:** Solo permite acceso con sesión activa de Supabase Auth (fix V21)
+- **3 capas de aislamiento completo (V22):** queries con `client_id` + RAG con `client_id_filter` + **RLS en Supabase (9 tablas)**
 - Roles: CEO, VP Ventas, VP CX, COO, admin
 - Credencial activa: `fabian@wekall.co` / `WeKall2026!`
+- **Recuperación de contraseña (V22):** flujo nativo en `/forgot-password` y `/reset-password`
 
 ### 📡 Rutas de la Aplicación
 
@@ -159,12 +160,14 @@ WeKall Intelligence transforma los datos brutos del CDR (Call Detail Records) de
 | `/equipos` | Performance de agentes |
 | `/document-analysis` | Análisis de documentos |
 | `/configuracion` | Configuración del cliente |
-| `/speech-analytics` | **NUEVO** — Análisis de grabaciones (5 módulos) |
-| `/transcriptions` | **NUEVO** — Listado de transcripciones |
-| `/transcriptions/:id` | **NUEVO** — Detalle de transcripción individual |
-| `/upload` | **NUEVO** — Subida de grabaciones al pipeline |
-| `/search` | **NUEVO** — Búsqueda semántica sobre transcripciones |
+| `/speech-analytics` | Análisis de grabaciones (5 módulos) |
+| `/transcriptions` | Listado de transcripciones |
+| `/transcriptions/:id` | Detalle de transcripción individual |
+| `/upload` | Subida de grabaciones al pipeline |
+| `/search` | Búsqueda semántica sobre transcripciones |
 | `/login` | Autenticación |
+| `/forgot-password` | **V22** — Solicitud de recuperación de contraseña |
+| `/reset-password` | **V22** — Formulario de nueva contraseña con token |
 
 ---
 
@@ -445,6 +448,51 @@ Ver documentación completa en [`docs/cloudflare-worker.md`](docs/cloudflare-wor
 
 ---
 
+## Seguridad — Arquitectura de Aislamiento Multi-Tenant (V22)
+
+WeKall Intelligence implementa **3 capas de aislamiento** para garantizar que cada cliente solo vea sus propios datos:
+
+### Capa 1 — Cloudflare Worker (Auth + Proxy AI)
+- Todas las llamadas a OpenAI (chat, Whisper, embeddings, RAG) pasan por el Worker
+- El Worker valida el `client_id` antes de procesar queries de RAG
+- La API key de OpenAI **nunca** está expuesta en el frontend
+- El `SUPABASE_SERVICE_KEY` tampoco está en el cliente — solo en CF Secrets
+
+### Capa 2 — Frontend: `client_id` obligatorio en todas las queries
+- `ClientContext` inicializa con el `client_id` del usuario autenticado
+- Todas las queries Supabase incluyen `.eq('client_id', clientId)` — sin excepción
+- `getRecentAlertLog()` y `getVickyHistory()` requieren `clientId` explícito (fix H-1)
+- Eliminado fallback hardcodeado `'credismart'` en 6 funciones (fix H-2)
+- RAG: Worker recibe `client_id` en cada `/rag-query` → `search_transcriptions` filtra por cliente
+
+### Capa 3 — Supabase RLS (nivel base de datos) ✅ ACTIVO
+- RLS habilitado en **9 tablas** de datos de negocio
+- Policy: `USING (client_id = public.get_user_client_id())`
+- Aislamiento garantizado incluso si el frontend tiene un bug
+
+| Tabla con RLS | Estado |
+|--------------|--------|
+| `transcriptions` | 🔐 ACTIVO |
+| `agents_performance` | 🔐 ACTIVO |
+| `agent_daily_metrics` | 🔐 ACTIVO |
+| `cdr_daily_metrics` | 🔐 ACTIVO |
+| `client_config` | 🔐 ACTIVO |
+| `client_branding` | 🔐 ACTIVO |
+| `client_kpi_targets` | 🔐 ACTIVO |
+| `client_labor_costs` | 🔐 ACTIVO |
+| `vicky_conversations` | 🔐 ACTIVO |
+
+---
+
+## Infraestructura — Resiliencia del Mac Mini (V22)
+
+| LaunchAgent | Función | Intervalo |
+|-------------|---------|----------|
+| `ai.openclaw.gateway.watchdog` | Detecta caída del gateway, reinicia automáticamente, alerta WhatsApp si falla 3 veces | Cada 5 min |
+| `ai.openclaw.startup-recovery` | Levanta todos los servicios al reiniciar el Mac Mini | Al iniciar |
+
+---
+
 ## Roadmap (Qué Falta)
 
 ### ✅ V20 — Auth Real (COMPLETADO)
@@ -452,31 +500,35 @@ Ver documentación completa en [`docs/cloudflare-worker.md`](docs/cloudflare-wor
 - [x] RAG con `client_id_filter` — aislamiento validado
 - [x] Umbrales de alerta dinámicos por cliente
 - [x] Forecasting 7 días, drill-down, speech analytics, push proactivo
-- [ ] RLS policies reales en base de datos: `client_id = auth.jwt() ->> 'client_id'` *(preparado con `get_user_client_id()`, pendiente activación)*
-- [ ] Recuperación de contraseña por email
 
-### V21 — Pipeline CDR Automático
-- [ ] Script de carga CDR → Supabase (scheduled, cron diario)
+### ✅ V21 — Proxy 4G + Function Calling (COMPLETADO — 2026-04-07)
+- [x] Proxy CF Worker para queries Supabase (fix red 4G Claro)
+- [x] Function Calling dinámico en Vicky
+- [x] Fix crítico: AuthGuard bypass localStorage eliminado
+
+### ✅ V22 — Seguridad Multi-Tenant Completa + UX + Infraestructura (COMPLETADO — 2026-04-13)
+- [x] RLS activado en 9 tablas con `get_user_client_id()`
+- [x] H-1 fix: `clientId` obligatorio en funciones críticas
+- [x] H-2 fix: eliminado fallback `'credismart'` en 6 funciones
+- [x] Auditoría completa: 20 issues corregidos (2 CRITICAL, 3 HIGH, 12 MEDIUM, 3 LOW)
+- [x] ForgotPassword y ResetPassword (flujo nativo)
+- [x] ErrorBoundary en todas las rutas
+- [x] Loading skeletons (PageSkeleton, CardSkeleton)
+- [x] VickyChatHistory.tsx extraído de VickyInsights.tsx
+- [x] Gateway watchdog + startup recovery
+
+### V23 — Pipeline CDR Automático
+- [ ] Script de carga CDR → Supabase (cron diario)
 - [ ] Procesamiento del CSV de WeKall → `cdr_daily_metrics`
 - [ ] Validación de datos y alertas de ingestión
 
-### V22 — Notificaciones Proactivas
+### V24 — Notificaciones Proactivas
 - [ ] Webhook de alertas → WhatsApp via wacli
 - [ ] Alertas programadas (diarias/semanales) con resumen ejecutivo
 - [ ] Integración con email (Microsoft Graph API)
 
-### V23 — Expansión Multi-Cliente
-- [ ] Dashboard de administración para gestionar clientes
-- [ ] Onboarding self-service
-- [ ] Billing básico por cliente
-
-### Deuda Técnica
+### Deuda Técnica (post-V22)
 - [ ] Tests unitarios (cobertura actual: mínima)
-- [ ] Activar RLS real por `client_id` en Supabase (función `get_user_client_id()` ya lista, falta activar policies)
-- [ ] Recuperación de contraseña por email
-- [ ] Error boundaries en páginas
-- [ ] Loading skeletons consistentes
-- [ ] Refactorizar mockData.ts (mezcla datos reales con mock)
 - [ ] Escalar RAG de 50 a 375 transcripciones (metodología COPC)
 
 ---
