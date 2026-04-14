@@ -323,19 +323,25 @@ export default function VickyInsights() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
 
   // Actualizar mensaje de bienvenida cuando carga el clientConfig
+  // Fix 4: useEffect del mensaje de bienvenida — reactivo al estado del CDR
   useEffect(() => {
     if (!clientConfig) return;
     const _name = clientBranding?.company_name || clientConfig.client_name || 'tu operación';
+    const _cdrStatus = cdr.loading
+      ? '*(Cargando datos en tiempo real...)*'
+      : cdr.latestDay
+        ? `Último dato: **${cdr.latestDay.fecha}** · ${cdr.latestDay.total_llamadas.toLocaleString('es-CO')} llamadas`
+        : '*(Sin datos del día disponibles — usa análisis histórico)*';
     setMessages(prev => {
       if (prev.length !== 1 || prev[0].id !== 'init-1') return prev; // solo reemplazar el mensaje inicial
       return [{
         ...prev[0],
-        content: `**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de **${_name}**:\n- **CDR histórico en tiempo real** · Supabase · datos actualizados\n- **Transcripciones** analizadas con IA · Objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero de cada mejora operativa\n\n¿Qué quieres analizar?`,
+        content: `**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de **${_name}**:\n- **CDR histórico en tiempo real** · Supabase · ${_cdrStatus}\n- **Transcripciones** analizadas con IA · Objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero de cada mejora operativa\n\n¿Qué quieres analizar?`,
         sources: [`${_name} · CDR · Supabase en tiempo real`],
         reasoning: `Datos CDR de ${_name} cargados desde Supabase.`,
       }];
     });
-  }, [clientConfig?.client_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clientConfig?.client_id, cdr.loading, cdr.latestDay?.fecha]); // Fix 4: depende también del CDR // eslint-disable-line react-hooks/exhaustive-deps
   // Feature 1: Conversation memory
   const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user'|'assistant', content: string}>>([]);
   // useRef to avoid stale closure in async sendMessage (especially in tool_calls second pass)
@@ -529,6 +535,29 @@ export default function VickyInsights() {
 
   async function sendMessage(text: string) {
     if (!text.trim()) return;
+
+    // Fix 2: Guard — si CDR sigue cargando, informar al usuario y no enviar
+    if (cdr.loading) {
+      const waitMsg: ChatMessage = {
+        id: `vicky-wait-${Date.now()}`,
+        role: 'vicky',
+        content: '**Espera un momento** — estoy cargando los datos CDR en tiempo real desde Supabase. Normalmente toma 2-3 segundos. Intenta de nuevo en un momento.',
+        timestamp: new Date(),
+        sources: [],
+        confidence: 'Alta',
+        rootCauses: [],
+        projection: '',
+        followUps: ['Intentar de nuevo'],
+      };
+      setMessages(prev => [
+        ...prev,
+        { id: `user-wait-${Date.now()}`, role: 'user' as const, content: text, timestamp: new Date() },
+        waitMsg,
+      ]);
+      setInput('');
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -569,19 +598,28 @@ export default function VickyInsights() {
       const _opType = detectOperationType(`${_clientIndustry} ${_clientCountry} ${_clientName} promesa pago deuda`);
       const _region = detectRegion(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _benchmarkCtx = generateBenchmarkContext(_opType, _region);
-      // CDR data real desde Supabase (si está disponible)
+      // Fix 3: CDR data real desde Supabase — sin fallbacks hardcodeados
       const _latestDay = cdr.latestDay;
-      const _llamadasHoy = _latestDay?.total_llamadas ?? 16129;
-      const _tasaContacto = _latestDay?.tasa_contacto_pct != null ? (_latestDay.tasa_contacto_pct / 100) : 0.431;
-      const _aht = _latestDay?.aht_minutos ?? 8.1;
+      const _datosDisponibles = _latestDay != null;
+      const _llamadasHoy = _latestDay?.total_llamadas ?? null;
+      const _tasaContacto = _latestDay?.tasa_contacto_pct != null ? (_latestDay.tasa_contacto_pct / 100) : null;
+      const _aht = _latestDay?.aht_minutos ?? null;
+
+      // Fix 3: Sección CDR del prompt — explícita sobre disponibilidad de datos
+      const _cdrSection = _datosDisponibles ? `
+- Campañas principales: Cobranzas ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Cobranzas Perú · Servicio ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Servicio Perú
+- Tasa de contacto efectivo hoy: ${(_tasaContacto! * 100).toFixed(1)}%
+- AHT real: ${_aht} min promedio (rango: 5.2-16.3 min)
+- Total llamadas hoy: ${_llamadasHoy!.toLocaleString('es-CO')}` : `
+- ⚠️ DATOS CDR DEL DÍA NO DISPONIBLES AÚN: Los datos de hoy no han sido cargados todavía.
+- INSTRUCCIÓN CRÍTICA: NO inventes ni estimes métricas de volumen, tasa de contacto ni AHT.
+- USA la función query_cdr_data para obtener datos reales antes de responder.
+- Si query_cdr_data tampoco tiene datos, di explícitamente: "Los datos del día no están disponibles aún. Puedo analizar tendencias históricas si lo deseas."`;
+
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para ${_clientName}.
 
 ## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
-- Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)
-- Campañas principales: Cobranzas ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Cobranzas Perú · Servicio ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Servicio Perú
-- Tasa de contacto efectivo hoy: ${(_tasaContacto * 100).toFixed(1)}%
-- AHT real: ${_aht} min promedio (rango: 5.2-16.3 min)
-- Total llamadas hoy: ${_llamadasHoy.toLocaleString('es-CO')}
+- Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)${_cdrSection}
 
 ## RESUMEN ANUAL CDR
 Para obtener totales anuales, mensuales o tendencias históricas del CDR, usa la función query_cdr_data con el query_type apropiado. Los datos se consultan en tiempo real desde Supabase.
@@ -1260,6 +1298,19 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1">
+              {/* Fix 1: Banner de estado CDR — visible cuando los datos no han cargado */}
+              {cdr.loading && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400 mb-2">
+                  <Loader2 size={12} className="animate-spin" />
+                  Cargando datos CDR en tiempo real...
+                </div>
+              )}
+              {!cdr.loading && cdr.error && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 mb-2">
+                  <AlertCircle size={12} />
+                  No se pudieron cargar los datos CDR. Vicky operará con datos limitados.
+                </div>
+              )}
               {messages.map((msg, msgIdx) => {
                 // Feature 4: Compute action suggestions for last Vicky message only
                 const isLastVicky = msg.role === 'vicky' && msgIdx === messages.length - 1;
