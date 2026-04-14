@@ -18,6 +18,9 @@ import DocumentAnalysis from '@/pages/DocumentAnalysis';
 import Login from '@/pages/Login';
 import Admin from '@/pages/Admin';
 import { supabase } from '@/lib/supabase';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 // Fix 2A, 2B, 2C — Páginas activas: Transcripciones, Subir Grabación, Búsqueda
 import TranscriptionList from '@/pages/TranscriptionList';
 import TranscriptionDetail from '@/pages/TranscriptionDetail';
@@ -94,8 +97,10 @@ export default function App() {
         <RoleProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <Routes>
-              {/* Ruta pública */}
+              {/* Rutas públicas */}
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Rutas protegidas */}
               <Route
@@ -105,21 +110,21 @@ export default function App() {
                   </AuthGuard>
                 }
               >
-                <Route path="/" element={<Overview />} />
-                <Route path="/vicky" element={<VickyInsights />} />
-                <Route path="/document-analysis" element={<DocumentAnalysis />} />
-                <Route path="/alertas" element={<Alertas />} />
-                <Route path="/equipos" element={<Equipos />} />
-                <Route path="/config" element={<Configuracion />} />
-                <Route path="/admin" element={<Admin />} />
+                <Route path="/" element={<ErrorBoundary><Overview /></ErrorBoundary>} />
+                <Route path="/vicky" element={<ErrorBoundary><VickyInsights /></ErrorBoundary>} />
+                <Route path="/document-analysis" element={<ErrorBoundary><DocumentAnalysis /></ErrorBoundary>} />
+                <Route path="/alertas" element={<ErrorBoundary><Alertas /></ErrorBoundary>} />
+                <Route path="/equipos" element={<ErrorBoundary><Equipos /></ErrorBoundary>} />
+                <Route path="/config" element={<ErrorBoundary><Configuracion /></ErrorBoundary>} />
+                <Route path="/admin" element={<ErrorBoundary><Admin /></ErrorBoundary>} />
                 {/* Fix 2A: Transcripciones */}
-                <Route path="/transcriptions" element={<TranscriptionList />} />
-                <Route path="/transcriptions/:id" element={<TranscriptionDetail />} />
+                <Route path="/transcriptions" element={<ErrorBoundary><TranscriptionList /></ErrorBoundary>} />
+                <Route path="/transcriptions/:id" element={<ErrorBoundary><TranscriptionDetail /></ErrorBoundary>} />
                 {/* Fix 2B: Subir grabación */}
-                <Route path="/upload" element={<UploadRecording />} />
+                <Route path="/upload" element={<ErrorBoundary><UploadRecording /></ErrorBoundary>} />
                 {/* Fix 2C: Búsqueda semántica global */}
-                <Route path="/search" element={<SearchView />} />
-                <Route path="/speech-analytics" element={<SpeechAnalytics />} />
+                <Route path="/search" element={<ErrorBoundary><SearchView /></ErrorBoundary>} />
+                <Route path="/speech-analytics" element={<ErrorBoundary><SpeechAnalytics /></ErrorBoundary>} />
               </Route>
 
               {/* Fallback */}

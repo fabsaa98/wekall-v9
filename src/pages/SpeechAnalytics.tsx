@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Mic, Loader2, AlertTriangle, TrendingUp, TrendingDown, Users, Target, Lightbulb, CheckCircle2, XCircle, AlertCircle, ArrowUpRight, BarChart2 } from 'lucide-react';
 import { useClient } from '@/contexts/ClientContext';
 import { cn } from '@/lib/utils';
+import { PageSkeleton } from '@/components/PageSkeleton';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -375,14 +376,7 @@ export default function SpeechAnalytics() {
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="p-6 flex-1 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 size={32} className="text-primary animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Analizando transcripciones...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton rows={4} />;
   }
 
   if (error) {

@@ -20,6 +20,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
 import { INDUSTRY_BENCHMARKS } from '@/data/benchmarks';
+import { PageSkeleton } from '@/components/PageSkeleton';
 
 // ─── Recharts dot render prop types ──────────────────────────────────────
 interface ChartDotProps {
@@ -219,15 +220,7 @@ export default function Overview() {
 
   // Loading skeleton
   if (cdr.loading) {
-    return (
-      <div className="p-6 flex-1 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 size={32} className="text-primary animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Cargando datos desde Supabase...</p>
-          <p className="text-xs text-muted-foreground">CDR histórico 822 días · ene 2024 – abr 2026</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton rows={3} />;
   }
 
   // Error state

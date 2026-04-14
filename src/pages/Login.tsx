@@ -245,9 +245,14 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground">
-          ¿Problemas? <a href="mailto:soporte@wekall.co" className="text-primary hover:underline">Contacta a soporte</a>
-        </p>
+        <div className="flex flex-col items-center gap-2">
+          <a href="/forgot-password" className="text-sm text-gray-400 hover:text-purple-400">
+            ¿Olvidaste tu contraseña?
+          </a>
+          <p className="text-center text-xs text-muted-foreground">
+            ¿Problemas? <a href="mailto:soporte@wekall.co" className="text-primary hover:underline">Contacta a soporte</a>
+          </p>
+        </div>
       </div>
     </div>
   );
