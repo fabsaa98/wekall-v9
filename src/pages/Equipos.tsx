@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAgentsData, type AgentSummary } from '@/hooks/useAgentsData';
+import { supabase } from '@/lib/supabase';
+import { useClient } from '@/contexts/ClientContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line,
@@ -157,9 +159,39 @@ function EquiposSkeleton() {
   );
 }
 
+// ─── Tipos KPI targets ───────────────────────────────────────────────────────
+
+interface KpiTarget {
+  kpi_name: string;
+  target_value: number;
+  target_unit: string;
+}
+
+// ─── Semáforo vs Meta ─────────────────────────────────────────────────────────
+
+function VsMetaBadge({ real, meta, invertGood = false }: { real: number; meta: number; invertGood?: boolean }) {
+  if (meta === 0) return <span className="text-[10px] text-muted-foreground">—</span>;
+  const pct = meta > 0 ? (real / meta) * 100 : 0;
+  // invertGood: lower = better (e.g. AHT, escalaciones)
+  const effectivePct = invertGood ? (meta / Math.max(real, 0.01)) * 100 : pct;
+  const color =
+    effectivePct >= 100 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+    effectivePct >= 80  ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                          'text-red-400 bg-red-500/10 border-red-500/20';
+  const label =
+    effectivePct >= 100 ? `✅ ${Math.round(pct)}%` :
+    effectivePct >= 80  ? `⚠️ ${Math.round(pct)}%` :
+                          `🔴 ${Math.round(pct)}%`;
+  return (
+    <span className={cn('px-1.5 py-0.5 rounded-full text-[10px] font-semibold border', color)}>
+      {label}
+    </span>
+  );
+}
+
 // ─── Fila de agente ───────────────────────────────────────────────────────────
 
-function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
+function AgentRow({ agent, rank, kpiTargets }: { agent: AgentSummary; rank: number; kpiTargets: KpiTarget[] }) {
   const navigate = useNavigate();
   const handleRowClick = () => {
     navigate(`/vicky?q=${encodeURIComponent(`Dame el análisis completo de ${agent.agent_name}: rendimiento, tendencia y recomendaciones de coaching`)}`);
@@ -199,6 +231,17 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
         {Math.floor(agent.avg_aht_segundos / 60)}m {Math.round(agent.avg_aht_segundos % 60)}s
       </td>
       <td className="py-3 px-4 text-sm text-foreground">{agent.avg_tasa_contacto.toFixed(1)}%</td>
+      {/* vs Meta — semáforo verde/amarillo/rojo */}
+      <td className="py-3 px-4">
+        {(() => {
+          const tcTarget = kpiTargets.find(t => t.kpi_name === 'tasa_contacto');
+          const promesaTarget = kpiTargets.find(t => t.kpi_name === 'tasa_promesa');
+          const target = tcTarget || promesaTarget;
+          if (!target) return <span className="text-[10px] text-muted-foreground">—</span>;
+          const real = target.kpi_name === 'tasa_contacto' ? agent.avg_tasa_contacto : agent.avg_tasa_promesa;
+          return <VsMetaBadge real={real} meta={target.target_value} />;
+        })()}
+      </td>
       <td className="py-3 px-4">
         <div className="flex items-center gap-2">
           <AgentSparkline data={agent.sparkline7d} trend={agent.trend} />
@@ -239,11 +282,22 @@ interface AgentStatsPercentiles {
   p90: number;
 }
 
-function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
-  const config = areaConfig[area] ?? areaConfig['Cobranzas'];
+type SortKey = 'llamadas' | 'csat' | 'fcr' | 'tasa_contacto';
 
-  // Ordenar por tasa_contacto descendente (más efectivos primero)
-  const sorted = [...agents].sort((a, b) => b.avg_tasa_contacto - a.avg_tasa_contacto);
+function AreaPanel({ area, agents, kpiTargets }: { area: string; agents: AgentSummary[]; kpiTargets: KpiTarget[] }) {
+  const config = areaConfig[area] ?? areaConfig['Cobranzas'];
+  const [sortBy, setSortBy] = useState<SortKey>('llamadas');
+
+  // Ordenar según criterio seleccionado
+  const sorted = [...agents].sort((a, b) => {
+    switch (sortBy) {
+      case 'csat':         return b.avg_csat - a.avg_csat;
+      case 'fcr':          return b.avg_fcr - a.avg_fcr;
+      case 'tasa_contacto': return b.avg_tasa_contacto - a.avg_tasa_contacto;
+      case 'llamadas':     return b.total_llamadas - a.total_llamadas;
+      default:             return b.total_llamadas - a.total_llamadas;
+    }
+  });
 
   // Percentiles COPC — llamadas por agente por día
   const agentStats: AgentStatsPercentiles | null = (() => {
@@ -285,6 +339,29 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">{config.description}</p>
+
+      {/* Selector de ranking */}
+      <div className="flex flex-wrap gap-2">
+        {([
+          { key: 'llamadas',     label: 'Por volumen' },
+          { key: 'csat',         label: 'Por CSAT' },
+          { key: 'fcr',          label: 'Por FCR' },
+          { key: 'tasa_contacto', label: 'Por contacto' },
+        ] as { key: SortKey; label: string }[]).map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => setSortBy(opt.key)}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              sortBy === opt.key
+                ? 'bg-primary text-white'
+                : 'bg-secondary text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       {/* KPIs del área */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -349,12 +426,13 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">CSAT</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">AHT</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tasa Contacto</th>
+                <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">vs Meta</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tendencia 7d ↗</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((agent, i) => (
-                <AgentRow key={agent.agent_id} agent={agent} rank={i + 1} />
+                <AgentRow key={agent.agent_id} agent={agent} rank={i + 1} kpiTargets={kpiTargets} />
               ))}
             </tbody>
           </table>

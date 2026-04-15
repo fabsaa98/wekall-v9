@@ -419,3 +419,179 @@ export function calcularImpactoFCR(
     },
   };
 }
+
+// ─── Forecast de volumen (modelo simple pero robusto) ─────────────────────────
+
+export interface ForecastResult {
+  fecha: string;
+  diaSemana: string;
+  voluménEsperado: number;
+  rangoMin: number;
+  rangoMax: number;
+  confianza: 'alta' | 'media' | 'baja';
+  distribucionHoraria: Array<{ hora: number; llamadas: number; pct: number }>;
+}
+
+// Modelo: promedio móvil ponderado + factor día de semana
+export function calcularForecast(
+  historico: Array<{ fecha: string; total_llamadas: number }>,
+  distribucionHoraria: Array<{ hora: number; total_llamadas: number }>,
+  diasAdelante: number = 1
+): ForecastResult[] {
+  if (!historico?.length) return [];
+
+  // 1. Calcular promedio por día de semana (0=Dom, 1=Lun, ..., 6=Sáb)
+  const porDiaSemana: Record<number, number[]> = {};
+  historico.forEach(d => {
+    const dow = new Date(d.fecha + 'T12:00:00').getDay();
+    if (!porDiaSemana[dow]) porDiaSemana[dow] = [];
+    // Solo días con volumen real (>100 llamadas — excluir fines de semana atípicos)
+    if (d.total_llamadas > 100) porDiaSemana[dow].push(d.total_llamadas);
+  });
+
+  // 2. Promedio y desviación estándar por día de semana
+  const statsXDia: Record<number, { avg: number; std: number; n: number }> = {};
+  Object.entries(porDiaSemana).forEach(([dow, vals]) => {
+    const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+    const std = Math.sqrt(vals.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / vals.length);
+    statsXDia[parseInt(dow)] = { avg: Math.round(avg), std: Math.round(std), n: vals.length };
+  });
+
+  // 3. Calcular perfil horario promedio (distribución dentro del día)
+  const totalXHora: Record<number, number[]> = {};
+  distribucionHoraria.forEach(d => {
+    if (!totalXHora[d.hora]) totalXHora[d.hora] = [];
+    totalXHora[d.hora].push(d.total_llamadas);
+  });
+  const promedioXHora: Record<number, number> = {};
+  let totalPromedio = 0;
+  Object.entries(totalXHora).forEach(([hora, vals]) => {
+    promedioXHora[parseInt(hora)] = vals.reduce((s, v) => s + v, 0) / vals.length;
+    totalPromedio += promedioXHora[parseInt(hora)];
+  });
+
+  // 4. Generar forecast para los próximos N días
+  const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const results: ForecastResult[] = [];
+
+  for (let i = 1; i <= diasAdelante; i++) {
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() + i);
+    const dow = fecha.getDay();
+    const stats = statsXDia[dow];
+
+    if (!stats) continue;
+
+    const volumenEsperado = stats.avg;
+    const rangoMin = Math.max(0, stats.avg - stats.std);
+    const rangoMax = stats.avg + stats.std;
+    const confianza: 'alta' | 'media' | 'baja' =
+      stats.n >= 20 ? 'alta' : stats.n >= 8 ? 'media' : 'baja';
+
+    // Distribución horaria para este día
+    const distribucionDia = Object.entries(promedioXHora)
+      .map(([hora, avg]) => ({
+        hora: parseInt(hora),
+        llamadas: Math.round((avg / totalPromedio) * volumenEsperado),
+        pct: totalPromedio > 0 ? Math.round((avg / totalPromedio) * 100) : 0,
+      }))
+      .sort((a, b) => a.hora - b.hora);
+
+    results.push({
+      fecha: fecha.toISOString().split('T')[0],
+      diaSemana: DIAS_SEMANA[dow],
+      voluménEsperado: volumenEsperado,
+      rangoMin,
+      rangoMax,
+      confianza,
+      distribucionHoraria: distribucionDia,
+    });
+  }
+
+  return results;
+}
+
+// ─── Erlang C — Cálculo de agentes requeridos ─────────────────────────────────
+// Estándar de la industria para dimensionamiento de contact centers
+
+export interface ErlangResult {
+  hora: number;
+  llamadasEsperadas: number;
+  agentesRequeridos: number;
+  traficoErlang: number;
+  nivelServicio: number;  // % real alcanzado
+  ocupacion: number;       // % ocupación de los agentes
+}
+
+function erlangC(agentes: number, trafico: number): number {
+  // Fórmula Erlang C: P(espera) = probabilidad de que llamada espere
+  if (agentes <= trafico) return 1; // sistema saturado
+
+  let suma = 0;
+  for (let i = 0; i < agentes; i++) {
+    let termino = Math.pow(trafico, i);
+    let factorial = 1;
+    for (let j = 1; j <= i; j++) factorial *= j;
+    suma += termino / factorial;
+  }
+
+  const ultimoTermino = Math.pow(trafico, agentes);
+  let factorialAgentes = 1;
+  for (let j = 1; j <= agentes; j++) factorialAgentes *= j;
+
+  const numerador = (ultimoTermino / factorialAgentes) * (agentes / (agentes - trafico));
+  return numerador / (suma + numerador);
+}
+
+export function calcularAgentesRequeridos(
+  llamadasPorHora: number,
+  ahtSegundos: number,
+  slaObjetivo: number = 0.80,   // 80% de llamadas atendidas en tiempo
+  tiempoEsperaMax: number = 20, // segundos
+  intervalMinutos: number = 60  // intervalo en minutos
+): ErlangResult[] {
+  const intervaloSegundos = intervalMinutos * 60;
+  const trafico = (llamadasPorHora * ahtSegundos) / intervaloSegundos; // en Erlangs
+
+  // Buscar mínimo de agentes que cumple el SLA
+  let agentesMin = Math.max(1, Math.ceil(trafico) + 1);
+  for (let agentes = Math.max(1, Math.ceil(trafico) + 1); agentes <= Math.ceil(trafico) * 3 + 5; agentes++) {
+    const pEspera = erlangC(agentes, trafico);
+    const sla = 1 - (pEspera * Math.exp(-(agentes - trafico) * tiempoEsperaMax / ahtSegundos));
+    if (sla >= slaObjetivo) {
+      agentesMin = agentes;
+      break;
+    }
+  }
+
+  const pEsperaFinal = erlangC(agentesMin, trafico);
+  const slaFinal = 1 - (pEsperaFinal * Math.exp(-(agentesMin - trafico) * tiempoEsperaMax / ahtSegundos));
+  const ocupacionFinal = trafico / agentesMin;
+
+  return [{
+    hora: 0, // se asigna externamente
+    llamadasEsperadas: llamadasPorHora,
+    agentesRequeridos: agentesMin,
+    traficoErlang: Math.round(trafico * 100) / 100,
+    nivelServicio: Math.round(slaFinal * 100),
+    ocupacion: Math.round(ocupacionFinal * 100),
+  }];
+}
+
+// Función completa: dado el forecast del día, retorna tabla de agentes por hora
+export function calcularDimensionamientoDia(
+  forecast: ForecastResult,
+  ahtSegundos: number,
+  slaObjetivo: number = 0.80
+): Array<ErlangResult & { hora: number; franja: string }> {
+  return forecast.distribucionHoraria
+    .filter(h => h.llamadas > 0)
+    .map(h => {
+      const [result] = calcularAgentesRequeridos(h.llamadas, ahtSegundos, slaObjetivo);
+      return {
+        ...result,
+        hora: h.hora,
+        franja: `${h.hora.toString().padStart(2, '0')}:00 - ${(h.hora + 1).toString().padStart(2, '0')}:00`,
+      };
+    });
+}

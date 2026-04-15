@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 
@@ -16,6 +16,7 @@ const navItems = [
   { label: 'Subir grabación', path: '/upload', icon: Upload },
   // Fix 2C: Búsqueda semántica global en transcripciones
   { label: 'Búsqueda', path: '/search', icon: Search },
+  { label: 'Forecast', path: '/forecast', icon: TrendingUp },
   { label: 'Configuración', path: '/config', icon: Settings },
 ];
 

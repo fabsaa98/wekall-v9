@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, TrendingDown,
-  BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar, FileText,
+  BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar, FileText, Activity, Phone,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -13,6 +13,8 @@ import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 import { buildKPIsFromCDR, buildConversationTrend } from '@/data/mockData';
 import { useCDRData } from '@/hooks/useCDRData';
+import { useAgentKPIs } from '@/hooks/useAgentKPIs';
+import { useAgentKPIs } from '@/hooks/useAgentKPIs';
 import { generateWeeklyInsight } from '@/lib/proactiveInsights';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -108,6 +110,7 @@ export default function Overview() {
   const { clientConfig, clientBranding } = useClient();
   const navigate = useNavigate();
   const cdr = useCDRData();
+  const agentKPIs = useAgentKPIs(7);
 
   // Nombre del cliente dinámico
   const clientName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
@@ -784,6 +787,84 @@ export default function Overview() {
         </div>
       </div>
 
+      {/* ── KPIs CX + Ventas + Operaciones (agents_performance) ─────────────── */}
+      {!agentKPIs.loading && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            KPIs de Calidad — CSAT · FCR · Escalaciones · Conversión · Costo/Llamada
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+
+            {/* CSAT promedio — VP CX */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">CSAT Promedio</p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.csatPromedio > 0 ? agentKPIs.csatPromedio.toFixed(1) + '/5' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Últimos 7 días · agentes activos</p>
+            </div>
+
+            {/* FCR promedio — VP CX */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">FCR (First Contact Resolution)</p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.fcrPromedio > 0 ? agentKPIs.fcrPromedio.toFixed(1) + '%' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Resolución en primer contacto</p>
+            </div>
+
+            {/* Escalaciones promedio — VP CX */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Escalaciones</p>
+              <p className={cn(
+                'text-2xl font-bold',
+                agentKPIs.escalacionesPromedio > 10 ? 'text-red-400' : 'text-foreground',
+              )}>
+                {agentKPIs.escalacionesPromedio > 0 ? agentKPIs.escalacionesPromedio.toFixed(1) + '%' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">% llamadas escaladas · 7 días</p>
+            </div>
+
+            {/* Tasa de Conversión (proxy tasa_promesa) — VP Ventas */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Tasa de Conversión <span className="normal-case font-normal text-muted-foreground">(proxy)</span></p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.tasaPromesaPromedio > 0 ? agentKPIs.tasaPromesaPromedio.toFixed(1) + '%' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Tasa promesa/cierre · 7 días</p>
+            </div>
+
+            {/* Costo por llamada — VP Operaciones */}
+            {(() => {
+              const totalLlamadasMes = cdr.last30Days.length > 0
+                ? cdr.last30Days.reduce((s, d) => s + d.total_llamadas, 0)
+                : 0;
+              const diasHabiles = 22;
+              const promedioLlamadasDia = totalLlamadasMes > 0
+                ? totalLlamadasMes / cdr.last30Days.length
+                : 0;
+              const llamadasMes = Math.round(promedioLlamadasDia * diasHabiles);
+              const nomina = clientConfig?.nomina_total_mes;
+              const costoXLlamada = nomina && llamadasMes > 0
+                ? Math.round(nomina / llamadasMes)
+                : null;
+              return (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Costo / Llamada</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {costoXLlamada !== null ? `COP $${costoXLlamada.toLocaleString('es-CO')}` : '—'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {nomina ? `Nómina $${nomina.toLocaleString('es-CO')} / ${llamadasMes.toLocaleString('es-CO')} llamadas` : 'Configura nómina en Ajustes'}
+                  </p>
+                </div>
+              );
+            })()}
+
+          </div>
+        </div>
+      )}
+
       {/* Secondary KPIs */}
       {secondaryKPIs.length > 0 && (
         <div>
@@ -798,6 +879,103 @@ export default function Overview() {
                 className={`animate-fade-slide-up animate-stagger-${i + 1}`}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── KPIs OPERACIONES — Ocupación Estimada + Llamadas/Hora (Sprint 2B) ─── */}
+      {!agentKPIs.loading && agentKPIs.agentesActivos > 0 && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            KPIs Operaciones (VP Ops) · Engage360 · {agentKPIs.agentesActivos} agentes
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Ocupación Estimada */}
+            <div className={cn(
+              'rounded-xl border bg-card p-4 space-y-1',
+              agentKPIs.ocupacionPromedio > 90 ? 'border-red-500/30' :
+              agentKPIs.ocupacionPromedio >= 75 ? 'border-emerald-500/30' :
+              'border-border',
+            )}>
+              <div className="flex items-center gap-2">
+                <Activity size={14} className="text-primary" />
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Ocupación Estimada</p>
+              </div>
+              <p className={cn(
+                'text-2xl font-bold',
+                agentKPIs.ocupacionPromedio > 90 ? 'text-red-400' :
+                agentKPIs.ocupacionPromedio >= 75 ? 'text-emerald-400' :
+                'text-foreground',
+              )}>
+                {agentKPIs.ocupacionPromedio.toFixed(1)}%
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark COPC: 75–85%</p>
+              <p className={cn(
+                'text-[10px] font-medium',
+                agentKPIs.ocupacionPromedio > 90 ? 'text-red-400' :
+                agentKPIs.ocupacionPromedio >= 75 ? 'text-emerald-400' :
+                'text-sky-400',
+              )}>
+                {agentKPIs.ocupacionPromedio > 90 ? '⚠️ Riesgo burnout' :
+                 agentKPIs.ocupacionPromedio >= 75 ? '✅ Rango óptimo' :
+                 '↓ Bajo benchmark'}
+              </p>
+            </div>
+
+            {/* Llamadas por Hora */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <Phone size={14} className="text-primary" />
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Llamadas / Hora</p>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.llamadasXHoraPromedio.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark COPC: 14–18 llamadas/h</p>
+              <p className="text-[10px] font-medium text-muted-foreground">
+                Top: {agentKPIs.llamadasXHoraMax.toFixed(1)} · Mín: {agentKPIs.llamadasXHoraMin.toFixed(1)}
+              </p>
+            </div>
+
+            {/* CSAT Promedio */}
+            <div className={cn(
+              'rounded-xl border bg-card p-4 space-y-1',
+              agentKPIs.csatPromedio < 3.5 ? 'border-red-500/30' :
+              agentKPIs.csatPromedio >= 4.0 ? 'border-emerald-500/30' :
+              'border-border',
+            )}>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">CSAT Equipo</p>
+              <p className={cn(
+                'text-2xl font-bold',
+                agentKPIs.csatPromedio < 3.5 ? 'text-red-400' :
+                agentKPIs.csatPromedio >= 4.0 ? 'text-emerald-400' :
+                'text-foreground',
+              )}>
+                {agentKPIs.csatPromedio.toFixed(1)}/5
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark: ≥4.0/5</p>
+              <p className={cn(
+                'text-[10px] font-medium',
+                agentKPIs.csatPromedio < 3.5 ? 'text-red-400' : 'text-emerald-400',
+              )}>
+                {agentKPIs.csatPromedio < 3.5 ? '⚠️ Bajo umbral' : '✅ Buen nivel'}
+              </p>
+            </div>
+
+            {/* FCR Promedio */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">FCR Equipo</p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.fcrPromedio.toFixed(0)}%
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark COPC: ≥75%</p>
+              <p className={cn(
+                'text-[10px] font-medium',
+                agentKPIs.fcrPromedio >= 75 ? 'text-emerald-400' : 'text-sky-400',
+              )}>
+                {agentKPIs.fcrPromedio >= 75 ? '✅ Cumple' : '↓ Por mejorar'}
+              </p>
+            </div>
           </div>
         </div>
       )}

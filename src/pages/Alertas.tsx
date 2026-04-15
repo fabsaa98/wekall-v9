@@ -27,7 +27,13 @@ const exampleChips = [
   'Escalaciones suban al 15%',
   'AHT supere los 8 min',
   'FCR baje del 70%',
+  'Cliente repite llamada en 7 días',
 ];
+
+// Nota: 'Cliente repite llamada en 7 días' es una alerta CX de recontacto.
+// Requiere datos de identificación de cliente en CDR para activarse automáticamente.
+// Por ahora se muestra como chip informativo para configuración futura.
+const RECONTACTO_CHIP_NOTE = 'Requiere datos de identificación de cliente en CDR';
 
 const severityConfig = {
   critical: {
@@ -460,9 +466,15 @@ export default function Alertas() {
             <button
               key={chip}
               onClick={() => setNlInput(chip)}
-              className="px-2.5 py-1 rounded-full text-xs border border-primary/20 text-primary hover:bg-primary/10 transition-all"
+              title={chip === 'Cliente repite llamada en 7 días' ? RECONTACTO_CHIP_NOTE : undefined}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs border transition-all',
+                chip === 'Cliente repite llamada en 7 días'
+                  ? 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10 cursor-help'
+                  : 'border-primary/20 text-primary hover:bg-primary/10',
+              )}
             >
-              {chip}
+              {chip === 'Cliente repite llamada en 7 días' ? '🔄 ' : ''}{chip}
             </button>
           ))}
         </div>
