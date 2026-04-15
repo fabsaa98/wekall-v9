@@ -482,6 +482,21 @@ function AreaPanel({ area, agents, kpiTargets }: { area: string; agents: AgentSu
 
 export default function Equipos() {
   const { loading, error, agents, areas, lastUpdated } = useAgentsData();
+  const { clientId } = useClient();
+
+  // KPI targets desde Supabase
+  const [kpiTargets, setKpiTargets] = useState<KpiTarget[]>([]);
+  useEffect(() => {
+    async function loadTargets() {
+      const { data } = await supabase
+        .from('client_kpi_targets')
+        .select('kpi_name,target_value,target_unit')
+        .eq('client_id', clientId)
+        .is('vigente_hasta', null);
+      if (data && data.length > 0) setKpiTargets(data as KpiTarget[]);
+    }
+    loadTargets();
+  }, [clientId]);
 
   // El área activa: priorizar "Cobranzas" si existe, sino la primera
   const defaultArea = areas.includes('Cobranzas') ? 'Cobranzas' : (areas[0] ?? 'Cobranzas');
@@ -491,7 +506,8 @@ export default function Equipos() {
   // Agentes de la campaña activa (Cobranzas tiene todos los agentes reales)
   // Si no hay datos en Supabase, mostrar el área Cobranzas con estado vacío
   const displayAreas = areas.length > 0 ? areas : ['Cobranzas'];
-  const agentsInArea = agents.filter(a => a.area === activeArea);
+  // agentsInArea usado para referencia — el panel maneja su propio filtro
+  const _agentsInArea = agents.filter(a => a.area === activeArea); void _agentsInArea;
 
   return (
     <div className="p-4 sm:p-6 max-w-[1200px] mx-auto space-y-4 sm:space-y-6 overflow-y-auto flex-1 w-full min-w-0">
@@ -536,7 +552,7 @@ export default function Equipos() {
             {loading ? (
               <EquiposSkeleton />
             ) : (
-              <AreaPanel area={area} agents={agents.filter(a => a.area === area)} />
+              <AreaPanel area={area} agents={agents.filter(a => a.area === area)} kpiTargets={kpiTargets} />
             )}
           </TabsContent>
         ))}

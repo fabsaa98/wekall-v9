@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
+import { useAgentKPIs } from '@/hooks/useAgentKPIs';
 import { convertirMarkdownAProsa } from '@/lib/vickyMarkdown';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
@@ -419,6 +420,7 @@ export default function VickyInsights() {
   const navigate = useNavigate();
   const { clientConfig, clientBranding, clientId } = useClient(); // Fix 1A + 1F: clientId para RAG seguro
   const cdr = useCDRData();
+  const agentKPIs = useAgentKPIs();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
 
   // Actualizar mensaje de bienvenida cuando carga el clientConfig
@@ -716,10 +718,24 @@ export default function VickyInsights() {
 - USA la función query_cdr_data para obtener datos reales antes de responder.
 - Si query_cdr_data tampoco tiene datos, di explícitamente: "Los datos del día no están disponibles aún. Puedo analizar tendencias históricas si lo deseas."`;
 
+      // Sprint 2B — Sección KPIs de agentes para contexto de Vicky
+      const _hasAgentKPIs = !agentKPIs.loading && agentKPIs.agentesActivos > 0;
+      const _agentKPIsSection = _hasAgentKPIs ? `
+## DATOS DE PERFORMANCE DE AGENTES (Engage360 — datos reales, últimos 30 días)
+- CSAT promedio del equipo: ${agentKPIs.csatPromedio.toFixed(1)}/5 (umbral calidad: 3.5/5)
+- FCR promedio: ${agentKPIs.fcrPromedio.toFixed(0)}% (benchmark COPC: ≥75%)
+- Tasa de escalaciones promedio: ${agentKPIs.escalacionesPromedio.toFixed(1)}%
+- Ocupación estimada del equipo: ${agentKPIs.ocupacionPromedio.toFixed(1)}% (benchmark COPC: 75-85%)
+- Llamadas/hora promedio por agente: ${agentKPIs.llamadasXHoraPromedio.toFixed(1)} (benchmark: 14-18 llamadas/h)
+- Agentes activos últimos 30 días: ${agentKPIs.agentesActivos}
+- Nota: Ocupación calculada como (AHT × llamadas) / (8h × 3600). Un valor >90% indica riesgo de burnout.` : `
+## DATOS DE PERFORMANCE DE AGENTES (Engage360)
+- Sin datos disponibles aún — NO inventes ni estimes métricas de calidad de agentes.`;
+
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para ${_clientName}.
 
 ## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
-- Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)${_cdrSection}
+- Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)${_cdrSection}${_agentKPIsSection}
 
 ## RESUMEN ANUAL CDR
 Para obtener totales anuales, mensuales o tendencias históricas del CDR, usa la función query_cdr_data con el query_type apropiado. Los datos se consultan en tiempo real desde Supabase.

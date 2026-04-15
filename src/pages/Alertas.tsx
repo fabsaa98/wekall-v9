@@ -28,9 +28,52 @@ const exampleChips = [
   'AHT supere los 8 min',
   'FCR baje del 70%',
   'Cliente repite llamada en 7 días',
+  'Ocupación supere 90%',
 ];
 
 // Nota: 'Cliente repite llamada en 7 días' es una alerta CX de recontacto.
+
+// ─── Alertas configurables Engage360 (Sprint 2B) ─────────────────────────
+
+interface Engage360AlertConfig {
+  tipo: string;
+  label: string;
+  descripcion: string;
+  disponible: boolean;
+  fuente: string;
+  severity: 'critical' | 'warning' | 'info';
+  defaultUmbral: string;
+}
+
+const ENGAGE360_ALERTS: Engage360AlertConfig[] = [
+  {
+    tipo: 'conversion_baja',
+    label: 'Tasa de conversión bajo umbral',
+    descripcion: 'Avisa cuando la tasa de promesas/contactos cae del umbral configurado (VP Ventas)',
+    disponible: true,
+    fuente: 'agents_performance.tasa_promesa',
+    severity: 'warning',
+    defaultUmbral: '40%',
+  },
+  {
+    tipo: 'csat_bajo',
+    label: 'CSAT promedio bajo umbral',
+    descripcion: 'Avisa cuando el CSAT del equipo baja de 3.5/5 (VP CX)',
+    disponible: true,
+    fuente: 'agents_performance.csat',
+    severity: 'warning',
+    defaultUmbral: '3.5/5',
+  },
+  {
+    tipo: 'ocupacion_alta',
+    label: 'Ocupación estimada > 90%',
+    descripcion: 'Riesgo de burnout — ocupación supera límite COPC recomendado 75-85% (VP Ops)',
+    disponible: true,
+    fuente: 'agents_performance calculado',
+    severity: 'critical',
+    defaultUmbral: '90%',
+  },
+];
 // Requiere datos de identificación de cliente en CDR para activarse automáticamente.
 // Por ahora se muestra como chip informativo para configuración futura.
 const RECONTACTO_CHIP_NOTE = 'Requiere datos de identificación de cliente en CDR';
@@ -437,6 +480,45 @@ export default function Alertas() {
           </button>
         </div>
       )}
+
+      {/* Alertas Engage360 (Sprint 2B) */}
+      <div className="rounded-xl border border-primary/20 bg-card p-5 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Bell size={15} className="text-primary" />
+          <p className="text-sm font-semibold text-foreground">Alertas Proactivas Engage360</p>
+          <span className="px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold">Nuevo</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Basadas en datos reales de agents_performance — activa las alertas que necesitas por rol</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {ENGAGE360_ALERTS.map(a => {
+            const sc = severityConfig[a.severity];
+            return (
+              <div key={a.tipo} className={cn(
+                'rounded-lg border p-3 space-y-1.5',
+                sc.classes,
+              )}>
+                <div className="flex items-center gap-2">
+                  <div className={cn('p-1 rounded border shrink-0', sc.classes)}>{sc.icon}</div>
+                  <p className="text-xs font-semibold text-foreground leading-tight">{a.label}</p>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{a.descripcion}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full border', sc.classes)}>
+                    Umbral: {a.defaultUmbral}
+                  </span>
+                  <button
+                    onClick={() => handleAddAlert(`${a.label} — ${a.descripcion}`)}
+                    className="text-[10px] text-primary underline hover:text-primary/80 transition-colors"
+                  >
+                    + Activar
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Fuente: {a.fuente}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* NL Alert Creator */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
