@@ -269,8 +269,8 @@ export default function SpeechAnalytics() {
           body: JSON.stringify({
             table: 'transcriptions',
             select: 'id,agent_name,call_date,call_type,summary,transcript,campaign,client_id',
-            filters: { 'client_id': `eq.${clientId}` },
-            limit: 200,
+            client_id: clientId,
+            limit: '200',
           }),
         });
         if (!resp.ok) throw new Error(`Error ${resp.status}`);

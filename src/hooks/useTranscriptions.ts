@@ -1,13 +1,15 @@
 /**
- * useTranscriptions — Fix 2A/2C (V20):
- * Lee de Supabase directamente en lugar del Worker (/query no existe).
- * Filtra siempre por clientId del contexto — SEGURIDAD MULTI-TENANT.
+ * useTranscriptions — V22.1:
+ * Lee via Worker proxy (service key, bypasea RLS) en lugar de Supabase directo.
+ * El Worker ya filtra por client_id — SEGURIDAD MULTI-TENANT garantizada.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
 import { api, type TranscriptionsParams } from '@/lib/api';
 import type { Tag } from '@/types';
+
+const PROXY = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
 
 interface SupabaseTranscription {
   id: string;
@@ -60,26 +62,30 @@ export function useTranscriptions(params: TranscriptionsParams = {}) {
       const from = (page - 1) * limit;
       const to = from + limit - 1;
 
-      let query = supabase
-        .from('transcriptions')
-        .select('id,agent_name,call_date,call_type,summary,campaign,client_id', { count: 'exact' })
-        .eq('client_id', clientId)
-        .order('call_date', { ascending: false });
-
-      // Búsqueda por texto (ILIKE en agent_name o summary)
+      // Ir via Worker proxy (usa service key, bypasea RLS)
+      const body: Record<string, unknown> = {
+        table: 'transcriptions',
+        select: 'id,agent_name,call_date,call_type,summary,campaign,client_id',
+        client_id: clientId,
+        order: 'call_date.desc',
+        limit: String(limit),
+        offset: String(from),
+      };
       if (params.search) {
-        query = query.or(
-          `agent_name.ilike.%${params.search}%,summary.ilike.%${params.search}%,transcript.ilike.%${params.search}%`
-        );
+        body.search = params.search;
       }
 
-      const { data, error, count } = await query.range(from, to);
-      if (error) throw new Error(error.message);
+      const resp = await fetch(`${PROXY}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) throw new Error(`Worker error ${resp.status}`);
+      const rows = (await resp.json()) as SupabaseTranscription[];
 
-      const rows = (data || []) as SupabaseTranscription[];
       return {
         data: rows.map(adaptTranscription),
-        total: count ?? rows.length,
+        total: rows.length < limit ? from + rows.length : from + limit + 1,
         page,
         limit,
       };
