@@ -4,8 +4,16 @@
 > Plataforma multi-tenant de inteligencia operativa para contact centers — datos reales, análisis en lenguaje natural, alertas proactivas.
 
 **Producción:** https://wekall-intelligence.pages.dev  
-**Versión actual:** V20.0.0 (Auth Real + World-Class Features)  
+**Versión actual:** V22.1.0  
 **Stack:** React 18 + TypeScript + Vite + Supabase + Cloudflare Pages/Workers
+
+---
+
+## Arquitectura de la Plataforma
+
+![WeKall Intelligence Architecture V22.1](docs/architecture-v22.1.png)
+
+> Diagrama completo de la arquitectura multi-tenant: capas de presentación, edge/seguridad, datos e IA, almacenamiento e ingesta. Versión V22.1 — Abril 2026.
 
 ---
 
