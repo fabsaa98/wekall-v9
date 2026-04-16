@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAgentsData, type AgentSummary } from '@/hooks/useAgentsData';
+import { supabase } from '@/lib/supabase';
+import { useClient } from '@/contexts/ClientContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line,
@@ -11,7 +13,13 @@ import {
 import { TrendingUp, TrendingDown, Minus, Loader2, AlertTriangle, Users, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ─── Mini Sparkline ───────────────────────────────────────────────────────────
+// ─── Mini Sparkline ─────────────────────────────────────────────────
+interface LineDotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  value?: number;
+}
 
 function AgentSparkline({ data, trend }: { data: number[]; trend: 'up' | 'down' | 'stable' }) {
   if (!data || data.length < 2) {
@@ -36,7 +44,7 @@ function AgentSparkline({ data, trend }: { data: number[]; trend: 'up' | 'down' 
           strokeWidth={1.5}
           isAnimationActive={false}
           activeDot={false}
-          dot={showDots ? (props: any) => {
+          dot={showDots ? (props: LineDotProps) => {
             const { cx, cy, index, value } = props;
             const isMax = index === maxIdx;
             const isMin = index === minIdx;
@@ -151,10 +159,43 @@ function EquiposSkeleton() {
   );
 }
 
+// ─── Tipos KPI targets ───────────────────────────────────────────────────────
+
+interface KpiTarget {
+  kpi_name: string;
+  target_value: number;
+  target_unit: string;
+}
+
+// ─── Semáforo vs Meta ─────────────────────────────────────────────────────────
+
+function VsMetaBadge({ real, meta, invertGood = false }: { real: number; meta: number; invertGood?: boolean }) {
+  if (meta === 0) return <span className="text-[10px] text-muted-foreground">—</span>;
+  const pct = meta > 0 ? (real / meta) * 100 : 0;
+  // invertGood: lower = better (e.g. AHT, escalaciones)
+  const effectivePct = invertGood ? (meta / Math.max(real, 0.01)) * 100 : pct;
+  const color =
+    effectivePct >= 100 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+    effectivePct >= 80  ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
+                          'text-red-400 bg-red-500/10 border-red-500/20';
+  const label =
+    effectivePct >= 100 ? `✅ ${Math.round(pct)}%` :
+    effectivePct >= 80  ? `⚠️ ${Math.round(pct)}%` :
+                          `🔴 ${Math.round(pct)}%`;
+  return (
+    <span className={cn('px-1.5 py-0.5 rounded-full text-[10px] font-semibold border', color)}>
+      {label}
+    </span>
+  );
+}
+
 // ─── Fila de agente ───────────────────────────────────────────────────────────
 
-function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
+function AgentRow({ agent, rank, kpiTargets }: { agent: AgentSummary; rank: number; kpiTargets: KpiTarget[] }) {
   const navigate = useNavigate();
+  const handleRowClick = () => {
+    navigate(`/vicky?q=${encodeURIComponent(`Dame el análisis completo de ${agent.agent_name}: rendimiento, tendencia y recomendaciones de coaching`)}`);
+  };
   const TrendIcon = agent.trend === 'up' ? TrendingUp : agent.trend === 'down' ? TrendingDown : Minus;
   const trendColor = agent.trend === 'up' ? 'text-emerald-400' : agent.trend === 'down' ? 'text-red-400' : 'text-muted-foreground';
   const trendLabel = agent.trend === 'up' ? 'Subiendo' : agent.trend === 'down' ? 'Bajando' : 'Estable';
@@ -162,7 +203,11 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
   const initials = agent.agent_name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <tr className="border-b border-border hover:bg-secondary/50 transition-colors">
+    <tr
+      className="border-b border-border hover:bg-secondary/50 transition-colors cursor-pointer"
+      onClick={handleRowClick}
+      title={`Ver análisis completo de ${agent.agent_name} en Vicky`}
+    >
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className={cn(
@@ -186,6 +231,17 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
         {Math.floor(agent.avg_aht_segundos / 60)}m {Math.round(agent.avg_aht_segundos % 60)}s
       </td>
       <td className="py-3 px-4 text-sm text-foreground">{agent.avg_tasa_contacto.toFixed(1)}%</td>
+      {/* vs Meta — semáforo verde/amarillo/rojo */}
+      <td className="py-3 px-4">
+        {(() => {
+          const tcTarget = kpiTargets.find(t => t.kpi_name === 'tasa_contacto');
+          const promesaTarget = kpiTargets.find(t => t.kpi_name === 'tasa_promesa');
+          const target = tcTarget || promesaTarget;
+          if (!target) return <span className="text-[10px] text-muted-foreground">—</span>;
+          const real = target.kpi_name === 'tasa_contacto' ? agent.avg_tasa_contacto : agent.avg_tasa_promesa;
+          return <VsMetaBadge real={real} meta={target.target_value} />;
+        })()}
+      </td>
       <td className="py-3 px-4">
         <div className="flex items-center gap-2">
           <AgentSparkline data={agent.sparkline7d} trend={agent.trend} />
@@ -197,7 +253,7 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
           </div>
           {/* Feature 3: Drill-to-source — ver llamadas del agente */}
           <button
-            onClick={() => navigate(`/transcriptions?agent=${encodeURIComponent(agent.agent_name)}`)}
+            onClick={(e) => { e.stopPropagation(); navigate(`/transcriptions?agent=${encodeURIComponent(agent.agent_name)}`); }}
             title="Ver llamadas de este agente"
             className="ml-1 p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
           >
@@ -211,11 +267,51 @@ function AgentRow({ agent, rank }: { agent: AgentSummary; rank: number }) {
 
 // ─── Panel de área ────────────────────────────────────────────────────────────
 
-function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
-  const config = areaConfig[area] ?? areaConfig['Cobranzas'];
+// ─── Cálculo de percentiles COPC ───────────────────────────────────────────────────────────────
 
-  // Ordenar por tasa_contacto descendente (más efectivos primero)
-  const sorted = [...agents].sort((a, b) => b.avg_tasa_contacto - a.avg_tasa_contacto);
+function calcPercentile(sortedArr: number[], pct: number): number {
+  if (sortedArr.length === 0) return 0;
+  const idx = Math.floor((pct / 100) * (sortedArr.length - 1));
+  return sortedArr[Math.max(0, Math.min(idx, sortedArr.length - 1))];
+}
+
+interface AgentStatsPercentiles {
+  p25: number;
+  p50: number;
+  p75: number;
+  p90: number;
+}
+
+type SortKey = 'llamadas' | 'csat' | 'fcr' | 'tasa_contacto';
+
+function AreaPanel({ area, agents, kpiTargets }: { area: string; agents: AgentSummary[]; kpiTargets: KpiTarget[] }) {
+  const config = areaConfig[area] ?? areaConfig['Cobranzas'];
+  const [sortBy, setSortBy] = useState<SortKey>('llamadas');
+
+  // Ordenar según criterio seleccionado
+  const sorted = [...agents].sort((a, b) => {
+    switch (sortBy) {
+      case 'csat':         return b.avg_csat - a.avg_csat;
+      case 'fcr':          return b.avg_fcr - a.avg_fcr;
+      case 'tasa_contacto': return b.avg_tasa_contacto - a.avg_tasa_contacto;
+      case 'llamadas':     return b.total_llamadas - a.total_llamadas;
+      default:             return b.total_llamadas - a.total_llamadas;
+    }
+  });
+
+  // Percentiles COPC — llamadas por agente por día
+  const agentStats: AgentStatsPercentiles | null = (() => {
+    if (agents.length < 4) return null;
+    const valores = agents
+      .map(a => a.days_count > 0 ? Math.round(a.total_llamadas / a.days_count) : 0)
+      .sort((a, b) => a - b);
+    return {
+      p25: calcPercentile(valores, 25),
+      p50: calcPercentile(valores, 50),
+      p75: calcPercentile(valores, 75),
+      p90: calcPercentile(valores, 90),
+    };
+  })();
 
   const chartData = sorted.slice(0, 8).map(a => ({
     name: a.agent_name.split(' ')[0],
@@ -243,6 +339,29 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">{config.description}</p>
+
+      {/* Selector de ranking */}
+      <div className="flex flex-wrap gap-2">
+        {([
+          { key: 'llamadas',     label: 'Por volumen' },
+          { key: 'csat',         label: 'Por CSAT' },
+          { key: 'fcr',          label: 'Por FCR' },
+          { key: 'tasa_contacto', label: 'Por contacto' },
+        ] as { key: SortKey; label: string }[]).map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => setSortBy(opt.key)}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              sortBy === opt.key
+                ? 'bg-primary text-white'
+                : 'bg-secondary text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       {/* KPIs del área */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -307,17 +426,54 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">CSAT</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">AHT</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tasa Contacto</th>
+                <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">vs Meta</th>
                 <th className="py-2.5 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tendencia 7d ↗</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((agent, i) => (
-                <AgentRow key={agent.agent_id} agent={agent} rank={i + 1} />
+                <AgentRow key={agent.agent_id} agent={agent} rank={i + 1} kpiTargets={kpiTargets} />
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Distribución COPC — percentiles de llamadas/agente/día */}
+      {agentStats && (
+        <div className="mt-4 p-4 rounded-xl border border-border bg-card">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Distribución COPC — Llamadas/Agente/Día
+          </p>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { label: 'P25 — Peor cuartil',  value: agentStats.p25, color: 'text-red-400',      action: 'Intervención urgente' },
+              { label: 'P50 — Mediana',        value: agentStats.p50, color: 'text-amber-400',   action: 'Objetivo mínimo' },
+              { label: 'P75 — Buen cuartil',   value: agentStats.p75, color: 'text-emerald-400', action: 'Replicar prácticas' },
+              { label: 'P90 — Top performers', value: agentStats.p90, color: 'text-primary',     action: 'Mentores internos' },
+            ].map(p => (
+              <div key={p.label} className="text-center p-3 rounded-lg bg-secondary">
+                <div className={`text-2xl font-bold ${p.color}`}>{p.value}</div>
+                <div className="text-[10px] text-muted-foreground mt-1">{p.label}</div>
+                <div className="text-[10px] text-primary mt-1 font-medium">{p.action}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Estándar COPC: el P25 debe ser ≥70% del P75 para una fuerza de trabajo eficiente.
+            {agentStats.p75 > 0 && (
+              <span className={cn(
+                'ml-2 font-semibold',
+                agentStats.p25 >= agentStats.p75 * 0.7 ? 'text-emerald-400' : 'text-red-400',
+              )}>
+                Actual: {Math.round((agentStats.p25 / agentStats.p75) * 100)}%
+                {' '}—{' '}
+                {agentStats.p25 >= agentStats.p75 * 0.7 ? '✅ Cumple' : '⚠️ Por debajo del estándar'}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -326,6 +482,21 @@ function AreaPanel({ area, agents }: { area: string; agents: AgentSummary[] }) {
 
 export default function Equipos() {
   const { loading, error, agents, areas, lastUpdated } = useAgentsData();
+  const { clientId } = useClient();
+
+  // KPI targets desde Supabase
+  const [kpiTargets, setKpiTargets] = useState<KpiTarget[]>([]);
+  useEffect(() => {
+    async function loadTargets() {
+      const { data } = await supabase
+        .from('client_kpi_targets')
+        .select('kpi_name,target_value,target_unit')
+        .eq('client_id', clientId)
+        .is('vigente_hasta', null);
+      if (data && data.length > 0) setKpiTargets(data as KpiTarget[]);
+    }
+    loadTargets();
+  }, [clientId]);
 
   // El área activa: priorizar "Cobranzas" si existe, sino la primera
   const defaultArea = areas.includes('Cobranzas') ? 'Cobranzas' : (areas[0] ?? 'Cobranzas');
@@ -335,7 +506,8 @@ export default function Equipos() {
   // Agentes de la campaña activa (Cobranzas tiene todos los agentes reales)
   // Si no hay datos en Supabase, mostrar el área Cobranzas con estado vacío
   const displayAreas = areas.length > 0 ? areas : ['Cobranzas'];
-  const agentsInArea = agents.filter(a => a.area === activeArea);
+  // agentsInArea usado para referencia — el panel maneja su propio filtro
+  const _agentsInArea = agents.filter(a => a.area === activeArea); void _agentsInArea;
 
   return (
     <div className="p-4 sm:p-6 max-w-[1200px] mx-auto space-y-4 sm:space-y-6 overflow-y-auto flex-1 w-full min-w-0">
@@ -380,7 +552,7 @@ export default function Equipos() {
             {loading ? (
               <EquiposSkeleton />
             ) : (
-              <AreaPanel area={area} agents={agents.filter(a => a.area === area)} />
+              <AreaPanel area={area} agents={agents.filter(a => a.area === area)} kpiTargets={kpiTargets} />
             )}
           </TabsContent>
         ))}

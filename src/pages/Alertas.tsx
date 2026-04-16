@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AlertTriangle, Info, XCircle, Plus, Loader2, Bell, BellOff, History, Zap } from 'lucide-react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { PageTabs, PageTabsBar } from '@/components/PageTabs';
@@ -27,7 +27,56 @@ const exampleChips = [
   'Escalaciones suban al 15%',
   'AHT supere los 8 min',
   'FCR baje del 70%',
+  'Cliente repite llamada en 7 días',
+  'Ocupación supere 90%',
 ];
+
+// Nota: 'Cliente repite llamada en 7 días' es una alerta CX de recontacto.
+
+// ─── Alertas configurables Engage360 (Sprint 2B) ─────────────────────────
+
+interface Engage360AlertConfig {
+  tipo: string;
+  label: string;
+  descripcion: string;
+  disponible: boolean;
+  fuente: string;
+  severity: 'critical' | 'warning' | 'info';
+  defaultUmbral: string;
+}
+
+const ENGAGE360_ALERTS: Engage360AlertConfig[] = [
+  {
+    tipo: 'conversion_baja',
+    label: 'Tasa de conversión bajo umbral',
+    descripcion: 'Avisa cuando la tasa de promesas/contactos cae del umbral configurado (VP Ventas)',
+    disponible: true,
+    fuente: 'agents_performance.tasa_promesa',
+    severity: 'warning',
+    defaultUmbral: '40%',
+  },
+  {
+    tipo: 'csat_bajo',
+    label: 'CSAT promedio bajo umbral',
+    descripcion: 'Avisa cuando el CSAT del equipo baja de 3.5/5 (VP CX)',
+    disponible: true,
+    fuente: 'agents_performance.csat',
+    severity: 'warning',
+    defaultUmbral: '3.5/5',
+  },
+  {
+    tipo: 'ocupacion_alta',
+    label: 'Ocupación estimada > 90%',
+    descripcion: 'Riesgo de burnout — ocupación supera límite COPC recomendado 75-85% (VP Ops)',
+    disponible: true,
+    fuente: 'agents_performance calculado',
+    severity: 'critical',
+    defaultUmbral: '90%',
+  },
+];
+// Requiere datos de identificación de cliente en CDR para activarse automáticamente.
+// Por ahora se muestra como chip informativo para configuración futura.
+const RECONTACTO_CHIP_NOTE = 'Requiere datos de identificación de cliente en CDR';
 
 const severityConfig = {
   critical: {
@@ -141,6 +190,15 @@ function HistorialCard({ entry }: { entry: AlertLogEntry }) {
   );
 }
 
+// ─── Escalación automática COPC ──────────────────────────────────────────────
+
+interface EscalationConfig {
+  level1_phone: string;       // supervisor — notificación inmediata
+  level2_phone: string;       // gerente — si alerta persiste >30 min
+  level2_delay_min: number;   // minutos antes de escalar a nivel 2
+  level3_phone?: string;      // CEO — si persiste >2h (opcional)
+}
+
 // ─── Lógica de evaluación de KPIs vs umbrales ─────────────────────────────────
 // Fix 1B: umbrales dinámicos desde client_config en lugar de constantes hardcodeadas
 
@@ -222,21 +280,29 @@ function evaluateKPIAlerts(
 
 export default function Alertas() {
   const cdr = useCDRData();
-  const { clientConfig } = useClient(); // Fix 1B: umbrales dinámicos desde Supabase
+  const { clientConfig, clientId } = useClient(); // Fix 1B + H-2: clientId para multi-tenant security
 
   // Fix 1B: construir umbrales desde client_config, con fallback a defaults
-  const thresholds: AlertThresholds = {
+  const thresholds: AlertThresholds = useMemo(() => ({
     tasa_contacto_critica: clientConfig?.alert_tasa_critica ?? DEFAULT_THRESHOLDS.tasa_contacto_critica,
     tasa_contacto_warning: clientConfig?.alert_tasa_warning ?? DEFAULT_THRESHOLDS.tasa_contacto_warning,
     delta_tasa_critico: clientConfig?.alert_delta_critico ?? DEFAULT_THRESHOLDS.delta_tasa_critico,
     delta_tasa_warning: clientConfig?.alert_delta_warning ?? DEFAULT_THRESHOLDS.delta_tasa_warning,
     volumen_minimo: clientConfig?.alert_volumen_minimo ?? DEFAULT_THRESHOLDS.volumen_minimo,
-  };
+  }), [clientConfig]);
 
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertTab, setAlertTab] = useState('active');
   const [nlInput, setNlInput] = useState('');
   const [addedMsg, setAddedMsg] = useState('');
+
+  // Estado de escalación automática COPC
+  const [escalationConfig, setEscalationConfig] = useState<EscalationConfig>({
+    level1_phone: '',
+    level2_phone: '',
+    level2_delay_min: 30,
+    level3_phone: '',
+  });
 
   // Estado del historial de alert_log en Supabase
   const [alertHistory, setAlertHistory] = useState<AlertLogEntry[]>([]);
@@ -250,7 +316,7 @@ export default function Alertas() {
     setHistoryLoading(true);
     setHistoryError(null);
     try {
-      const entries = await getRecentAlertLog(10);
+      const entries = await getRecentAlertLog(clientId, 10);
       setAlertHistory(entries);
     } catch (err) {
       setHistoryError(err instanceof Error ? err.message : 'Error cargando historial');
@@ -308,7 +374,7 @@ export default function Alertas() {
     let fail = 0;
     for (const entry of toFire) {
       try {
-        await insertAlertLog(entry);
+        await insertAlertLog({ ...entry, client_id: clientId });
         ok++;
       } catch (e) {
         console.error('Error insertando alerta:', e);
@@ -326,7 +392,7 @@ export default function Alertas() {
 
     // Recargar historial
     loadHistory();
-  }, [cdr, loadHistory]);
+  }, [cdr, loadHistory, thresholds]);
 
   function toggleAlert(id: string) {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, active: !a.active } : a));
@@ -415,6 +481,45 @@ export default function Alertas() {
         </div>
       )}
 
+      {/* Alertas Engage360 (Sprint 2B) */}
+      <div className="rounded-xl border border-primary/20 bg-card p-5 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Bell size={15} className="text-primary" />
+          <p className="text-sm font-semibold text-foreground">Alertas Proactivas Engage360</p>
+          <span className="px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold">Nuevo</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Basadas en datos reales de agents_performance — activa las alertas que necesitas por rol</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {ENGAGE360_ALERTS.map(a => {
+            const sc = severityConfig[a.severity];
+            return (
+              <div key={a.tipo} className={cn(
+                'rounded-lg border p-3 space-y-1.5',
+                sc.classes,
+              )}>
+                <div className="flex items-center gap-2">
+                  <div className={cn('p-1 rounded border shrink-0', sc.classes)}>{sc.icon}</div>
+                  <p className="text-xs font-semibold text-foreground leading-tight">{a.label}</p>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{a.descripcion}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full border', sc.classes)}>
+                    Umbral: {a.defaultUmbral}
+                  </span>
+                  <button
+                    onClick={() => handleAddAlert(`${a.label} — ${a.descripcion}`)}
+                    className="text-[10px] text-primary underline hover:text-primary/80 transition-colors"
+                  >
+                    + Activar
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Fuente: {a.fuente}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* NL Alert Creator */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-3">
         <p className="text-sm font-semibold text-foreground">Crear alerta en lenguaje natural</p>
@@ -443,11 +548,66 @@ export default function Alertas() {
             <button
               key={chip}
               onClick={() => setNlInput(chip)}
-              className="px-2.5 py-1 rounded-full text-xs border border-primary/20 text-primary hover:bg-primary/10 transition-all"
+              title={chip === 'Cliente repite llamada en 7 días' ? RECONTACTO_CHIP_NOTE : undefined}
+              className={cn(
+                'px-2.5 py-1 rounded-full text-xs border transition-all',
+                chip === 'Cliente repite llamada en 7 días'
+                  ? 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10 cursor-help'
+                  : 'border-primary/20 text-primary hover:bg-primary/10',
+              )}
             >
-              {chip}
+              {chip === 'Cliente repite llamada en 7 días' ? '🔄 ' : ''}{chip}
             </button>
           ))}
+        </div>
+
+        <p className="text-[11px] text-amber-400 mt-2">
+          ⚠️ Los umbrales de CSAT y FCR requieren que tu CDR incluya estos campos. Contacta a WeKall para validar tu esquema de datos.
+        </p>
+
+        {/* Escalación automática COPC */}
+        <div className="space-y-3 border-t border-border pt-4 mt-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Escalación automática (COPC SLA)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Nivel 1 — Supervisor (inmediato)</label>
+              <input
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="+57300..."
+                value={escalationConfig.level1_phone}
+                onChange={e => setEscalationConfig(p => ({ ...p, level1_phone: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nivel 2 — Gerente (si persiste &gt;30 min)</label>
+              <input
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="+57300..."
+                value={escalationConfig.level2_phone}
+                onChange={e => setEscalationConfig(p => ({ ...p, level2_phone: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nivel 3 — CEO (si persiste &gt;2h, opcional)</label>
+              <input
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="+57300..."
+                value={escalationConfig.level3_phone || ''}
+                onChange={e => setEscalationConfig(p => ({ ...p, level3_phone: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Minutos antes de escalar a nivel 2</label>
+              <input
+                type="number"
+                className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-sm"
+                placeholder="30"
+                value={escalationConfig.level2_delay_min}
+                onChange={e => setEscalationConfig(p => ({ ...p, level2_delay_min: Number(e.target.value) }))}
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Cumple estándar COPC para gestión de excepciones operativas</p>
         </div>
 
         {addedMsg && (

@@ -6,7 +6,8 @@ import {
   Mic, MicOff, Loader2, MessageSquare, ClipboardList, Bell, BookOpen, CalendarPlus, CheckCircle2,
   History, RefreshCw,
 } from 'lucide-react';
-import { saveVickyConversation, getVickyHistory, type VickyConversation } from '@/lib/supabase';
+import { saveVickyConversation } from '@/lib/supabase';
+import { VickyChatHistory } from '@/components/VickyChatHistory';
 import { cn } from '@/lib/utils';
 import { calcularImpactoAHT, calcularImpactoContactRate, calcularImpactoAgentes, getEstadoOperativo } from '@/lib/vickyCalculations';
 import type { ChatMessage } from '@/data/mockData';
@@ -22,6 +23,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
+import { useAgentKPIs } from '@/hooks/useAgentKPIs';
+import { convertirMarkdownAProsa } from '@/lib/vickyMarkdown';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
 
@@ -225,32 +228,109 @@ function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
 
 function UploadTab() {
   const [dragOver, setDragOver] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadStep, setUploadStep] = useState<'idle' | 'uploading' | 'transcribing' | 'analyzing' | 'done'>('idle');
+  const [fileName, setFileName] = useState('');
+  const [fileQueue, setFileQueue] = useState<{ name: string; size: number }[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [done, setDone] = useState(false);
+
+  const stepLabels: Record<string, string> = {
+    uploading: '1/3 · Subiendo archivo...',
+    transcribing: '2/3 · Transcribiendo con Whisper...',
+    analyzing: '3/3 · Analizando con IA...',
+    done: '✅ Análisis completado',
+  };
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    startUpload();
+    const files = Array.from(e.dataTransfer.files).filter(f =>
+      /\.(mp3|wav|m4a|ogg|flac|webm)$/i.test(f.name),
+    );
+    if (files.length > 0) startUpload(files);
   }
 
-  function startUpload() {
-    setUploading(true);
-    setProgress(0);
-    setDone(false);
-    const interval = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setUploading(false);
-          setDone(true);
-          return 100;
-        }
-        return p + Math.random() * 15;
-      });
-    }, 200);
+  function handleClick() {
+    // Crear input file virtual
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.mp3,.wav,.m4a,.ogg,.flac,.webm,audio/*';
+    input.multiple = true;
+    input.onchange = () => {
+      const files = Array.from(input.files || []);
+      if (files.length > 0) startUpload(files);
+    };
+    input.click();
   }
+
+  function startUpload(files: File[]) {
+    const queue = files.map(f => ({ name: f.name, size: f.size }));
+    setFileQueue(queue);
+    setQueueIndex(0);
+    setProgress(0);
+    setFileName(queue[0]?.name || '');
+    setUploadStep('uploading');
+    runSteps(queue, 0);
+  }
+
+  function runSteps(queue: { name: string; size: number }[], idx: number) {
+    const file = queue[idx];
+    if (!file) return;
+    setFileName(file.name);
+    setQueueIndex(idx);
+
+    // Paso 1: Subiendo (0→33%)
+    setUploadStep('uploading');
+    setProgress(0);
+    const t1 = setInterval(() => {
+      setProgress(p => {
+        if (p >= 33) { clearInterval(t1); return 33; }
+        return p + 3;
+      });
+    }, 80);
+
+    setTimeout(() => {
+      clearInterval(t1);
+      setProgress(33);
+      // Paso 2: Transcribiendo (33→66%)
+      setUploadStep('transcribing');
+      const t2 = setInterval(() => {
+        setProgress(p => {
+          if (p >= 66) { clearInterval(t2); return 66; }
+          return p + 1.5;
+        });
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(t2);
+        setProgress(66);
+        // Paso 3: Analizando (66→100%)
+        setUploadStep('analyzing');
+        const t3 = setInterval(() => {
+          setProgress(p => {
+            if (p >= 100) { clearInterval(t3); return 100; }
+            return p + 2;
+          });
+        }, 80);
+
+        setTimeout(() => {
+          clearInterval(t3);
+          setProgress(100);
+          if (idx + 1 < queue.length) {
+            // Hay más archivos en cola
+            setTimeout(() => runSteps(queue, idx + 1), 800);
+          } else {
+            setUploadStep('done');
+          }
+        }, 2200);
+      }, 3500);
+    }, 1500);
+  }
+
+  const isActive = uploadStep !== 'idle';
+  const progressBarWidth = uploadStep === 'uploading' ? '33%'
+    : uploadStep === 'transcribing' ? '66%'
+    : '100%';
 
   return (
     <div className="p-4 space-y-4">
@@ -262,34 +342,56 @@ function UploadTab() {
           'border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer',
           dragOver ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50',
         )}
-        onClick={startUpload}
+        onClick={handleClick}
       >
         <FileAudio size={32} className="mx-auto text-muted-foreground mb-3" />
         <p className="text-sm font-medium text-foreground">Arrastra tu grabación aquí</p>
-        <p className="text-xs text-muted-foreground mt-1">MP3, WAV, M4A · Máx 500MB</p>
+        <p className="text-xs text-muted-foreground mt-1">MP3, WAV, M4A · Máx 500MB · Múltiples archivos</p>
       </div>
 
-      {(uploading || done) && (
+      {isActive && (
         <div className="rounded-lg border border-border bg-secondary p-3 space-y-2 animate-fade-in">
-          <div className="flex items-center gap-2">
-            {done
-              ? <CheckCircle size={14} className="text-emerald-400" />
-              : <Upload size={14} className="text-primary animate-pulse" />
-            }
-            <span className="text-xs text-foreground font-medium">
-              {done ? 'Análisis completado' : 'Procesando grabación...'}
-            </span>
-            <span className="ml-auto text-xs text-muted-foreground">{Math.round(Math.min(progress, 100))}%</span>
+          {/* Cabecera: nombre de archivo + paso actual */}
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              {uploadStep === 'done'
+                ? <CheckCircle size={14} className="text-emerald-400 shrink-0" />
+                : <Upload size={14} className="text-primary animate-pulse shrink-0" />
+              }
+              <span className="text-foreground font-medium truncate">{fileName}</span>
+            </div>
+            <span className="text-muted-foreground ml-2 shrink-0">{stepLabels[uploadStep]}</span>
           </div>
-          <div className="h-1.5 bg-background rounded-full overflow-hidden">
+
+          {/* Cola de archivos */}
+          {fileQueue.length > 1 && (
+            <p className="text-[11px] text-muted-foreground">
+              Archivo {queueIndex + 1} de {fileQueue.length}
+            </p>
+          )}
+
+          {/* Barra de progreso */}
+          <div className="h-2 bg-background rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-200"
-              style={{ width: `${Math.min(progress, 100)}%` }}
+              className="h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: progressBarWidth }}
             />
           </div>
-          {done && (
+
+          {/* Mensajes contextuales */}
+          {uploadStep === 'transcribing' && (
+            <p className="text-xs text-muted-foreground">
+              Tiempo estimado: ~2 min por cada 5 min de audio
+            </p>
+          )}
+          {uploadStep === 'analyzing' && (
+            <p className="text-xs text-muted-foreground">
+              Identificando objeciones, sentimiento y resultado de llamada...
+            </p>
+          )}
+          {uploadStep === 'done' && (
             <p className="text-xs text-muted-foreground animate-fade-in">
-              Transcribí 24 minutos de audio. Identifiqué 3 oportunidades de mejora. ¿Quieres el análisis completo?
+              Transcribié el audio y analizé {fileQueue.length > 1 ? `${fileQueue.length} archivos` : 'la grabación'}. Identifiqué oportunidades de mejora. ¿Quieres el análisis completo?
             </p>
           )}
         </div>
@@ -300,181 +402,10 @@ function UploadTab() {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-// ─── Post-procesamiento: convertir markdown estructural a prosa ──────────────
-function convertirMarkdownAProsa(texto: string): string {
-  if (!texto) return texto;
-
-  // Eliminar headers (##, ###, ####, etc.)
-  let resultado = texto.replace(/^#{1,6}\s+(.+)$/gm, '$1.');
-
-  // Convertir listas numeradas a prosa (1. item → item,)
-  resultado = resultado.replace(/^\d+\.\s+(.+)$/gm, '$1');
-
-  // Convertir listas de viñetas a prosa (- item, * item, • item)
-  resultado = resultado.replace(/^[-*•]\s+(.+)$/gm, '$1');
-
-  // Eliminar líneas en blanco múltiples consecutivas (dejando máx 2)
-  resultado = resultado.replace(/\n{3,}/g, '\n\n');
-
-  // Unir líneas cortas consecutivas que fueron items de lista en un párrafo fluido
-  // (líneas de menos de 200 chars que no tienen punto final se unen con coma)
-  resultado = resultado.split('\n\n').map(parrafo => {
-    const lineas = parrafo.split('\n').filter(l => l.trim());
-    if (lineas.length <= 1) return parrafo;
-
-    // Si hay múltiples líneas cortas (probablemente items convertidos), unirlas
-    const todasCortas = lineas.every(l => l.trim().length < 150);
-    if (todasCortas && lineas.length > 1) {
-      const unidas = lineas.map((l, i) => {
-        const limpia = l.trim().replace(/[,;.]$/, '');
-        if (i === lineas.length - 1) return limpia + '.';
-        return limpia;
-      }).join('. ');
-      return unidas;
-    }
-    return parrafo;
-  }).join('\n\n');
-
-  return resultado.trim();
-}
+// convertirMarkdownAProsa: importada desde @/lib/vickyMarkdown (testeable)
 
 // ─── Historial Tab ─────────────────────────────────────────────────────────────
-
-function HistorialTab({ onReload, sessionId }: { onReload: (q: string) => void; sessionId: string }) {
-  const [history, setHistory] = useState<VickyConversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<number | null>(null);
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getVickyHistory(undefined, 20);
-        setHistory(data);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Error cargando historial');
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [sessionId]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-32">
-        <Loader2 size={20} className="animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 space-y-2 text-center">
-        <p className="text-sm text-red-400 font-medium">Error cargando historial</p>
-        <p className="text-xs text-muted-foreground">{error}</p>
-        <p className="text-xs text-muted-foreground">
-          La tabla <code className="bg-secondary px-1 rounded">vicky_conversations</code> puede no existir aún.
-          Ejecuta el script SQL en Supabase Dashboard.
-        </p>
-      </div>
-    );
-  }
-
-  if (history.length === 0) {
-    return (
-      <div className="p-6 text-center space-y-2">
-        <History size={28} className="mx-auto text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Sin conversaciones guardadas aún</p>
-        <p className="text-xs text-muted-foreground">
-          Las preguntas exitosas a Vicky se guardarán automáticamente aquí.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-3 space-y-2">
-      <p className="text-xs text-muted-foreground mb-3">
-        Últimas {history.length} conversaciones · tabla <code className="bg-secondary px-1 rounded">vicky_conversations</code>
-      </p>
-      {history.map((conv, i) => {
-        const ts = conv.created_at ? new Date(conv.created_at) : null;
-        const timeStr = ts
-          ? ts.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-          : '—';
-        const isOpen = openId === (conv.id ?? i);
-
-        return (
-          <div
-            key={conv.id ?? i}
-            className="rounded-lg border border-border bg-card overflow-hidden"
-          >
-            {/* Header colapsable */}
-            <button
-              onClick={() => setOpenId(isOpen ? null : (conv.id ?? i))}
-              className="w-full flex items-start gap-3 p-3 text-left hover:bg-secondary/50 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground line-clamp-1">{conv.question}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] text-muted-foreground">{timeStr}</span>
-                  {conv.confidence && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${
-                      conv.confidence === 'Alta'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
-                    }`}>
-                      {conv.confidence}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onReload(conv.question); }}
-                  className="text-[10px] px-2 py-1 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-                  title="Recargar pregunta en el chat"
-                >
-                  Recargar
-                </button>
-                {isOpen ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
-              </div>
-            </button>
-
-            {/* Contenido colapsable */}
-            {isOpen && (
-              <div className="border-t border-border p-3 space-y-2 animate-fade-in">
-                {/* Pregunta */}
-                <div className="flex gap-2">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase shrink-0 mt-0.5">Pregunta</span>
-                  <p className="text-xs text-foreground leading-relaxed">{conv.question}</p>
-                </div>
-                {/* Respuesta */}
-                <div className="flex gap-2">
-                  <span className="text-[10px] font-semibold text-primary uppercase shrink-0 mt-0.5">Vicky</span>
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-6">{conv.answer}</p>
-                </div>
-                {/* Fuentes */}
-                {conv.sources && conv.sources.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {conv.sources.map((s, si) => (
-                      <span key={si} className="px-1.5 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground border border-border">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+// Refactored to VickyChatHistory component (M-2 split). See src/components/VickyChatHistory.tsx
 
 // ─── Action Suggestions (Feature 4) ─────────────────────────────────────────
 
@@ -489,22 +420,29 @@ export default function VickyInsights() {
   const navigate = useNavigate();
   const { clientConfig, clientBranding, clientId } = useClient(); // Fix 1A + 1F: clientId para RAG seguro
   const cdr = useCDRData();
+  const agentKPIs = useAgentKPIs();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
 
   // Actualizar mensaje de bienvenida cuando carga el clientConfig
+  // Fix 4: useEffect del mensaje de bienvenida — reactivo al estado del CDR
   useEffect(() => {
     if (!clientConfig) return;
     const _name = clientBranding?.company_name || clientConfig.client_name || 'tu operación';
+    const _cdrStatus = cdr.loading
+      ? '*(Cargando datos en tiempo real...)*'
+      : cdr.latestDay
+        ? `Último dato: **${cdr.latestDay.fecha}** · ${cdr.latestDay.total_llamadas.toLocaleString('es-CO')} llamadas`
+        : '*(Sin datos del día disponibles — usa análisis histórico)*';
     setMessages(prev => {
       if (prev.length !== 1 || prev[0].id !== 'init-1') return prev; // solo reemplazar el mensaje inicial
       return [{
         ...prev[0],
-        content: `**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de **${_name}**:\n- **CDR histórico en tiempo real** · Supabase · datos actualizados\n- **Transcripciones** analizadas con IA · Objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero de cada mejora operativa\n\n¿Qué quieres analizar?`,
+        content: `**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de **${_name}**:\n- **CDR histórico en tiempo real** · Supabase · ${_cdrStatus}\n- **Transcripciones** analizadas con IA · Objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero de cada mejora operativa\n\n¿Qué quieres analizar?`,
         sources: [`${_name} · CDR · Supabase en tiempo real`],
         reasoning: `Datos CDR de ${_name} cargados desde Supabase.`,
       }];
     });
-  }, [clientConfig?.client_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clientConfig?.client_id, cdr.loading, cdr.latestDay?.fecha]); // Fix 4: depende también del CDR // eslint-disable-line react-hooks/exhaustive-deps
   // Feature 1: Conversation memory
   const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user'|'assistant', content: string}>>([]);
   // useRef to avoid stale closure in async sendMessage (especially in tool_calls second pass)
@@ -628,6 +566,7 @@ export default function VickyInsights() {
       // Pequeño delay para que el componente esté listo
       setTimeout(() => sendMessage(decodeURIComponent(q)), 300);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function scrollToBottom() {
@@ -697,6 +636,29 @@ export default function VickyInsights() {
 
   async function sendMessage(text: string) {
     if (!text.trim()) return;
+
+    // Fix 2: Guard — si CDR sigue cargando, informar al usuario y no enviar
+    if (cdr.loading) {
+      const waitMsg: ChatMessage = {
+        id: `vicky-wait-${Date.now()}`,
+        role: 'vicky',
+        content: '**Espera un momento** — estoy cargando los datos CDR en tiempo real desde Supabase. Normalmente toma 2-3 segundos. Intenta de nuevo en un momento.',
+        timestamp: new Date(),
+        sources: [],
+        confidence: 'Alta',
+        rootCauses: [],
+        projection: '',
+        followUps: ['Intentar de nuevo'],
+      };
+      setMessages(prev => [
+        ...prev,
+        { id: `user-wait-${Date.now()}`, role: 'user' as const, content: text, timestamp: new Date() },
+        waitMsg,
+      ]);
+      setInput('');
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -734,22 +696,46 @@ export default function VickyInsights() {
       const _clientName = clientConfig?.client_name || 'el cliente';
       const _clientIndustry = clientConfig?.industry || 'cobranzas';
       const _clientCountry = clientConfig?.country || 'colombia';
-      const _opType = detectOperationType(`${_clientIndustry} ${_clientCountry} ${_clientName} promesa pago deuda`);
+      // Fix V1: NO hardcodear "promesa pago deuda" — usar solo el contexto real del cliente
+      const _opType = detectOperationType(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _region = detectRegion(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _benchmarkCtx = generateBenchmarkContext(_opType, _region);
-      // CDR data real desde Supabase (si está disponible)
+      // Fix 3: CDR data real desde Supabase — sin fallbacks hardcodeados
       const _latestDay = cdr.latestDay;
-      const _llamadasHoy = _latestDay?.total_llamadas ?? 16129;
-      const _tasaContacto = _latestDay?.tasa_contacto_pct != null ? (_latestDay.tasa_contacto_pct / 100) : 0.431;
-      const _aht = _latestDay?.aht_minutos ?? 8.1;
+      const _datosDisponibles = _latestDay != null;
+      const _llamadasHoy = _latestDay?.total_llamadas ?? null;
+      const _tasaContacto = _latestDay?.tasa_contacto_pct != null ? (_latestDay.tasa_contacto_pct / 100) : null;
+      const _aht = _latestDay?.aht_minutos ?? null;
+
+      // Fix 3: Sección CDR del prompt — explícita sobre disponibilidad de datos
+      const _cdrSection = _datosDisponibles ? `
+- Campañas principales: Cobranzas ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Cobranzas Perú · Servicio ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Servicio Perú
+- Tasa de contacto efectivo hoy: ${(_tasaContacto! * 100).toFixed(1)}%
+- AHT real: ${_aht} min promedio (rango: 5.2-16.3 min)
+- Total llamadas hoy: ${_llamadasHoy!.toLocaleString('es-CO')}` : `
+- ⚠️ DATOS CDR DEL DÍA NO DISPONIBLES AÚN: Los datos de hoy no han sido cargados todavía.
+- INSTRUCCIÓN CRÍTICA: NO inventes ni estimes métricas de volumen, tasa de contacto ni AHT.
+- USA la función query_cdr_data para obtener datos reales antes de responder.
+- Si query_cdr_data tampoco tiene datos, di explícitamente: "Los datos del día no están disponibles aún. Puedo analizar tendencias históricas si lo deseas."`;
+
+      // Sprint 2B — Sección KPIs de agentes para contexto de Vicky
+      const _hasAgentKPIs = !agentKPIs.loading && agentKPIs.agentesActivos > 0;
+      const _agentKPIsSection = _hasAgentKPIs ? `
+## DATOS DE PERFORMANCE DE AGENTES (Engage360 — datos reales, últimos 30 días)
+- CSAT promedio del equipo: ${agentKPIs.csatPromedio.toFixed(1)}/5 (umbral calidad: 3.5/5)
+- FCR promedio: ${agentKPIs.fcrPromedio.toFixed(0)}% (benchmark COPC: ≥75%)
+- Tasa de escalaciones promedio: ${agentKPIs.escalacionesPromedio.toFixed(1)}%
+- Ocupación estimada del equipo: ${agentKPIs.ocupacionPromedio.toFixed(1)}% (benchmark COPC: 75-85%)
+- Llamadas/hora promedio por agente: ${agentKPIs.llamadasXHoraPromedio.toFixed(1)} (benchmark: 14-18 llamadas/h)
+- Agentes activos últimos 30 días: ${agentKPIs.agentesActivos}
+- Nota: Ocupación calculada como (AHT × llamadas) / (8h × 3600). Un valor >90% indica riesgo de burnout.` : `
+## DATOS DE PERFORMANCE DE AGENTES (Engage360)
+- Sin datos disponibles aún — NO inventes ni estimes métricas de calidad de agentes.`;
+
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para ${_clientName}.
 
 ## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
-- Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)
-- Campañas principales: Cobranzas ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Cobranzas Perú · Servicio ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Servicio Perú
-- Tasa de contacto efectivo hoy: ${(_tasaContacto * 100).toFixed(1)}%
-- AHT real: ${_aht} min promedio (rango: 5.2-16.3 min)
-- Total llamadas hoy: ${_llamadasHoy.toLocaleString('es-CO')}
+- Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)${_cdrSection}${_agentKPIsSection}
 
 ## RESUMEN ANUAL CDR
 Para obtener totales anuales, mensuales o tendencias históricas del CDR, usa la función query_cdr_data con el query_type apropiado. Los datos se consultan en tiempo real desde Supabase.
@@ -781,6 +767,14 @@ Ejemplo: si pregunta "¿cómo estábamos la semana pasada vs hace un año?", cal
 - "Yo envié un correo notificando que podría devolver el equipo"
 - "Estábamos llamando al de Credit Smart, indica que quería comunicarse con nosotros"
 - Cierre típico: "Le agradezco por haber atendido mi llamada. Contamos con el pago."
+
+### REGLA CRÍTICA — Interpretación del volumen de llamadas y el Dialer automático
+- El "wekall Dialer" es un agente de marcación automática que genera ~44% del volumen total de llamadas
+- En días con >15,000 llamadas totales: el Dialer domina el volumen → la tasa de contacto efectivo cae porque el Dialer tiene ~5-8% de contacto efectivo vs ~40% de los agentes humanos
+- En días con <5,000 llamadas: es operación reducida (fin de semana, festivo) → la tasa de contacto puede ser más alta porque solo operan agentes humanos de alta productividad
+- NUNCA reportar como anomalía negativa una tasa de contacto baja en días de alto volumen sin mencionar el Dialer como causa probable
+- Ejemplo: "El 1-abr: 30,762 llamadas + 7.76% contacto = el Dialer generó ~13,600 llamadas con tasa mínima. Los agentes humanos probablemente mantuvieron su ~40% pero el Dialer diluyó el total."
+- Ejemplo: "El 29-mar: 769 llamadas + 33.81% contacto = operación reducida (sábado), solo agentes humanos activos."
 
 ### Distribución real de volumen por agente (CDR histórico — datos de referencia, 81 agentes humanos activos en días pico):
 - Promedio real: 110.7 llamadas/agente/día (el "137" anterior incluía el marcador automático — dato corregido)
@@ -1170,7 +1164,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  client_id: clientId || 'credismart',
+                  client_id: clientId, // [Security] H-2: sin fallback inseguro
                   query_type: fnArgs.query_type,
                   params: fnArgs.params || {},
                 }),
@@ -1262,6 +1256,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         sources: resp.sources,
         follow_ups: resp.followUps,
         model_used: 'gpt-4o',
+        client_id: clientId, // [Security] H-2: client_id requerido, sin fallback
       }).catch(err => console.warn('No se pudo guardar conversación en Supabase:', err));
     }
   }
@@ -1419,6 +1414,19 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1">
+              {/* Fix 1: Banner de estado CDR — visible cuando los datos no han cargado */}
+              {cdr.loading && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400 mb-2">
+                  <Loader2 size={12} className="animate-spin" />
+                  Cargando datos CDR en tiempo real...
+                </div>
+              )}
+              {!cdr.loading && cdr.error && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 mb-2">
+                  <AlertCircle size={12} />
+                  No se pudieron cargar los datos CDR. Vicky operará con datos limitados.
+                </div>
+              )}
               {messages.map((msg, msgIdx) => {
                 // Feature 4: Compute action suggestions for last Vicky message only
                 const isLastVicky = msg.role === 'vicky' && msgIdx === messages.length - 1;
@@ -1644,8 +1652,9 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           </TabsContent>
 
           <TabsContent value="history" className="flex-1 overflow-y-auto mt-0 data-[state=inactive]:hidden">
-            <HistorialTab
+            <VickyChatHistory
               sessionId={sessionId}
+              clientId={clientId}
               onReload={(q) => {
                 setActiveTab('chat');
                 setTimeout(() => sendMessage(q), 100);

@@ -353,8 +353,8 @@ export function detectOperationType(context: string): OperationType {
   // Soporte técnico
   if (t.match(/soporte.t[eé]cnico|help.?desk|ti|it |incident|ticket|bug|hardware|software|it support/)) return 'soporte_tecnico';
 
-  // Ventas outbound
-  if (t.match(/venta.*outbound|televent|lead|prospecci[oó]n|conversi[oó]n.*venta/)) return 'contact_center_ventas';
+  // Ventas outbound (incluyendo contextos simples como "ventas", "comercial", "revenue")
+  if (t.match(/venta.*outbound|televent|lead|prospecci[oó]n|conversi[oó]n.*venta|\bventas?\b|\bcomercial\b|\brevenue\b/)) return 'contact_center_ventas';
 
   // Servicio al cliente (default contact center)
   if (t.match(/servicio.*cliente|atencion.*cliente|cx|customer.*service|postventa|fidelizaci[oó]n/)) return 'contact_center_servicio';

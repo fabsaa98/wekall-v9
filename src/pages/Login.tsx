@@ -4,10 +4,31 @@ import { supabase, signIn as signInProxy } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
 import { Loader2, LogIn, Eye, EyeOff } from 'lucide-react';
 
+// ─── Mapeo de errores Supabase → mensajes en español ─────────────────────────
+function mapearErrorSupabase(error: string): string {
+  const mapa: Record<string, string> = {
+    'Invalid login credentials': 'Email o contraseña incorrectos. Verifica tus datos.',
+    'Email not confirmed': 'Tu email no ha sido confirmado. Revisa tu bandeja de entrada.',
+    'User already registered': 'Este email ya está registrado. ¿Olvidaste tu contraseña?',
+    'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
+    'Invalid email': 'El formato del email no es válido.',
+    'Email rate limit exceeded': 'Demasiados intentos. Espera unos minutos antes de intentar de nuevo.',
+    'User not found': 'No encontramos una cuenta con ese email.',
+    'Invalid OTP': 'El código de verificación es inválido o expiró.',
+    'Signup disabled': 'El registro de nuevos usuarios está desactivado.',
+    'Too many requests': 'Demasiadas solicitudes. Intenta en unos minutos.',
+  };
+  for (const [key, value] of Object.entries(mapa)) {
+    if (error.toLowerCase().includes(key.toLowerCase())) return value;
+  }
+  return 'Ocurrió un error inesperado. Por favor intenta de nuevo.';
+}
+
 // ─── Preset credentials (URL param: ?preset=crediminuto) ─────────────────────
+// ⚠️ Security: passwords loaded from env vars — never hardcode in source
 const PRESETS: Record<string, { email: string; password: string; clientId: string }> = {
-  crediminuto: { email: 'ceo@crediminuto.com', password: 'Crediminuto2026!', clientId: 'credismart' }, // datos en Supabase usan client_id='credismart'
-  wekall:      { email: 'fabian@wekall.co',    password: 'WeKall2026!',      clientId: 'wekall'      },
+  crediminuto: { email: 'ceo@crediminuto.com', password: import.meta.env.VITE_PRESET_CREDIMINUTO_PWD as string || '', clientId: 'credismart' },
+  wekall:      { email: 'fabian@wekall.co',    password: import.meta.env.VITE_PRESET_WEKALL_PWD as string || '',      clientId: 'wekall'      },
 };
 
 // Sesión persistente: si remember=true, guardar en localStorage con TTL de 30 días
@@ -92,7 +113,8 @@ export default function Login() {
       })
       .catch((err: unknown) => {
         setLoading(false);
-        setError(err instanceof Error ? err.message : 'Error de autenticación.');
+        const errMsg = err instanceof Error ? err.message : '';
+        setError(mapearErrorSupabase(errMsg));
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -149,7 +171,7 @@ export default function Login() {
         const msg = authErr instanceof Error ? authErr.message : '';
 
         if (msg === 'Credenciales incorrectas' || msg === 'auth_error') {
-          setError('Contraseña incorrecta. Verifica tus credenciales.');
+          setError('Email o contraseña incorrectos. Verifica tus datos.');
           return;
         }
 
@@ -159,11 +181,12 @@ export default function Login() {
           return;
         }
 
-        setError('Error de autenticación. Intenta de nuevo.');
+        setError(mapearErrorSupabase(msg));
       }
 
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error de conexión.');
+      const errMsg = err instanceof Error ? err.message : '';
+      setError(mapearErrorSupabase(errMsg));
     } finally {
       setLoading(false);
     }
@@ -242,11 +265,21 @@ export default function Login() {
           >
             {loading ? <><Loader2 size={16} className="animate-spin" /> Verificando...</> : <><LogIn size={16} /> Iniciar sesión</>}
           </button>
+
+          {/* MFA / security disclaimer */}
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            🔐 Autenticación segura via Supabase Auth
+          </p>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground">
-          ¿Problemas? <a href="mailto:soporte@wekall.co" className="text-primary hover:underline">Contacta a soporte</a>
-        </p>
+        <div className="flex flex-col items-center gap-2">
+          <a href="/forgot-password" className="text-sm text-gray-400 hover:text-purple-400">
+            ¿Olvidaste tu contraseña?
+          </a>
+          <p className="text-center text-xs text-muted-foreground">
+            ¿Problemas? <a href="mailto:soporte@wekall.co" className="text-primary hover:underline">Contacta a soporte</a>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Mic, Loader2, AlertTriangle, TrendingUp, TrendingDown, Users, Target, Lightbulb, CheckCircle2, XCircle, AlertCircle, ArrowUpRight, BarChart2 } from 'lucide-react';
 import { useClient } from '@/contexts/ClientContext';
 import { cn } from '@/lib/utils';
+import { PageSkeleton } from '@/components/PageSkeleton';
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,42 @@ interface ParsedCall {
   tono: 'positivo' | 'negativo' | 'neutral' | 'desconocido';
   resultado: 'exitoso' | 'fallido' | 'no_contacto' | 'desconocido';
   resultadoRaw: string;
+  campanaEfectiva: string; // campàña explícita o inferida
+  churnRisk: 'alto' | 'normal'; // Fix CX1
+  csatEstimado?: number; // Fix CX3 — 1-5, inferido desde tono + resultado
+}
+
+// ─── Inferencia inteligente de campaña ────────────────────────────────────────────────────
+// Cuando `campaign` es null/undefined, infiere el tipo de llamada desde el contenido
+
+function inferirCampana(t: Transcription): string {
+  const texto = ((t.summary || '') + ' ' + (t.transcript || '')).toLowerCase();
+  if (texto.includes('deuda') || texto.includes('pago') || texto.includes('cobran') || texto.includes('credito')) {
+    return 'Cobranzas';
+  }
+  if (texto.includes('servicio') || texto.includes('soporte') || texto.includes('problema') || texto.includes('falla')) {
+    return 'Servicio';
+  }
+  if (texto.includes('venta') || texto.includes('producto') || texto.includes('precio') || texto.includes('compra')) {
+    return 'Ventas';
+  }
+  return t.call_type === 'collection' ? 'Cobranzas'
+       : t.call_type === 'support'    ? 'Servicio'
+       : t.call_type === 'sale'       ? 'Ventas'
+       : 'General';
+}
+
+// ─── AHT aproximado desde longitud del transcript ────────────────────────────────────────────────
+// Estima duración en minutos a partir de palabras del transcript (~150 wpm conversacional)
+
+function calcAHT(callList: ParsedCall[]): string {
+  if (callList.length === 0) return 'N/A';
+  const avgWords = callList.reduce((s, c) => {
+    const words = (c.raw.transcript || '').split(/\s+/).filter(Boolean).length;
+    return s + words;
+  }, 0) / callList.length;
+  const minutes = Math.round((avgWords / 150) * 10) / 10;
+  return `~${minutes}`;
 }
 
 // ─── Parser de summary ──────────────────────────────────────────────────────────
@@ -33,7 +70,24 @@ interface ParsedCall {
 // Estrategia 1: formato estructurado del Worker (campo "Resultado:", "Tono del cliente:", etc.)
 // Estrategia 2: formato libre — búsqueda semántica por keywords
 // Estrategia 3: inferencia desde el transcript si el summary falla
-function parseSummary(summary: string, transcript?: string): { tema: string; tono: ParsedCall['tono']; resultado: ParsedCall['resultado']; resultadoRaw: string } {
+// Fix V2 — Keywords de cierre de venta
+const EXITOSO_VENTAS = [
+  'lo quiero', 'acepto', 'firmamos', 'trato hecho', 'de acuerdo', 'procede',
+  'vamos adelante', 'me interesa', 'lo compro', 'confirmo', 'cuenta con eso',
+  'me lo llevo', 'lo tomamos', 'vendido', 'cerramos', 'sí quiero',
+  'mándame el contrato', 'cuándo me llega', 'cómo pago',
+];
+
+// Fix CX1 — Señales de churn
+const CHURN_SIGNALS = [
+  'cancelar', 'me voy', 'cambio de proveedor', 'cancelo', 'baja del servicio',
+  'no quiero seguir', 'terminar el contrato', 'rescindir', 'no renuevo',
+  'me cambio a', 'voy a usar', 'la competencia', 'estoy evaluando otro',
+  'no estoy satisfecho', 'muy molesto', 'pésimo servicio', 'no me sirven',
+  'quiero cancelar', 'dar de baja', 'retirarme',
+];
+
+function parseSummary(summary: string, transcript?: string): { tema: string; tono: ParsedCall['tono']; resultado: ParsedCall['resultado']; resultadoRaw: string; churnRisk: 'alto' | 'normal' } {
   const s = (summary || '').toLowerCase();
   const t = (transcript || '').toLowerCase();
   const full = s + ' ' + t; // combinar ambos para máxima cobertura
@@ -80,8 +134,7 @@ function parseSummary(summary: string, transcript?: string): { tema: string; ton
   const tieneNegacion = (text: string) =>
     /\bno prometi|\bno prometió|\bno se comprometió|\bno hubo acuerdo|\bno realizó pago|\bno pudo|\bno quiso|\bsin comprometerse|\bsin prometió|\bnegó\b|\bnegó pagar|\bse negó/.test(text);
 
-  // Keywords de éxito (promesa de pago) — dominio cobranza
-  // Orden: primero verificar que no hay negación en el contexto cercano
+  // Keywords de éxito (promesa de pago + cierres de venta) — Fix V2
   const esExitoso = (text: string) => {
     if (tieneNegacion(text)) return false; // si el texto tiene negación explícita, no es exitoso
     return text.includes('promesa de pago') || text.includes('acuerdo de pago') ||
@@ -89,7 +142,8 @@ function parseSummary(summary: string, transcript?: string): { tema: string; ton
       text.includes('se comprometió a pagar') || text.includes('comprometió pagar') ||
       text.includes('comprometió a pagar') || text.includes('fecha de pago') ||
       text.includes('promesa') && !text.includes('no prometió') && !text.includes('sin promesa') ||
-      text.includes('exitoso') || text.includes('compromiso de pago');
+      text.includes('exitoso') || text.includes('compromiso de pago') ||
+      EXITOSO_VENTAS.some(frase => text.includes(frase)); // Fix V2: cierres de venta
   };
 
   // Keywords de no-contacto
@@ -117,7 +171,32 @@ function parseSummary(summary: string, transcript?: string): { tema: string; ton
   else if (t && esNoContacto(t)) resultado = 'no_contacto';
   else if (t && esFallido(t)) resultado = 'fallido';
 
-  return { tema, tono, resultado, resultadoRaw: resultadoRaw || 'No especificado' };
+  // Fix CX1: Detectar señales de churn
+  const tieneSeñalChurn = CHURN_SIGNALS.some(signal => full.includes(signal));
+
+  return { tema, tono, resultado, resultadoRaw: resultadoRaw || 'No especificado', churnRisk: tieneSeñalChurn ? 'alto' : 'normal' };
+}
+
+// Fix V3 — Detección de objeciones de ventas
+function detectarObjecionVentas(texto: string): string | null {
+  const t = texto.toLowerCase();
+  if (t.includes('muy caro') || t.includes('precio alto') || t.includes('no tengo presupuesto') || t.includes('cuesta mucho')) return 'Precio / Presupuesto';
+  if (t.includes('no es el momento') || t.includes('ahora no') || t.includes('el próximo mes') || t.includes('después lo vemos')) return 'Timing / Momento';
+  if (t.includes('ya tengo') || t.includes('uso otro') || t.includes('estoy con') || t.includes('tengo proveedor')) return 'Competencia / Proveedor actual';
+  if (t.includes('no lo necesito') || t.includes('no me sirve') || t.includes('no aplica') || t.includes('no es lo que busco')) return 'Necesidad / Fit';
+  if (t.includes('tengo que consultarlo') || t.includes('hablar con') || t.includes('mi jefe') || t.includes('decidir con')) return 'Decisor / Aprobación';
+  if (t.includes('no conozco') || t.includes('no sé quiénes son') || t.includes('no confío') || t.includes('quién es WeKall')) return 'Confianza / Marca';
+  return null;
+}
+
+// Fix CX3 — CSAT inferido desde tono + resultado
+function estimarCSAT(tono: ParsedCall['tono'], resultado: ParsedCall['resultado']): number {
+  if (tono === 'positivo' && resultado === 'exitoso') return 5;
+  if (tono === 'positivo' && resultado !== 'fallido') return 4;
+  if (tono === 'neutral') return 3;
+  if (tono === 'negativo' && resultado === 'exitoso') return 3; // resolvió pero incómodo
+  if (tono === 'negativo') return 2;
+  return 3; // default neutral
 }
 
 // ─── Patrones conversacionales ──────────────────────────────────────────────────
@@ -215,6 +294,7 @@ export default function SpeechAnalytics() {
     const calls: ParsedCall[] = transcriptions.map(t => ({
       raw: t,
       ...parseSummary(t.summary || '', t.transcript || ''),
+      campanaEfectiva: t.campaign || inferirCampana(t),
     }));
 
     const total = calls.length;
@@ -344,6 +424,24 @@ export default function SpeechAnalytics() {
       return { thisRate, prevRate, delta, thisWeekN: thisWeekCalls.length, prevWeekN: prevWeekCalls.length };
     })();
 
+    // Fix V3 — Objeciones de ventas
+    const campanaActual = (() => {
+      const freq: Record<string, number> = {};
+      for (const c of calls) { freq[c.campanaEfectiva] = (freq[c.campanaEfectiva] || 0) + 1; }
+      return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'General';
+    })();
+
+    const objecionesVentasRaw: Record<string, number> = {};
+    for (const c of calls) {
+      const texto = (c.raw.transcript || '') + ' ' + (c.raw.summary || '');
+      const obj = detectarObjecionVentas(texto);
+      if (obj) objecionesVentasRaw[obj] = (objecionesVentasRaw[obj] || 0) + 1;
+    }
+    const totalObjecionesVentas = Object.values(objecionesVentasRaw).reduce((s, n) => s + n, 0);
+    const objecionesVentas = Object.entries(objecionesVentasRaw)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tipo, count]) => ({ tipo, count, pct: totalObjecionesVentas > 0 ? Math.round((count / totalObjecionesVentas) * 100) : 0 }));
+
     return {
       total,
       exitosas: exitosas.length,
@@ -366,6 +464,8 @@ export default function SpeechAnalytics() {
       minutosRecuperados,
       objecionMasFrecuente: mapaObjeciones[0],
       weeklyTrend,
+      campanaActual,
+      objecionesVentas,
     };
     } catch (e) {
       console.error('[SpeechAnalytics] Error en análisis:', e);
@@ -375,14 +475,7 @@ export default function SpeechAnalytics() {
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="p-6 flex-1 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 size={32} className="text-primary animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Analizando transcripciones...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton rows={4} />;
   }
 
   if (error) {
@@ -413,7 +506,19 @@ export default function SpeechAnalytics() {
     );
   }
 
-  const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, fragmentosSummaryFallidas, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend } = analysis;
+  const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, fragmentosSummaryFallidas, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend, campanaActual, objecionesVentas } = analysis;
+
+  // Fix CX3 — CSAT promedio inferido
+  const csatPromedio = calls.length > 0
+    ? calls.reduce((sum, c) => sum + estimarCSAT(c.tono, c.resultado), 0) / calls.length
+    : 0;
+
+  // Fix CX1 — contador de churn
+  const llamadasChurnAlto = calls.filter(c => c.churnRisk === 'alto').length;
+
+  // Arrays completos (no solo counts) para análisis diferencial
+  const exitosasArr = calls.filter(c => c.resultado === 'exitoso');
+  const fallidasArr = calls.filter(c => c.resultado === 'fallido');
 
   // ── Headline ejecutivo ──────────────────────────────────────────────────────
   const mejorAgente = agentes[0];
@@ -516,6 +621,25 @@ export default function SpeechAnalytics() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Fix CX3 — CSAT estimado + Fix CX1 — Churn counter */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <div className="p-3 rounded-lg bg-card border border-border">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">CSAT Estimado</p>
+            <p className="text-2xl font-bold text-foreground">{csatPromedio.toFixed(1)}<span className="text-sm text-muted-foreground">/5</span></p>
+            <p className="text-[11px] text-muted-foreground">Inferido desde tono + resultado de llamada</p>
+          </div>
+          {llamadasChurnAlto > 0 && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <p className="text-xs font-semibold text-red-400">
+                ⚠️ {llamadasChurnAlto} llamadas con señales de churn esta semana
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Clientes que mencionaron cancelar, cambiar de proveedor o insatisfacción severa
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -834,6 +958,66 @@ export default function SpeechAnalytics() {
         </div>
       </div>
 
+      {/* ═══ SECCIÓN 2B — DIFERENCIAL EXITOSAS vs FALLIDAS ═══════════════════════════════ */}
+      {exitosasArr.length > 0 && fallidasArr.length > 0 && (
+        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+          <p className="text-xs font-semibold text-emerald-400 mb-3">
+            🎯 Diferenciadores: Llamadas exitosas vs fallidas
+          </p>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <p className="font-medium text-emerald-400 mb-1">✅ Llamadas que SÍ cierran ({exitosasArr.length})</p>
+              <p className="text-muted-foreground">
+                Tono positivo: {Math.round(exitosasArr.filter(c => c.tono === 'positivo').length / exitosasArr.length * 100)}%
+              </p>
+              <p className="text-muted-foreground">AHT estimado: {calcAHT(exitosasArr)} min</p>
+              <p className="text-muted-foreground">
+                Tono negativo: {Math.round(exitosasArr.filter(c => c.tono === 'negativo').length / exitosasArr.length * 100)}%
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-red-400 mb-1">❌ Llamadas que NO cierran ({fallidasArr.length})</p>
+              <p className="text-muted-foreground">
+                Tono positivo: {Math.round(fallidasArr.filter(c => c.tono === 'positivo').length / fallidasArr.length * 100)}%
+              </p>
+              <p className="text-muted-foreground">AHT estimado: {calcAHT(fallidasArr)} min</p>
+              <p className="text-muted-foreground">
+                Tono negativo: {Math.round(fallidasArr.filter(c => c.tono === 'negativo').length / fallidasArr.length * 100)}%
+              </p>
+            </div>
+          </div>
+          {/* Por campaña inferida */}
+          {(() => {
+            const byCampaign: Record<string, { exitosas: number; total: number }> = {};
+            for (const c of [...exitosasArr, ...fallidasArr]) {
+              const camp = c.campanaEfectiva;
+              if (!byCampaign[camp]) byCampaign[camp] = { exitosas: 0, total: 0 };
+              byCampaign[camp].total++;
+              if (c.resultado === 'exitoso') byCampaign[camp].exitosas++;
+            }
+            const entries = Object.entries(byCampaign).sort((a, b) => b[1].total - a[1].total);
+            if (entries.length <= 1) return null;
+            return (
+              <div className="mt-3 pt-3 border-t border-emerald-500/20">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Por campaña (inferida si no especificada)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {entries.map(([camp, stats]) => (
+                    <span key={camp} className="text-[11px] px-2 py-1 rounded-full bg-muted border border-border">
+                      <span className="font-medium text-foreground">{camp}</span>
+                      <span className="text-muted-foreground ml-1">
+                        {stats.total} llamadas · {stats.total > 0 ? Math.round(stats.exitosas / stats.total * 100) : 0}% cierre
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* ═══ SECCIÓN 3 — RANKING DE AGENTES ══════════════════════════════════════ */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
@@ -1006,6 +1190,31 @@ export default function SpeechAnalytics() {
           )}
         </div>
       </div>
+
+      {/* Fix V3 — Objeciones de ventas (solo cuando campaña dominante es Ventas) */}
+      {campanaActual === 'Ventas' && objecionesVentas.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Target size={16} className="text-blue-400" />
+            <h2 className="text-sm font-bold text-foreground">Objeciones de Ventas</h2>
+            <span className="text-xs text-muted-foreground">— Distribución de objeciones detectadas en llamadas</span>
+          </div>
+          <div className="mt-2 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+            <p className="text-xs font-semibold text-blue-400 mb-3">🎯 Objeciones de ventas detectadas</p>
+            <div className="space-y-2">
+              {objecionesVentas.map((obj, i) => (
+                <div key={i} className="flex items-center gap-3 text-xs">
+                  <span className="text-foreground w-48">{obj.tipo}</span>
+                  <div className="flex-1 h-1.5 bg-secondary rounded-full">
+                    <div className="h-full bg-blue-400 rounded-full" style={{ width: `${obj.pct}%` }} />
+                  </div>
+                  <span className="text-muted-foreground w-12 text-right">{obj.count} llamadas</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ SECCIÓN 5 — RECOMENDACIONES EJECUTIVAS ══════════════════════════════ */}
       <div className="space-y-3">

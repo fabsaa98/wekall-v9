@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://iszodrpublcnsyvtgjcg.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
+// ⚠️ Security: load from env vars; fallback only for local dev (never commit real keys to source)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string || 'https://iszodrpublcnsyvtgjcg.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string || 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -139,7 +140,12 @@ async function proxyQuery<T>(payload: object): Promise<T> {
 }
 
 // Queries
-export async function getLastNDays(n: number, clientId = 'credismart', minLlamadas?: number): Promise<CDRDayMetric[]> {
+export async function getLastNDays(n: number, clientId: string, minLlamadas?: number): Promise<CDRDayMetric[]> {
+  // [Security] clientId requerido — sin fallback para evitar data leak entre tenants
+  if (!clientId) {
+    console.error('[Security] getLastNDays: clientId requerido — abortando query');
+    return [];
+  }
   // minLlamadas: si no se pasa, usar 1 (sin filtro mínimo) — cada cliente tiene volúmenes distintos
   // El filtro de volumen mínimo debe aplicarse en la capa de presentación usando alert_volumen_minimo del client_config
   const min = minLlamadas ?? 1;
@@ -156,23 +162,39 @@ export async function getLastNDays(n: number, clientId = 'credismart', minLlamad
   return (data || []).reverse();
 }
 
-export async function getLatestDay(clientId = 'credismart'): Promise<CDRDayMetric | null> {
+export async function getLatestDay(clientId: string): Promise<CDRDayMetric | null> {
+  if (!clientId) {
+    console.error('[Security] getLatestDay: clientId requerido — abortando query');
+    return null;
+  }
   const days = await getLastNDays(1, clientId);
   return days[0] || null;
 }
 
-export async function getSparkline(days: number, clientId = 'credismart'): Promise<number[]> {
+export async function getSparkline(days: number, clientId: string): Promise<number[]> {
+  if (!clientId) {
+    console.error('[Security] getSparkline: clientId requerido — abortando query');
+    return [];
+  }
   const data = await getLastNDays(days, clientId);
   return data.map(d => d.tasa_contacto_pct);
 }
 
-export async function getVolumeSparkline(days: number, clientId = 'credismart'): Promise<number[]> {
+export async function getVolumeSparkline(days: number, clientId: string): Promise<number[]> {
+  if (!clientId) {
+    console.error('[Security] getVolumeSparkline: clientId requerido — abortando query');
+    return [];
+  }
   const data = await getLastNDays(days, clientId);
   return data.map(d => d.total_llamadas);
 }
 
-export async function getLatestCampaigns(): Promise<CDRCampaignMetric[]> {
-  const latest = await getLatestDay();
+export async function getLatestCampaigns(clientId: string): Promise<CDRCampaignMetric[]> {
+  if (!clientId) {
+    console.error('[Security] getLatestCampaigns: clientId requerido — abortando query');
+    return [];
+  }
+  const latest = await getLatestDay(clientId);
   if (!latest) return [];
   const data = await proxyQuery<CDRCampaignMetric[]>({
     table: 'cdr_campaign_metrics',
@@ -274,21 +296,31 @@ export interface AlertLogEntry {
 }
 
 export async function insertAlertLog(entry: AlertLogEntry): Promise<void> {
+  // [Security] client_id requerido — sin fallback para evitar data leak entre tenants
+  if (!entry.client_id) {
+    console.error('[Security] insertAlertLog: client_id requerido — abortando insert');
+    return;
+  }
   // INSERT goes direct — proxy only supports GET queries; writes use supabase client directly
   const { error } = await supabase
     .from('alert_log')
     .insert({
       ...entry,
       source: entry.source ?? 'cdr_daily_metrics',
-      client_id: entry.client_id ?? 'credismart',
     });
   if (error) throw error;
 }
 
-export async function getRecentAlertLog(limit = 10): Promise<AlertLogEntry[]> {
+export async function getRecentAlertLog(clientId: string, limit = 10): Promise<AlertLogEntry[]> {
+  // [Security] clientId requerido — sin fallback para evitar data leak entre tenants
+  if (!clientId) {
+    console.error('[Security] getRecentAlertLog: clientId requerido — abortando query');
+    return [];
+  }
   const data = await proxyQuery<AlertLogEntry[]>({
     table: 'alert_log',
     select: '*',
+    filters: { 'client_id': `eq.${clientId}` },
     order: 'fired_at.desc',
     limit,
   });
@@ -317,14 +349,18 @@ export async function saveVickyConversation(entry: VickyConversation): Promise<v
     .from('vicky_conversations')
     .insert({
       ...entry,
-      client_id: entry.client_id ?? 'credismart',
       model_used: entry.model_used ?? 'gpt-4o',
     });
   if (error) throw error;
 }
 
-export async function getVickyHistory(sessionId?: string, limit = 20): Promise<VickyConversation[]> {
-  const filters: Record<string, string> = {};
+export async function getVickyHistory(clientId: string, sessionId?: string, limit = 20): Promise<VickyConversation[]> {
+  // [Security] clientId requerido — sin fallback para evitar data leak entre tenants
+  if (!clientId) {
+    console.error('[Security] getVickyHistory: clientId requerido — abortando query');
+    return [];
+  }
+  const filters: Record<string, string> = { 'client_id': `eq.${clientId}` };
   if (sessionId) filters['session_id'] = `eq.${sessionId}`;
   const data = await proxyQuery<VickyConversation[]>({
     table: 'vicky_conversations',

@@ -54,12 +54,17 @@ export function useTranscriptions(params: TranscriptionsParams = {}) {
     queryKey: ['transcriptions', params, clientId],
     queryFn: async () => {
       // Consulta Supabase directamente — filtra por client_id del contexto
+      // Paginación server-side con range() + count exacto
+      const page = params.page || 1;
+      const limit = params.limit || 25;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
       let query = supabase
         .from('transcriptions')
-        .select('id,agent_name,call_date,call_type,summary,transcript,campaign,client_id')
+        .select('id,agent_name,call_date,call_type,summary,campaign,client_id', { count: 'exact' })
         .eq('client_id', clientId)
-        .order('call_date', { ascending: false })
-        .limit(params.limit || 50);
+        .order('call_date', { ascending: false });
 
       // Búsqueda por texto (ILIKE en agent_name o summary)
       if (params.search) {
@@ -68,15 +73,15 @@ export function useTranscriptions(params: TranscriptionsParams = {}) {
         );
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query.range(from, to);
       if (error) throw new Error(error.message);
 
       const rows = (data || []) as SupabaseTranscription[];
       return {
         data: rows.map(adaptTranscription),
-        total: rows.length,
-        page: 1,
-        limit: params.limit || 50,
+        total: count ?? rows.length,
+        page,
+        limit,
       };
     },
     staleTime: 60_000,

@@ -1,6 +1,13 @@
 import { TrendingUp, TrendingDown, Minus, ZoomIn } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
+
+interface SparkDotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: Record<string, unknown>;
+}
 import type { KPIData } from '@/data/mockData';
 import { InfoTooltip } from '@/components/InfoTooltip';
 
@@ -83,7 +90,7 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
                 strokeWidth={1.5}
                 fill={`url(#sg-${kpi.id})`}
                 activeDot={false}
-                dot={showSparkDots ? (props: any) => {
+                dot={showSparkDots ? (props: SparkDotProps) => {
                   const { cx, cy, index, payload } = props;
                   const value = payload?.v;
                   const isMax = index === sparkMaxIdx;

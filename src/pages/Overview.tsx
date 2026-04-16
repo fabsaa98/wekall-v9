@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, TrendingDown,
-  BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar,
+  BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar, FileText, Activity, Phone,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -13,6 +13,8 @@ import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 import { buildKPIsFromCDR, buildConversationTrend } from '@/data/mockData';
 import { useCDRData } from '@/hooks/useCDRData';
+import { useAgentKPIs } from '@/hooks/useAgentKPIs';
+import { useAgentKPIs } from '@/hooks/useAgentKPIs';
 import { generateWeeklyInsight } from '@/lib/proactiveInsights';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -20,12 +22,95 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
 import { INDUSTRY_BENCHMARKS } from '@/data/benchmarks';
+import { PageSkeleton } from '@/components/PageSkeleton';
+
+// ─── Recharts dot render prop types ──────────────────────────────────────
+interface ChartDotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  value?: number;
+  payload?: Record<string, unknown>;
+}
+
+interface TrendItem {
+  day: string;
+  total?: number;
+  resolved?: number;
+  [key: string]: unknown;
+}
+
+// ─── Export Dashboard PDF ─────────────────────────────────────────────────────────
+interface KPIExport {
+  label: string;
+  value: string;
+  delta?: string;
+  deltaPositive?: boolean;
+}
+
+function exportDashboardPDF(kpis: KPIExport[], insight: string, clientName: string) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const fecha = new Date().toLocaleDateString('es-CO', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>WeKall Intelligence — Reporte Ejecutivo</title>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; color: #12172A; }
+        h1 { color: #6334C0; font-size: 22px; border-bottom: 3px solid #6334C0; padding-bottom: 10px; }
+        h2 { color: #374151; font-size: 16px; margin-top: 24px; }
+        .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+        .kpi { background: #F4F6FB; border-radius: 8px; padding: 16px; border-left: 4px solid #6334C0; }
+        .kpi-value { font-size: 28px; font-weight: bold; color: #6334C0; }
+        .kpi-label { font-size: 12px; color: #6B7280; margin-top: 4px; }
+        .insight { background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 8px; padding: 16px; margin: 16px 0; }
+        .footer { margin-top: 40px; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 12px; }
+        @media print { body { margin: 20px; } .kpis { grid-template-columns: repeat(2, 1fr); } }
+      </style>
+    </head>
+    <body>
+      <h1>WeKall Intelligence — Reporte Ejecutivo</h1>
+      <p style="color:#9CA3AF;font-size:13px">${clientName} · ${fecha}</p>
+
+      <h2>KPIs del Día</h2>
+      <div class="kpis">
+        ${kpis.map(k => `
+          <div class="kpi">
+            <div class="kpi-value">${k.value}</div>
+            <div class="kpi-label">${k.label}</div>
+            ${k.delta ? `<div style="font-size:11px;color:${k.deltaPositive ? '#16A34A' : '#DC2626'};margin-top:4px">${k.delta}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+
+      ${insight ? `
+        <h2>Insight Proactivo de la Semana</h2>
+        <div class="insight">${insight.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
+      ` : ''}
+
+      <div class="footer">
+        Generado por WeKall Intelligence · ${new Date().toLocaleString('es-CO')} · Datos en tiempo real desde Supabase CDR
+      </div>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
+}
 
 export default function Overview() {
   const { role } = useRole();
   const { clientConfig, clientBranding } = useClient();
   const navigate = useNavigate();
   const cdr = useCDRData();
+  const agentKPIs = useAgentKPIs(7);
 
   // Nombre del cliente dinámico
   const clientName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
@@ -203,15 +288,7 @@ export default function Overview() {
 
   // Loading skeleton
   if (cdr.loading) {
-    return (
-      <div className="p-6 flex-1 flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 size={32} className="text-primary animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Cargando datos desde Supabase...</p>
-          <p className="text-xs text-muted-foreground">CDR histórico 822 días · ene 2024 – abr 2026</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton rows={3} />;
   }
 
   // Error state
@@ -238,8 +315,36 @@ export default function Overview() {
       )
     : '';
 
+  // Preparar KPIs para PDF
+  const kpisParaPDF: KPIExport[] = primaryKPIs.map(k => ({
+    label: k.title,
+    value: k.value,
+    delta: k.changeLabel || undefined,
+    deltaPositive: k.change >= 0 && !k.invertColor,
+  }));
+
+  // Insight para PDF: primer insight dinámico (si existe)
+  const insightParaPDF = dynamicInsights.length > 0
+    ? `${dynamicInsights[0].headline}\n${dynamicInsights[0].body}\n${dynamicInsights[0].action}`
+    : '';
+
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto overflow-y-auto flex-1 w-full min-w-0">
+
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{clientName} · datos en tiempo real</p>
+        </div>
+        <button
+          onClick={() => exportDashboardPDF(kpisParaPDF, insightParaPDF, clientName)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
+          <FileText size={13} />
+          Exportar PDF
+        </button>
+      </div>
 
       {/* Banner de anomalía (si detectada) */}
       {anomaly?.detected && (
@@ -480,7 +585,7 @@ export default function Overview() {
                 strokeDasharray="6 3"
                 activeDot={{ r: 5, fill: '#A78BFA' }}
                 connectNulls={false}
-                dot={showForecastDots ? (props: any) => {
+                dot={showForecastDots ? ( props: ChartDotProps) => {
                   const { cx, cy, index, payload } = props;
                   const value = payload?.forecast;
                   const isMax = index === forecastMaxIdx;
@@ -610,13 +715,13 @@ export default function Overview() {
                         itemStyle={{ color: '#F9FAFB' }}
               />
               <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" dot={(() => {
-                const totalVals = conversationTrend.map((d: any) => d.total ?? 0);
+                const totalVals = conversationTrend.map((d: TrendItem) => d.total ?? 0);
                 const hasEnough = totalVals.length >= 3;
                 const maxIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v > totalVals[best] ? i : best, 0) : -1;
                 const minIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v < totalVals[best] ? i : best, 0) : -1;
                 const showDots = hasEnough && maxIdx !== minIdx;
                 if (!showDots) return false;
-                return (props: any) => {
+                return (props: ChartDotProps) => {
                   const { cx, cy, index, value } = props;
                   const isMax = index === maxIdx;
                   const isMin = index === minIdx;
@@ -632,13 +737,13 @@ export default function Overview() {
                 };
               })()} activeDot={false} />
               <Area type="monotone" dataKey="resolved" name="Contactos" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" dot={(() => {
-                const resolvedVals = conversationTrend.map((d: any) => d.resolved ?? 0);
+                const resolvedVals = conversationTrend.map((d: TrendItem) => d.resolved ?? 0);
                 const hasEnough = resolvedVals.length >= 3;
                 const maxIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v > resolvedVals[best] ? i : best, 0) : -1;
                 const minIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v < resolvedVals[best] ? i : best, 0) : -1;
                 const showDots = hasEnough && maxIdx !== minIdx;
                 if (!showDots) return false;
-                return (props: any) => {
+                return (props: ChartDotProps) => {
                   const { cx, cy, index, value } = props;
                   const isMax = index === maxIdx;
                   const isMin = index === minIdx;
@@ -682,6 +787,84 @@ export default function Overview() {
         </div>
       </div>
 
+      {/* ── KPIs CX + Ventas + Operaciones (agents_performance) ─────────────── */}
+      {!agentKPIs.loading && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            KPIs de Calidad — CSAT · FCR · Escalaciones · Conversión · Costo/Llamada
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+
+            {/* CSAT promedio — VP CX */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">CSAT Promedio</p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.csatPromedio > 0 ? agentKPIs.csatPromedio.toFixed(1) + '/5' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Últimos 7 días · agentes activos</p>
+            </div>
+
+            {/* FCR promedio — VP CX */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">FCR (First Contact Resolution)</p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.fcrPromedio > 0 ? agentKPIs.fcrPromedio.toFixed(1) + '%' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Resolución en primer contacto</p>
+            </div>
+
+            {/* Escalaciones promedio — VP CX */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Escalaciones</p>
+              <p className={cn(
+                'text-2xl font-bold',
+                agentKPIs.escalacionesPromedio > 10 ? 'text-red-400' : 'text-foreground',
+              )}>
+                {agentKPIs.escalacionesPromedio > 0 ? agentKPIs.escalacionesPromedio.toFixed(1) + '%' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">% llamadas escaladas · 7 días</p>
+            </div>
+
+            {/* Tasa de Conversión (proxy tasa_promesa) — VP Ventas */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Tasa de Conversión <span className="normal-case font-normal text-muted-foreground">(proxy)</span></p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.tasaPromesaPromedio > 0 ? agentKPIs.tasaPromesaPromedio.toFixed(1) + '%' : '—'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Tasa promesa/cierre · 7 días</p>
+            </div>
+
+            {/* Costo por llamada — VP Operaciones */}
+            {(() => {
+              const totalLlamadasMes = cdr.last30Days.length > 0
+                ? cdr.last30Days.reduce((s, d) => s + d.total_llamadas, 0)
+                : 0;
+              const diasHabiles = 22;
+              const promedioLlamadasDia = totalLlamadasMes > 0
+                ? totalLlamadasMes / cdr.last30Days.length
+                : 0;
+              const llamadasMes = Math.round(promedioLlamadasDia * diasHabiles);
+              const nomina = clientConfig?.nomina_total_mes;
+              const costoXLlamada = nomina && llamadasMes > 0
+                ? Math.round(nomina / llamadasMes)
+                : null;
+              return (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Costo / Llamada</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {costoXLlamada !== null ? `COP $${costoXLlamada.toLocaleString('es-CO')}` : '—'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {nomina ? `Nómina $${nomina.toLocaleString('es-CO')} / ${llamadasMes.toLocaleString('es-CO')} llamadas` : 'Configura nómina en Ajustes'}
+                  </p>
+                </div>
+              );
+            })()}
+
+          </div>
+        </div>
+      )}
+
       {/* Secondary KPIs */}
       {secondaryKPIs.length > 0 && (
         <div>
@@ -696,6 +879,103 @@ export default function Overview() {
                 className={`animate-fade-slide-up animate-stagger-${i + 1}`}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── KPIs OPERACIONES — Ocupación Estimada + Llamadas/Hora (Sprint 2B) ─── */}
+      {!agentKPIs.loading && agentKPIs.agentesActivos > 0 && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            KPIs Operaciones (VP Ops) · Engage360 · {agentKPIs.agentesActivos} agentes
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Ocupación Estimada */}
+            <div className={cn(
+              'rounded-xl border bg-card p-4 space-y-1',
+              agentKPIs.ocupacionPromedio > 90 ? 'border-red-500/30' :
+              agentKPIs.ocupacionPromedio >= 75 ? 'border-emerald-500/30' :
+              'border-border',
+            )}>
+              <div className="flex items-center gap-2">
+                <Activity size={14} className="text-primary" />
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Ocupación Estimada</p>
+              </div>
+              <p className={cn(
+                'text-2xl font-bold',
+                agentKPIs.ocupacionPromedio > 90 ? 'text-red-400' :
+                agentKPIs.ocupacionPromedio >= 75 ? 'text-emerald-400' :
+                'text-foreground',
+              )}>
+                {agentKPIs.ocupacionPromedio.toFixed(1)}%
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark COPC: 75–85%</p>
+              <p className={cn(
+                'text-[10px] font-medium',
+                agentKPIs.ocupacionPromedio > 90 ? 'text-red-400' :
+                agentKPIs.ocupacionPromedio >= 75 ? 'text-emerald-400' :
+                'text-sky-400',
+              )}>
+                {agentKPIs.ocupacionPromedio > 90 ? '⚠️ Riesgo burnout' :
+                 agentKPIs.ocupacionPromedio >= 75 ? '✅ Rango óptimo' :
+                 '↓ Bajo benchmark'}
+              </p>
+            </div>
+
+            {/* Llamadas por Hora */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <Phone size={14} className="text-primary" />
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Llamadas / Hora</p>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.llamadasXHoraPromedio.toFixed(1)}
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark COPC: 14–18 llamadas/h</p>
+              <p className="text-[10px] font-medium text-muted-foreground">
+                Top: {agentKPIs.llamadasXHoraMax.toFixed(1)} · Mín: {agentKPIs.llamadasXHoraMin.toFixed(1)}
+              </p>
+            </div>
+
+            {/* CSAT Promedio */}
+            <div className={cn(
+              'rounded-xl border bg-card p-4 space-y-1',
+              agentKPIs.csatPromedio < 3.5 ? 'border-red-500/30' :
+              agentKPIs.csatPromedio >= 4.0 ? 'border-emerald-500/30' :
+              'border-border',
+            )}>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">CSAT Equipo</p>
+              <p className={cn(
+                'text-2xl font-bold',
+                agentKPIs.csatPromedio < 3.5 ? 'text-red-400' :
+                agentKPIs.csatPromedio >= 4.0 ? 'text-emerald-400' :
+                'text-foreground',
+              )}>
+                {agentKPIs.csatPromedio.toFixed(1)}/5
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark: ≥4.0/5</p>
+              <p className={cn(
+                'text-[10px] font-medium',
+                agentKPIs.csatPromedio < 3.5 ? 'text-red-400' : 'text-emerald-400',
+              )}>
+                {agentKPIs.csatPromedio < 3.5 ? '⚠️ Bajo umbral' : '✅ Buen nivel'}
+              </p>
+            </div>
+
+            {/* FCR Promedio */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">FCR Equipo</p>
+              <p className="text-2xl font-bold text-foreground">
+                {agentKPIs.fcrPromedio.toFixed(0)}%
+              </p>
+              <p className="text-xs text-muted-foreground">Benchmark COPC: ≥75%</p>
+              <p className={cn(
+                'text-[10px] font-medium',
+                agentKPIs.fcrPromedio >= 75 ? 'text-emerald-400' : 'text-sky-400',
+              )}>
+                {agentKPIs.fcrPromedio >= 75 ? '✅ Cumple' : '↓ Por mejorar'}
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -784,7 +1064,7 @@ export default function Overview() {
                         // maxColor: verde si higher=mejor, rojo si lower=mejor
                         const maxColor = invertColor ? '#ef4444' : '#22c55e';
                         const minColor = invertColor ? '#22c55e' : '#ef4444';
-                        return (props: any) => {
+                        return (props: ChartDotProps) => {
                           const { cx, cy, index, payload } = props;
                           const isMax = index === maxIdx;
                           const isMin = index === minIdx;

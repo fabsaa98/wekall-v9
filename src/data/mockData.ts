@@ -1,5 +1,6 @@
-// ─── Data — WeKall Intelligence V17 ──────────────────────────────────────────
-// Cliente: Crediminuto Colombia S.A.S / CrediSmart SAS Perú
+// NOTA: Este archivo contiene SOLO datos de configuración estática y estimaciones base.
+// Los datos reales vienen de Supabase.
+// ─── Data — WeKall Intelligence ──────────────────────────────────────────
 // Datos: CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros
 // Fuente: Supabase (cdr_daily_metrics, cdr_campaign_metrics, cdr_hourly_metrics, transcriptions)
 
@@ -62,7 +63,7 @@ export interface ChatMessage {
 // ─── KPIs — Se construyen dinámicamente desde Supabase via useCDRData hook ───
 // Los datos ahora vienen de cdr_daily_metrics (822 días, ene 2024 - abr 2026)
 
-// kpiData eliminado — usar buildKPIsFromCDR() con datos de useCDRData
+// REAL: estructura construida dinámicamente desde Supabase via buildKPIsFromCDR()
 export const kpiData: KPIData[] = []; // Array vacío: compatibilidad con imports existentes
 
 export function buildKPIsFromCDR(
@@ -124,12 +125,12 @@ export function buildKPIsFromCDR(
     {
       id: 'aht_real',
       title: 'AHT Real',
-      value: '8.1 min',
+      value: '8.1 min', // ESTIMACIÓN: pendiente datos reales del CDR
       numericValue: 8.1,
       change: 0,
       changeLabel: fecha,
-      vsIndustry: -3.8,
-      sparkline: [8.1, 8.1, 8.1, 8.1, 8.1, 8.1, 8.1],
+      vsIndustry: -3.8, // ESTIMACIÓN: benchmark CCContact 2024
+      sparkline: [8.1, 8.1, 8.1, 8.1, 8.1, 8.1, 8.1], // ESTIMACIÓN: sin variación real aún
       invertColor: true,
       roles: ['COO', 'VP CX'],
       unit: 'min',
@@ -163,7 +164,8 @@ export function buildConversationTrend(last7Days: import('@/lib/supabase').CDRDa
   }));
 }
 
-// ─── Proactive Insights (basados en datos reales) ─────────────────────────────
+// ─── Proactive Insights
+// ESTIMACIÓN: insights genéricos de configuración — se complementan con datos reales de Supabase ─────────────────────────────
 
 export const proactiveInsights = [
   {
@@ -195,8 +197,7 @@ export const proactiveInsights = [
 // ─── Alertas — generadas dinámicamente desde Supabase (useCDRData hook) ──────
 // Ver src/pages/Alertas.tsx para la lógica de generación dinámica
 
-// alertsData vacío: compatibilidad con imports existentes
-// Las alertas reales se generan en Alertas.tsx desde useCDRData
+// REAL: alertas generadas dinámicamente desde Supabase (useCDRData hook)
 export const alertsData: Alert[] = [];
 
 // Función para construir alertas dinámicas desde datos CDR
@@ -241,10 +242,11 @@ export function buildAlertsFromCDR(
 
 // ─── Agentes — datos vienen de Supabase (tabla transcriptions) ───────────────
 // FCR, CSAT y AHT por agente requieren integración Engage360 o análisis transcripciones
-// agentsData vacío: compatibilidad con imports existentes
+// REAL: datos reales vienen de Supabase — este array está intencionalmente vacío
 export const agentsData: Agent[] = [];
 
-// ─── Vicky Chat — Initial messages ────────────────────────────────────────────
+// ─── Vicky Chat — Initial messages
+// ESTIMACIÓN: mensajes estáticos de bienvenida — no vienen de Supabase ────────────────────────────────────────────
 
 export const initialVickyMessages: ChatMessage[] = [
   {
@@ -264,7 +266,7 @@ export const initialVickyMessages: ChatMessage[] = [
 ];
 
 // ─── Decision Log ─────────────────────────────────────────────────────────────
-// Inicia vacío — el CEO registra decisiones desde Vicky con "Crear Acción → Decision Log"
+// REAL: inicia vacío — el CEO registra decisiones desde Vicky con "Crear Acción → Decision Log"
 export const decisionLog: {
   id: string;
   insight: string;
@@ -276,7 +278,7 @@ export const decisionLog: {
 }[] = [];
 
 // ─── Surprise Questions ───────────────────────────────────────────────────────
-// Fix 1E: preguntas genéricas — sin referencias a clientes específicos (Crediminuto/CrediSmart)
+// ESTIMACIÓN: preguntas genéricas de ejemplo — sin referencias a clientes específicos
 // VickyInsights puede personalizar estas preguntas en runtime usando clientConfig si es necesario
 
 export const surpriseQuestions = [

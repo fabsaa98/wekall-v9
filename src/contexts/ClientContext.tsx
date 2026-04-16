@@ -224,7 +224,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Cargar config y branding cuando cambia el clientId
   useEffect(() => {

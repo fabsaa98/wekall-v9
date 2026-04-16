@@ -76,7 +76,14 @@ export default function SearchView() {
           </div>
           <div className="space-y-3">
             {results.map(t => {
-              const matchingSegment = t.transcript?.find(seg => seg.text.toLowerCase().includes(debouncedQuery.toLowerCase()));
+              // transcript puede ser string o array de segmentos
+              const transcriptText = typeof t.transcript === 'string'
+                ? t.transcript
+                : (Array.isArray(t.transcript) ? t.transcript.map((s: { text: string }) => s.text).join(' ') : '');
+              const idx = transcriptText.toLowerCase().indexOf(debouncedQuery.toLowerCase());
+              const excerptText = idx >= 0
+                ? transcriptText.slice(Math.max(0, idx - 40), idx + debouncedQuery.length + 80)
+                : null;
               return (
                 <Link key={t.id} to={`/transcriptions/${t.id}`}
                   className="block rounded-lg border border-border bg-card p-4 shadow-wk-xs transition-shadow hover:shadow-wk-md"
@@ -85,12 +92,14 @@ export default function SearchView() {
                     <p className="text-sm font-medium text-card-foreground">{t.agent.name} → {t.client.name}</p>
                     <SentimentBadge sentiment={t.classification.sentiment} size="sm" />
                   </div>
-                  {matchingSegment && (
+                  {excerptText && (
                     <p className="text-sm text-muted-foreground mb-2">
-                      "...{highlightText(matchingSegment.text, debouncedQuery)}..."
+                      "...{highlightText(excerptText, debouncedQuery)}..."
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground italic line-clamp-1 mb-2">{t.summary}</p>
+                  <p className="text-xs text-muted-foreground italic line-clamp-1 mb-2">
+                    {highlightText(t.summary, debouncedQuery)}
+                  </p>
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1"><Calendar size={12} />{format(new Date(t.startedAt), "d MMM yyyy", { locale: es })}</span>
                     <span className="flex items-center gap-1"><Clock size={12} />{formatDuration(t.duration)}</span>
