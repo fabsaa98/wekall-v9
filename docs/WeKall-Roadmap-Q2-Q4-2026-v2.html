@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeKall · Roadmap Q2–Q4 2026 v2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0b10;--bg-s:#11131c;--bg-c:#161925;--bg-h:#1c1f30;
+  --brd:#22263a;--brd-h:#333858;
+  --th:#eef0f6;--tp:#a8adc4;--td:#636987;--tf:#3d4260;
+  --vicky:#818cf8;--engage:#fb7185;--bp:#94a3b8;--messenger:#34d399;
+  --notes:#a78bfa;--portal:#fbbf24;--webphone:#38bdf8;
+  --measure:#f472b6;--design:#fb923c;--proposal:#2dd4bf;
+  --s:#4ade80;--m:#60a5fa;--l:#fbbf24;--xl:#f87171;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tp);-webkit-font-smoothing:antialiased;line-height:1.55}
+.mono{font-family:'JetBrains Mono',monospace}
+.container{max-width:1340px;margin:0 auto;padding:40px 24px 80px}
+
+/* Hero */
+.hero{text-align:center;margin-bottom:44px}
+.hero-badge{display:inline-block;padding:6px 18px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;background:linear-gradient(135deg,#818cf815,#34d39915);color:var(--vicky);border:1px solid var(--brd);margin-bottom:14px}
+.hero h1{font-size:clamp(24px,4vw,38px);font-weight:800;color:var(--th);letter-spacing:-1.2px;line-height:1.1;margin-bottom:8px}
+.hero p{font-size:14px;color:var(--td);max-width:640px;margin:0 auto}
+
+/* Capacity */
+.cap{background:var(--bg-s);border:1px solid var(--brd);border-radius:16px;padding:24px 28px;margin-bottom:36px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;align-items:center}
+.cap-s{text-align:center}
+.cap-v{font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--th)}
+.cap-v .u{font-size:13px;color:var(--td);font-weight:500}
+.cap-l{font-size:11px;color:var(--td);font-weight:500;margin-top:2px;letter-spacing:.4px}
+.cap-bar-w{grid-column:1/-1}
+.cap-bar-h{display:flex;justify-content:space-between;font-size:11px;color:var(--td);margin-bottom:5px;font-weight:600}
+.cap-bar{height:10px;background:var(--bg-c);border-radius:99px;overflow:hidden}
+.cap-bar-f{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--vicky),var(--messenger),var(--portal));transition:width .8s ease}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;margin-bottom:28px;flex-wrap:wrap}
+.tab{padding:9px 20px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--brd);background:var(--bg-s);color:var(--td);transition:all .25s;letter-spacing:.3px}
+.tab:hover{border-color:var(--brd-h);color:var(--tp)}
+.tab.active{background:var(--vicky);color:#0a0b10;border-color:var(--vicky)}
+
+/* Section */
+.sec{margin-bottom:40px}
+.sec-h{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--brd)}
+.sec-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.sec-title{font-size:18px;font-weight:800;color:var(--th);letter-spacing:-.4px}
+.sec-meta{margin-left:auto;font-size:11px;color:var(--td);font-family:'JetBrains Mono',monospace;font-weight:600}
+
+/* Baseline Cards */
+.baseline-section{margin-bottom:40px}
+.baseline-title{font-size:16px;font-weight:800;color:var(--th);margin-bottom:4px;letter-spacing:-.3px}
+.baseline-subtitle{font-size:12px;color:var(--td);margin-bottom:16px}
+.baseline-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:14px}
+.bl-card{background:var(--bg-s);border:1px solid var(--brd);border-radius:14px;padding:20px 22px;position:relative;overflow:hidden}
+.bl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.bl-card.c-vicky::before{background:var(--vicky)}.bl-card.c-mh::before{background:var(--messenger)}
+.bl-card.c-engage::before{background:var(--engage)}.bl-card.c-bp::before{background:var(--bp)}
+.bl-card.c-portal::before{background:var(--portal)}.bl-card.c-notes::before{background:var(--notes)}
+.bl-card.c-webphone::before{background:var(--webphone)}.bl-card.c-measure::before{background:var(--measure)}
+.bl-prod{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+.bl-what{font-size:13px;font-weight:600;color:var(--th);margin-bottom:6px}
+.bl-have{font-size:11px;color:var(--td);margin-bottom:8px;line-height:1.5}
+.bl-have strong{color:var(--s);font-weight:600}
+.bl-gap{font-size:11px;color:var(--xl);margin-bottom:0;line-height:1.5}
+.bl-gap strong{color:var(--xl);font-weight:600}
+
+/* Epic Detail */
+.epic-section{margin-bottom:36px}
+.epic-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 16px;background:var(--bg-s);border:1px solid var(--brd);border-radius:12px}
+.epic-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.epic-name{font-size:14px;font-weight:700;color:var(--th);flex:1}
+.epic-pts{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--td)}
+.epic-size{font-size:9px;font-weight:700;padding:2px 8px;border-radius:5px;letter-spacing:.5px}
+.sz-s{background:#22c55e15;color:var(--s)}.sz-m{background:#3b82f615;color:var(--m)}
+.sz-l{background:#f59e0b15;color:var(--l)}.sz-xl{background:#ef444415;color:var(--xl)}
+
+.subtasks{margin-left:20px;border-left:2px solid var(--brd);padding-left:16px}
+.subtask{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:12px;color:var(--tp)}
+.subtask-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;opacity:.6}
+.subtask-name{flex:1;line-height:1.4}
+.subtask-pts{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--td);font-weight:600;white-space:nowrap}
+.subtask-sprint{font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;background:#818cf812;color:var(--vicky);white-space:nowrap}
+
+/* Sprint Row */
+.sprint-row{display:grid;grid-template-columns:100px 1fr;gap:14px;margin-bottom:4px;align-items:start}
+.sprint-label{font-size:11px;font-weight:700;color:var(--td);padding-top:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.sprint-label span{display:block;font-size:9px;font-weight:500;color:var(--tf);margin-top:2px}
+.sprint-cards{display:flex;flex-wrap:wrap;gap:5px;padding:7px 0}
+.s-card{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:9px;border:1px solid var(--brd);background:var(--bg-c);font-size:11px;color:var(--tp)}
+.s-card .d{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.s-card .n{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.s-card .p{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--td);font-weight:600}
+.s-card.prop{border-style:dashed;border-color:#2dd4bf40}
+.s-card.prop .n{color:#2dd4bf}
+.prop-tag{font-size:8px;font-weight:700;color:#2dd4bf;background:#2dd4bf18;padding:1px 5px;border-radius:3px}
+
+/* Summary Table */
+.sum-section{margin-bottom:36px}
+.sum-title{font-size:16px;font-weight:800;color:var(--th);margin-bottom:14px;letter-spacing:-.3px}
+.sum-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--bg-s);border:1px solid var(--brd);border-radius:14px;overflow:hidden}
+.sum-table th{text-align:left;padding:12px 16px;font-size:10px;font-weight:700;color:var(--td);letter-spacing:.8px;text-transform:uppercase;border-bottom:1px solid var(--brd);background:var(--bg-c)}
+.sum-table td{padding:10px 16px;font-size:12px;border-bottom:1px solid #1a1e30}
+.sum-table tr:last-child td{border-bottom:none}
+.sum-table tr:hover td{background:var(--bg-c)}
+.pdot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
+.pts-c{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px}
+
+/* Dependencies & Risks */
+.dep-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dep-card{background:var(--bg-s);border:1px solid var(--brd);border-radius:12px;padding:14px 18px}
+.dep-card-t{font-size:12px;font-weight:700;color:var(--th);margin-bottom:6px}
+.dep-card-p{font-size:11px;color:var(--td);line-height:1.45}
+.dep-arrow{color:var(--vicky);font-weight:700}
+.risk-card{background:#ef444408;border:1px solid #ef444420;border-radius:12px;padding:14px 18px;margin-bottom:7px}
+.risk-t{font-size:12px;font-weight:700;color:#f87171;margin-bottom:4px}
+.risk-p{font-size:11px;color:var(--td);line-height:1.45}
+.risk-m{font-size:11px;color:var(--messenger);margin-top:5px}
+
+.prop-card{background:var(--bg-s);border:1px dashed #2dd4bf30;border-radius:12px;padding:14px 18px}
+.prop-t{font-size:12px;font-weight:700;color:#2dd4bf;margin-bottom:6px}
+.prop-p{font-size:11px;color:var(--td);line-height:1.45}
+
+/* Decision Cards */
+.dec-card{background:var(--bg-s);border:1px solid #fbbf2430;border-radius:12px;padding:14px 18px}
+.dec-t{font-size:12px;font-weight:700;color:var(--portal);margin-bottom:4px}
+.dec-p{font-size:11px;color:var(--td);line-height:1.45}
+
+/* Footer */
+.footer{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;padding:16px 20px;background:var(--bg-s);border-radius:14px;border:1px solid var(--brd);margin-top:36px}
+.legend-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);font-weight:500}
+
+@media(max-width:900px){.cap{grid-template-columns:1fr 1fr}.dep-grid{grid-template-columns:1fr}.sprint-row{grid-template-columns:1fr}.baseline-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.cap{grid-template-columns:1fr}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.sec{animation:fadeUp .5s ease both}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="hero">
+  <div class="hero-badge">Roadmap v3 · Análisis Funcional GitBook MH · 2026</div>
+  <h1>WeKall Product Roadmap</h1>
+  <p>Plan Q2–Q4 2026 con línea base funcional de cada producto, gaps identificados, subtareas detalladas y propuestas estratégicas</p>
+</div>
+
+<!-- CAPACITY -->
+<div class="cap">
+  <div class="cap-s"><div class="cap-v">7 <span class="u">devs</span></div><div class="cap-l">Equipo desarrollo</div></div>
+  <div class="cap-s"><div class="cap-v">1,490 <span class="u">pts</span></div><div class="cap-l">Capacidad útil Q2 (15% buffer)</div></div>
+  <div class="cap-s"><div class="cap-v">5 <span class="u">sprints</span></div><div class="cap-l">Q2: Abr 1 → Jun 9</div></div>
+  <div class="cap-s"><div class="cap-v">~4,500 <span class="u">pts</span></div><div class="cap-l">Capacidad anual estimada</div></div>
+  <div class="cap-bar-w">
+    <div class="cap-bar-h"><span>Q2 comprometido</span><span>1,430 / 1,490 pts (96%)</span></div>
+    <div class="cap-bar"><div class="cap-bar-f" style="width:96%"></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ LÍNEA BASE FUNCIONAL ═══════════════ -->
+<div class="baseline-section">
+  <div class="baseline-title">🔍 Línea Base Funcional — Lo que ya existe vs. lo que falta</div>
+  <div class="baseline-subtitle">Análisis basado en la documentación de wekall.gitbook.io, wekall.co y las épicas del borrador</div>
+  <div class="baseline-grid">
+
+    <div class="bl-card c-vicky">
+      <div class="bl-prod" style="color:var(--vicky)">Vicky IA</div>
+      <div class="bl-what">Agente de voz con IA — Inbound/Outbound</div>
+      <div class="bl-have"><strong>✅ Existe:</strong> Entrenamiento por prompts, selección de voz, conexión CRM/ERP vía API, transferencia a humano (Human-in-the-Loop), campañas inbound/outbound, flujo conversacional con LLMs, demo interactiva de llamada en web, integraciones con HubSpot/Freshworks/Salesforce/Clientify, soporte WA+voz+chat, N8N flows.</div>
+      <div class="bl-gap"><strong>❌ Gap Q2:</strong> No hay organizador visual de prompts (son texto plano), no hay wizard de onboarding guiado, no hay reportería con insights IA ni dashboard de performance del agente, no hay tipificador automático de llamadas, no hay sistema de monitoreo de calidad en tiempo real, no hay auto-configuración sugerida por IA, la documentación en GitBook solo cubre WebPhone y Vicky parcialmente (falta MH, Engage, Notes).</div>
+    </div>
+
+    <div class="bl-card c-mh">
+      <div class="bl-prod" style="color:var(--messenger)">Messenger Hub</div>
+      <div class="bl-what">Plataforma de Mensajería Empresarial Multi-Canal (v1.0.0)</div>
+      <div class="bl-have"><strong>✅ Existe (confirmado en docs):</strong> Multi-canal completo (WhatsApp Business API, Instagram Direct, Telegram, Live Chat) · 11 módulos documentados: Chats (bandeja 3-paneles, filtros, estados, multimedia, templates WA, menciones, reacciones, búsqueda, contexto de bot), Contactos, Bots (3 tipos: Flujo, IA con GPT-4o/RAG/tools, Híbrido), Plantillas WA, Campañas masivas (7 estados, programación, rate limiting, stats en tiempo real), Reportes (4 categorías: Operaciones, Calidad con CSAT/NPS, Bots con costos IA, Analytics con funnel), Agentes, Bases de Conocimiento, Mensajes Predefinidos, Tipificaciones, Config. · Llamadas WebRTC integradas · Asignación automática multi-estrategia (round robin, carga, habilidades) · Custom Tools para bots IA · Multi-tenant · WebSocket real-time · Exportación CSV/XLSX/PDF · Roles y permisos (admin/supervisor/agente). MVP con QA completado.</div>
+      <div class="bl-gap"><strong>❌ Gap Q2:</strong> No tiene Vicky Voice AI integrada nativamente (tiene bots IA propios con GPT-4o pero no es Vicky) · No probado en producción real (primer piloto pendiente) · Migración de clientes del MH viejo no automatizada · No hay conexión bidireccional voz↔chat Vicky↔MH · No hay A/B testing de flujos · Documentación lista pero faltan capturas de pantalla en varios módulos (marcadas como "📸 Captura de pantalla") · Links rotos en docs de Bots de Flujo y Bots de IA (broken-reference) · Sección de Integraciones, Troubleshooting y Seguridad en GitBook son páginas placeholder vacías.</div>
+    </div>
+
+    <div class="bl-card c-engage">
+      <div class="bl-prod" style="color:var(--engage)">Engage 360°</div>
+      <div class="bl-what">Contact Center en la nube con marcador</div>
+      <div class="bl-have"><strong>✅ Existe:</strong> Marcación inteligente (no predictiva), monitoreo en tiempo real, transcripción y análisis de llamadas, integración WA+llamadas+CRM, wallboard con métricas, gestión de turnos/disponibilidad, callback automático, campañas multi-skill (ventas/soporte/cobranza), integraciones Salesforce/HubSpot/Zendesk/Zoho/Teams/Meet/Zoom.</div>
+      <div class="bl-gap"><strong>❌ Gap Q2:</strong> Reportería básica y premium necesita refactor según COPC (depende de Data Warehouse), no hay marcador predictivo (solo inteligente), UX/UI legacy no renovada, no está montado en Portal SaaS, la arquitectura telefónica está acoplada al PBX, no hay flujos conectados Vicky→humano nativos.</div>
+    </div>
+
+    <div class="bl-card c-bp">
+      <div class="bl-prod" style="color:var(--bp)">Business Phone (PBX)</div>
+      <div class="bl-what">PBX empresarial en la nube</div>
+      <div class="bl-have"><strong>✅ Existe:</strong> PBX en la nube funcional, extensiones, grabación de llamadas, portal admin (admin.wekall.co), reportes de llamadas, integración con CRMs vía WebPhone embebido, app Android/iOS publicada.</div>
+      <div class="bl-gap"><strong>❌ Gap Q2:</strong> UI/UX legacy (no es "clase global SaaS"), no está integrado al Portal SaaS nuevo, necesita refactor completo (scope no definido por C-Level), front y backend legacy con deuda técnica significativa.</div>
+    </div>
+
+    <div class="bl-card c-portal">
+      <div class="bl-prod" style="color:var(--portal)">Portal SaaS</div>
+      <div class="bl-what">Portal unificado con SSO y billing</div>
+      <div class="bl-have"><strong>✅ Existe:</strong> Concepto y estructura base del portal. Vicky y MH ya tienen sus propios accesos independientes.</div>
+      <div class="bl-gap"><strong>❌ Gap Q2:</strong> Los productos no están unificados bajo un solo portal con SSO, no hay billing centralizado, no hay design system unificado, cada producto tiene su propia autenticación (CC usa OTP con Google Authenticator, PBX tiene su propio login).</div>
+    </div>
+
+    <div class="bl-card c-notes">
+      <div class="bl-prod" style="color:var(--notes)">Notes IA</div>
+      <div class="bl-what">Transcripción y análisis de llamadas/reuniones</div>
+      <div class="bl-have"><strong>✅ Existe:</strong> Producto en la web como "Notes AI — Transcribe, organiza y resume llamadas y reuniones". Funcionalidad base de transcripción integrada parcialmente con Engage.</div>
+      <div class="bl-gap"><strong>❌ Gap Q2:</strong> Producto necesita refactor completo y arquitectura nueva, no tiene reportería con insights IA propia, no analiza todas las llamadas de WeKall + chats, no está conectado con Teams/Meet/Zoom/PBX/CC/Vicky de forma completa. No es prioridad OKR Q2.</div>
+    </div>
+
+    <div class="bl-card c-measure">
+      <div class="bl-prod" style="color:var(--measure)">Medición y UX/UI</div>
+      <div class="bl-what">PostHog, A/B Testing, Design System, Documentación</div>
+      <div class="bl-have"><strong>✅ Existe:</strong> Documentación en GitBook parcialmente completada — WebPhone tiene docs, Vicky tiene docs (incluye API keys y endpoints de llamadas salientes), MH tiene docs extensos (11 módulos documentados con detalle, v1.0.0, actualizado hace 5 días). No hay evidencia de PostHog implementado. No hay design system unificado. No hay A/B testing.</div>
+      <div class="bl-gap"><strong>❌ Gap Q2:</strong> Setup completo de PostHog + plan de eventos. GitBook tiene secciones placeholder vacías: "Empieza aquí → Page 1", "Integraciones → Page 3", "Troubleshooting → Page 4", "Seguridad → Page 5". Links rotos en docs de MH Bots (broken-reference en Bots de Flujo y Bots de IA). Faltan capturas de pantalla en múltiples páginas de MH. Engage, Notes, BP y Portal SaaS no tienen documentación. Design system inexistente. A/B testing sin infraestructura.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ Q2 DETALLE ÉPICAS CON SUBTAREAS ═══════════════ -->
+<div class="sec" id="q2-detail">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--vicky)"></div>
+    <div class="sec-title">Q2 2026 — Épicas con Subtareas Detalladas</div>
+    <div class="sec-meta">1,430 pts · 14 épicas</div>
+  </div>
+
+  <!-- === MESSENGER HUB === -->
+  <div style="margin-bottom:8px;font-size:14px;font-weight:800;color:var(--messenger);letter-spacing:-.3px;padding:8px 0">💬 MESSENGER HUB — 400 pts · ~2 devs</div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--messenger)"></div>
+      <div class="epic-name">E1: Go-Live Piloto + Estabilización</div>
+      <div class="epic-size sz-m">M</div>
+      <div class="epic-pts">160 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Deploy en producción con cliente piloto + monitoreo activo (errores, latencia, caídas)</div><div class="subtask-pts">40 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Hotfixes y estabilización post-piloto (bugs de bandeja compartida, estados de agente, QR)</div><div class="subtask-pts">50 pts</div><div class="subtask-sprint">S2</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Load testing con volumen real + ajuste de infra (concurrent connections, message throughput)</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S2</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Criterios de estabilidad definidos: uptime >99.5%, error rate <1%, latencia msgs <2s</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Dashboard operativo interno para monitorear salud del servicio en producción</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S2</div></div>
+    </div>
+  </div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--messenger)"></div>
+      <div class="epic-name">E2: Migración de Clientes (100%)</div>
+      <div class="epic-size sz-m">M</div>
+      <div class="epic-pts">140 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Script de migración automatizada: datos de contactos, templates, configuraciones de bot</div><div class="subtask-pts">40 pts</div><div class="subtask-sprint">S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Migración Lote 1 (~40% clientes) + validación funcional + soporte dedicado</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Migración Lote 2 (~40% clientes) + ajustes del proceso según learnings Lote 1</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Migración Lote Final (~20% restante) + decommission de plataforma vieja</div><div class="subtask-pts">20 pts</div><div class="subtask-sprint">S5</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Runbook de migración documentado + capacitación equipo OPS</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Rollback plan por lote (en caso de falla en migración)</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S3</div></div>
+    </div>
+  </div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--messenger)"></div>
+      <div class="epic-name">E3: Feedback Loop + Ajustes Rápidos</div>
+      <div class="epic-size sz-s">S</div>
+      <div class="epic-pts">50 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Canal de feedback in-app (tipo widget de NPS + comentarios libres)</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Sprint de ajustes basados en feedback del piloto y lote 1 (UX friction, bugs menores)</div><div class="subtask-pts">20 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Fix links rotos en GitBook: Bots de Flujo y Bots de IA apuntan a "broken-reference"</div><div class="subtask-pts">5 pts</div><div class="subtask-sprint">S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Completar capturas de pantalla faltantes en docs de MH (Chats, Bots, Reportes, Campañas)</div><div class="subtask-pts">5 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Completar secciones vacías de GitBook: Integraciones, Troubleshooting, Seguridad</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--messenger)"></div>
+      <div class="epic-name">E4: Vicky Nativa en MH — Setup Inicial</div>
+      <div class="epic-size sz-s">S</div>
+      <div class="epic-pts">50 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">Definir scope Vicky en MH: MH ya tiene bots IA (GPT-4o/RAG). Vicky aporta VOZ, no texto IA. Definir: ¿Vicky atiende llamadas WA entrantes en MH? ¿Transfiere a chat si no resuelve?</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">POC de bridge Vicky Voice → MH Chat: cuando Vicky no resuelve por voz, escalar a agente en MH con contexto completo (transcripción + variables capturadas)</div><div class="subtask-pts">25 pts</div><div class="subtask-sprint">S4-S5</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--messenger)"></div><div class="subtask-name">UI en MH: ver historial de interacción Vicky Voice en el panel de contexto del chat (similar al "Contexto de Bot" que ya existe)</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <!-- === VICKY IA === -->
+  <div style="margin-bottom:8px;font-size:14px;font-weight:800;color:var(--vicky);letter-spacing:-.3px;padding:16px 0 8px">🤖 VICKY IA — 380 pts · ~1.8 devs</div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--vicky)"></div>
+      <div class="epic-name">E5: Organizador de Prompts + Onboarding Wizard</div>
+      <div class="epic-size sz-m">M</div>
+      <div class="epic-pts">130 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">UI de organización de prompts: categorías, versiones, templates por industria (reemplaza texto plano)</div><div class="subtask-pts">40 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Wizard de onboarding paso a paso: setup voz, configurar prompt, testear con llamada de prueba</div><div class="subtask-pts">45 pts</div><div class="subtask-sprint">S2</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">IA asistente que sugiere prompts basados en industria/caso de uso del cliente al hacer onboarding</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S2</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Validación automática de prompt: detectar errores comunes (instrucciones contradictorias, demasiado largo, etc.)</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S2</div></div>
+    </div>
+  </div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--vicky)"></div>
+      <div class="epic-name">E6: Reportería con Insights IA + Transcripciones</div>
+      <div class="epic-size sz-l">L</div>
+      <div class="epic-pts">160 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Definición de arquitectura: pipeline de transcripciones, storage, modelo de análisis, costos</div><div class="subtask-pts">25 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Pipeline de transcripción automatizada (si no existe) o integración con servicio existente</div><div class="subtask-pts">35 pts</div><div class="subtask-sprint">S2-S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Dashboard v1 read-only: métricas de performance agente (latencia respuesta, duración, resolución, sentiment)</div><div class="subtask-pts">40 pts</div><div class="subtask-sprint">S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Capa IA de insights: resumen automático por periodo, tendencias, anomalías (tipo chat conversacional)</div><div class="subtask-pts">35 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Sugerencias de auto-configuración: "Tu agente tiene baja resolución en cobros, sugerimos ajustar prompt X"</div><div class="subtask-pts">25 pts</div><div class="subtask-sprint">S4-S5</div></div>
+    </div>
+  </div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--vicky)"></div>
+      <div class="epic-name">E7: Tipificador Automático de Llamadas</div>
+      <div class="epic-size sz-m">M</div>
+      <div class="epic-pts">65 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Motor de clasificación automática de llamadas por outcome (venta, no interesado, callback, etc.)</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Configurador de tipificaciones custom por cliente (mapear a sus categorías de CRM)</div><div class="subtask-pts">20 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">API de tipificaciones para integración con CRMs + webhook de notificación</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--vicky)"></div>
+      <div class="epic-name">E8: Monitoreo de Calidad de Llamadas</div>
+      <div class="epic-size sz-s">S</div>
+      <div class="epic-pts">25 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Framework de evaluación continua: adherencia al prompt, score de resolución, sentiment score</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S5</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--vicky)"></div><div class="subtask-name">Alertas de calidad: notificar cuando performance baja de threshold configurable</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <!-- === PORTAL SAAS + BP === -->
+  <div style="margin-bottom:8px;font-size:14px;font-weight:800;color:var(--portal);letter-spacing:-.3px;padding:16px 0 8px">🏢 PORTAL SaaS + BUSINESS PHONE — 250 pts · ~1.2 devs</div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--portal)"></div>
+      <div class="epic-name">E9: Integración BP en Portal SaaS + Face Lift</div>
+      <div class="epic-size sz-l">L</div>
+      <div class="epic-pts">250 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">Discovery: auditoría de endpoints del BP actual, mapear qué se puede embeber vs. qué necesita rewrite</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">SSO parcial: unificar auth del BP con el Portal SaaS (eliminar login separado admin.wekall.co)</div><div class="subtask-pts">40 pts</div><div class="subtask-sprint">S2</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">Embed del BP dentro del Portal SaaS como iframe/microfrontend con navegación unificada</div><div class="subtask-pts">50 pts</div><div class="subtask-sprint">S2-S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">Face lift visual: nueva capa CSS + componentes UI sobre el BP existente (sin rewrite de lógica)</div><div class="subtask-pts">50 pts</div><div class="subtask-sprint">S3-S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">Documento de refactor completo del BP para aprobación C-Level (scope, timeline, recursos Q3-Q4)</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">QA integral: flujos de usuario end-to-end en Portal SaaS con BP integrado</div><div class="subtask-pts">30 pts</div><div class="subtask-sprint">S5</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">Migración de OTP/Google Authenticator del CC a SSO unificado (alineación con Engage)</div><div class="subtask-pts">20 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--portal)"></div><div class="subtask-name">Actualización de documentación en GitBook: sección Portal SaaS + BP nuevo</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <!-- === ENGAGE === -->
+  <div style="margin-bottom:8px;font-size:14px;font-weight:800;color:var(--engage);letter-spacing:-.3px;padding:16px 0 8px">📞 ENGAGE 360° — 200 pts · ~1 dev</div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--engage)"></div>
+      <div class="epic-name">E10: Refactor Reportería COPC (Básica + Premium)</div>
+      <div class="epic-size sz-m">M</div>
+      <div class="epic-pts">200 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--engage)"></div><div class="subtask-name">Discovery: mapear métricas COPC requeridas vs. métricas actuales del wallboard + reportes</div><div class="subtask-pts">20 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--engage)"></div><div class="subtask-name">Validar estado del DWH: si disponible, definir queries; si no, diseñar capa intermedia temporal</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--engage)"></div><div class="subtask-name">Reportería básica COPC fase 1: nivel de servicio, ASA, tasa de abandono, TMO, occupancy</div><div class="subtask-pts">45 pts</div><div class="subtask-sprint">S2-S3</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--engage)"></div><div class="subtask-name">Reportería básica COPC fase 2: adherencia, FCR, productividad por agente, utilización</div><div class="subtask-pts">40 pts</div><div class="subtask-sprint">S3-S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--engage)"></div><div class="subtask-name">Reportería premium: dashboards gerenciales, comparativos temporales, exportación programada</div><div class="subtask-pts">45 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--engage)"></div><div class="subtask-name">QA + validación con clientes piloto de los reportes COPC</div><div class="subtask-pts">20 pts</div><div class="subtask-sprint">S5</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--engage)"></div><div class="subtask-name">Documentación funcional de reportes COPC + guía de interpretación para clientes</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <!-- === MEDICIÓN + UX === -->
+  <div style="margin-bottom:8px;font-size:14px;font-weight:800;color:var(--measure);letter-spacing:-.3px;padding:16px 0 8px">📊 MEDICIÓN + UX/UI — 120 pts · ~0.5 dev</div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--measure)"></div>
+      <div class="epic-name">E11: PostHog Setup + Instrumentación</div>
+      <div class="epic-size sz-m">M</div>
+      <div class="epic-pts">55 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--measure)"></div><div class="subtask-name">Setup PostHog: instancia, proyecto, permisos, plan de eventos maestro (qué medir, con qué frecuencia)</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--measure)"></div><div class="subtask-name">Instrumentar Vicky: tracking de activación Try&Buy, conversión demo→go-live, feature usage</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S2</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--measure)"></div><div class="subtask-name">Instrumentar MH: tracking de Try&Buy, engagement de chatbots, campañas, retención de sesión</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S2</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--measure)"></div><div class="subtask-name">Dashboard de usabilidad centralizado + alertas de churn risk en CC/PBX</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <div class="epic-section">
+    <div class="epic-header">
+      <div class="epic-dot" style="background:var(--design)"></div>
+      <div class="epic-name">E12: Design System v1 + A/B Testing</div>
+      <div class="epic-size sz-m">M</div>
+      <div class="epic-pts">65 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--design)"></div><div class="subtask-name">Design system v1: tokens (colores, tipografía, spacing), componentes base (botones, inputs, cards, modals)</div><div class="subtask-pts">25 pts</div><div class="subtask-sprint">S3-S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--design)"></div><div class="subtask-name">Implementar design system en MH como producto piloto (ya que es el más nuevo)</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S4</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--design)"></div><div class="subtask-name">Setup A/B testing con PostHog feature flags + primer test en MH (ej: flujo de onboarding nuevo vs. viejo)</div><div class="subtask-pts">15 pts</div><div class="subtask-sprint">S5</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--design)"></div><div class="subtask-name">Documentar design system + guidelines de UX para equipo dev en GitBook</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S5</div></div>
+    </div>
+  </div>
+
+  <!-- PROPUESTA ARCH -->
+  <div class="epic-section">
+    <div class="epic-header" style="border-style:dashed;border-color:#2dd4bf40">
+      <div class="epic-dot" style="background:var(--proposal)"></div>
+      <div class="epic-name" style="color:#2dd4bf">E13 [PROPUESTA]: Framework Evaluación Continua de Agentes IA</div>
+      <div class="epic-size sz-s">S</div>
+      <div class="epic-pts">30 pts</div>
+    </div>
+    <div class="subtasks">
+      <div class="subtask"><div class="subtask-dot" style="background:var(--proposal)"></div><div class="subtask-name">Definir KPIs de calidad de agente IA: latencia, adherencia, resolución, alucinaciones, escalación</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--proposal)"></div><div class="subtask-name">Diseñar scorecards automáticos por agente/campaña (base para Reportería IA E6)</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S1</div></div>
+      <div class="subtask"><div class="subtask-dot" style="background:var(--proposal)"></div><div class="subtask-name">Benchmark inicial: medir performance actual de agentes Vicky en producción</div><div class="subtask-pts">10 pts</div><div class="subtask-sprint">S2</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ Q2 SPRINT TIMELINE ═══════════════ -->
+<div class="sec" id="q2-timeline">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--vicky)"></div>
+    <div class="sec-title">Q2 — Vista Sprint a Sprint</div>
+    <div class="sec-meta">5 sprints · 2 sem c/u</div>
+  </div>
+
+  <div class="sprint-row">
+    <div class="sprint-label">Sprint 1<span>Abr 1–14</span></div>
+    <div class="sprint-cards">
+      <div class="s-card"><div class="d" style="background:var(--messenger)"></div><div class="n">MH: Go-live piloto + criterios estabilidad</div><div class="p">50</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Organizador prompts UI v1</div><div class="p">40</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Arquitectura Reportería IA</div><div class="p">25</div></div>
+      <div class="s-card"><div class="d" style="background:var(--portal)"></div><div class="n">Portal: Discovery BP endpoints</div><div class="p">30</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: Discovery COPC + DWH check</div><div class="p">35</div></div>
+      <div class="s-card"><div class="d" style="background:var(--measure)"></div><div class="n">PostHog: Setup base + plan eventos</div><div class="p">15</div></div>
+      <div class="s-card prop"><div class="d" style="background:var(--proposal)"></div><div class="n">Framework evaluación agentes IA</div><div class="p">20</div><div class="prop-tag">PROP</div></div>
+    </div>
+  </div>
+
+  <div class="sprint-row">
+    <div class="sprint-label">Sprint 2<span>Abr 15–28</span></div>
+    <div class="sprint-cards">
+      <div class="s-card"><div class="d" style="background:var(--messenger)"></div><div class="n">MH: Estabilización + hotfixes + load test</div><div class="p">80</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Onboarding wizard + IA config assist</div><div class="p">75</div></div>
+      <div class="s-card"><div class="d" style="background:var(--portal)"></div><div class="n">Portal: SSO parcial + BP embed inicio</div><div class="p">40</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: Reportería COPC fase 1</div><div class="p">45</div></div>
+      <div class="s-card"><div class="d" style="background:var(--measure)"></div><div class="n">PostHog: Instrumentar Vicky + MH</div><div class="p">30</div></div>
+    </div>
+  </div>
+
+  <div class="sprint-row">
+    <div class="sprint-label">Sprint 3<span>Abr 29 – May 12</span></div>
+    <div class="sprint-cards">
+      <div class="s-card"><div class="d" style="background:var(--messenger)"></div><div class="n">MH: Migración Lote 1 + runbook + feedback</div><div class="p">95</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Dashboard IA v1 + transcripciones</div><div class="p">75</div></div>
+      <div class="s-card"><div class="d" style="background:var(--portal)"></div><div class="n">Portal: BP embed finalizar + face lift inicio</div><div class="p">50</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: Reportería COPC fase 2</div><div class="p">40</div></div>
+    </div>
+  </div>
+
+  <div class="sprint-row">
+    <div class="sprint-label">Sprint 4<span>May 13–26</span></div>
+    <div class="sprint-cards">
+      <div class="s-card"><div class="d" style="background:var(--messenger)"></div><div class="n">MH: Migración Lote 2 + Vicky arch + POC</div><div class="p">55</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Insights IA + auto-config + tipificador</div><div class="p">90</div></div>
+      <div class="s-card"><div class="d" style="background:var(--portal)"></div><div class="n">Portal: Face lift visual + doc refactor BP</div><div class="p">65</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: Reportería premium + dashboards</div><div class="p">45</div></div>
+      <div class="s-card"><div class="d" style="background:var(--design)"></div><div class="n">UX: Design system v1 + aplicar en MH</div><div class="p">40</div></div>
+    </div>
+  </div>
+
+  <div class="sprint-row">
+    <div class="sprint-label">Sprint 5<span>May 27 – Jun 9</span></div>
+    <div class="sprint-cards">
+      <div class="s-card"><div class="d" style="background:var(--messenger)"></div><div class="n">MH: Lote final + Vicky UI en MH + decommission</div><div class="p">40</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Monitoreo calidad + alertas + tipificador API</div><div class="p">35</div></div>
+      <div class="s-card"><div class="d" style="background:var(--portal)"></div><div class="n">Portal: QA integral + SSO OTP migration + docs</div><div class="p">65</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: QA reportería + validación + docs</div><div class="p">35</div></div>
+      <div class="s-card"><div class="d" style="background:var(--measure)"></div><div class="n">PostHog: Dashboard usabilidad + alertas CC/PBX</div><div class="p">10</div></div>
+      <div class="s-card"><div class="d" style="background:var(--design)"></div><div class="n">UX: A/B test en MH + docs design system</div><div class="p">25</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ Q3 & Q4 ═══════════════ -->
+<div class="sec" id="q3">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--s)"></div>
+    <div class="sec-title">Q3 2026 — Escalar & Conectar</div>
+    <div class="sec-meta">Jul → Sep · ~1,490 pts</div>
+  </div>
+  <div class="sprint-row">
+    <div class="sprint-label">FOCO Q3<span>5 sprints</span></div>
+    <div class="sprint-cards">
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Flow omnicanal y flujos de trabajo</div><div class="p">350</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Conexión CRMs externos fase 1</div><div class="p">200</div></div>
+      <div class="s-card"><div class="d" style="background:var(--messenger)"></div><div class="n">MH: Conexión omnicanal Vicky bidireccional completa</div><div class="p">250</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: Renovar UX/UI + montar en Portal SaaS</div><div class="p">350</div></div>
+      <div class="s-card"><div class="d" style="background:var(--notes)"></div><div class="n">Notes: Refactor producto + arquitectura nueva</div><div class="p">200</div></div>
+      <div class="s-card prop"><div class="d" style="background:var(--proposal)"></div><div class="n">Vicky: Voice API abierta para integradores</div><div class="p">100</div><div class="prop-tag">PROP</div></div>
+      <div class="s-card prop"><div class="d" style="background:var(--proposal)"></div><div class="n">Guardrails IA: anti-alucinación, compliance, escalación</div><div class="p">80</div><div class="prop-tag">PROP</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="sec" id="q4">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--portal)"></div>
+    <div class="sec-title">Q4 2026 — Madurez & Diferenciación</div>
+    <div class="sec-meta">Oct → Dic · ~1,490 pts</div>
+  </div>
+  <div class="sprint-row">
+    <div class="sprint-label">FOCO Q4<span>5 sprints</span></div>
+    <div class="sprint-cards">
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Remarcación y campañas outbound</div><div class="p">200</div></div>
+      <div class="s-card"><div class="d" style="background:var(--vicky)"></div><div class="n">Vicky: Nuevos proveedores voz (11Labs, etc)</div><div class="p">150</div></div>
+      <div class="s-card"><div class="d" style="background:var(--messenger)"></div><div class="n">MH: Llamadas WA con IA + más RRSS</div><div class="p">350</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: Desacoplar arquitectura del PBX (inicio)</div><div class="p">300</div></div>
+      <div class="s-card"><div class="d" style="background:var(--engage)"></div><div class="n">Engage: Flujos conectados Vicky + humano</div><div class="p">200</div></div>
+      <div class="s-card"><div class="d" style="background:var(--notes)"></div><div class="n">Notes: Reportería IA + análisis llamadas/chats</div><div class="p">250</div></div>
+      <div class="s-card prop"><div class="d" style="background:var(--proposal)"></div><div class="n">MH: Payments con Meta (piloto LATAM)</div><div class="p">100</div><div class="prop-tag">PROP</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DEPENDENCIAS ═══════════════ -->
+<div class="sec">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--vicky)"></div>
+    <div class="sec-title">🔗 Dependencias Críticas Q2</div>
+  </div>
+  <div class="dep-grid">
+    <div class="dep-card"><div class="dep-card-t">Data Warehouse <span class="dep-arrow">→</span> E10 Engage Reportería</div><div class="dep-card-p">El refactor de reportería COPC depende del DWH. Sprint 1 incluye validación del estado. Si no avanza, se diseña capa intermedia temporal (queries directos a BD operativa) y se reasigna el scope premium a Q3.</div></div>
+    <div class="dep-card"><div class="dep-card-t">E1 MH Estabilidad <span class="dep-arrow">→</span> E2 Migración + E4 Vicky Nativa</div><div class="dep-card-p">La migración de clientes y la integración de Vicky solo arrancan si el piloto es exitoso. Si Sprint 2 no alcanza criterios de estabilidad (99.5% uptime), se extiende estabilización y migración se pospone a Sprint 4.</div></div>
+    <div class="dep-card"><div class="dep-card-t">E6 Arquitectura IA <span class="dep-arrow">→</span> Dashboard + Auto-config</div><div class="dep-card-p">La definición de arquitectura de transcripciones en Sprint 1 es bloqueante. Incluye decidir: pipeline propio vs. servicio externo (Whisper, Deepgram), storage de transcripciones, y modelo de costos por llamada.</div></div>
+    <div class="dep-card"><div class="dep-card-t">C-Level <span class="dep-arrow">→</span> E9 BP Refactor Scope</div><div class="dep-card-p">En Q2 solo se hace face lift + embed. El doc de refactor completo del BP se entrega en Sprint 4 para aprobación. Sin aprobación, Q3 no puede arrancar el rewrite del backend/frontend del PBX.</div></div>
+    <div class="dep-card"><div class="dep-card-t">E11 PostHog <span class="dep-arrow">→</span> E12 A/B Testing</div><div class="dep-card-p">A/B testing con feature flags de PostHog requiere la instrumentación completa (Sprint 2). El primer test solo puede ejecutarse en Sprint 5 con datos suficientes.</div></div>
+    <div class="dep-card"><div class="dep-card-t">Auth Unificación <span class="dep-arrow">→</span> Portal SaaS multi-producto</div><div class="dep-card-p">Actualmente el CC usa OTP con Google Authenticator, el PBX tiene login propio, y Vicky/MH tienen accesos independientes. La migración a SSO unificado en Q2 es parcial (solo BP). Full SSO requiere coordinación con Engage en Q3.</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ RIESGOS ═══════════════ -->
+<div class="sec">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--xl)"></div>
+    <div class="sec-title">⚠️ Riesgos y Mitigaciones</div>
+  </div>
+  <div class="dep-grid">
+    <div class="risk-card"><div class="risk-t">Capacidad al 96% — sin margen para imprevistos</div><div class="risk-p">1,430/1,490 pts comprometidos. Cualquier bug crítico o retraso en MH estabilización consume el buffer.</div><div class="risk-m">✅ Escenario de corte: si Sprint 2 se desborda, sacrificar E8 (Monitoreo calidad, 25pts) y postergar E12 A/B testing (25pts) para liberar 50pts.</div></div>
+    <div class="risk-card"><div class="risk-t">DWH no listo → Engage bloqueado desde Sprint 2</div><div class="risk-p">Si el Data Warehouse no está disponible, los 200pts de Engage quedan en riesgo.</div><div class="risk-m">✅ Pivot: Sprint 1 Discovery determina go/no-go. Si no-go, reasignar 120pts a Notes (inicio refactor) y 80pts a Vicky (adelantar CRM connections).</div></div>
+    <div class="risk-card"><div class="risk-t">MH inestable post-piloto</div><div class="risk-p">Si el piloto revela problemas graves, los ~2 devs pueden quedar en estabilización más de 2 sprints.</div><div class="risk-m">✅ Definir criterios binarios de estabilidad en Sprint 1 (no subjetivos). Si Sprint 2 no pasa, pausar migración y extender, sacrificando E4 (Vicky en MH) de Q2.</div></div>
+    <div class="risk-card"><div class="risk-t">Scope creep en Reportería IA de Vicky</div><div class="risk-p">La épica E6 es la más ambiciosa: transcripciones + dashboard + insights + auto-config. Alto riesgo de expansión.</div><div class="risk-m">✅ MVP estricto: Sprint 3 = dashboard read-only. Sprint 4 = insights. Auto-config solo si hay margen. Nunca más de 160pts en total Q2.</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ PROPUESTAS ESTRATÉGICAS ═══════════════ -->
+<div class="sec">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--proposal)"></div>
+    <div class="sec-title">💡 Propuestas Estratégicas (desde tendencias del sector)</div>
+  </div>
+  <div class="dep-grid">
+    <div class="prop-card"><div class="prop-t">PROPUESTA Q2-S1: Framework Evaluación Continua de Agentes IA</div><div class="prop-p">Antes de construir reportería, definir cómo se mide un agente de voz IA. KPIs: latencia, adherencia al prompt, tasa de resolución, sentiment, tasa de alucinación, escalación a humano. Esto es lo que hacen Observe.AI, Parloa y los líderes del sector. Sin esto, la reportería de Vicky será cosmética. Costo: solo 30pts porque es definición + benchmark, no desarrollo heavy.</div></div>
+    <div class="prop-card"><div class="prop-t">PROPUESTA Q3: Voice API Abierta para Integradores</div><div class="prop-p">Exponer las capacidades de Vicky como API para que clientes enterprise la integren en sus propios flujos. La tendencia es "AI Voice as a Service" (Bland, Vapi, Retell). Abre un canal de revenue y posiciona a WeKall como plataforma.</div></div>
+    <div class="prop-card"><div class="prop-t">PROPUESTA Q3-Q4: Guardrails IA (Compliance)</div><div class="prop-p">Detección de alucinaciones, compliance regulatorio (LATAM está regulando IA conversacional), escalación automática cuando el agente no sabe. Diferenciador competitivo clave, especialmente para verticales reguladas como finanzas y salud que ya son clientes de WeKall.</div></div>
+    <div class="prop-card"><div class="prop-t">PROPUESTA Q4: Payments en WhatsApp con Meta</div><div class="prop-p">Meta está empujando pagos por WA en LATAM. Con MH estable + Vicky nativa, agregar payments en Q4 posiciona a WeKall en conversational commerce. Gartner proyecta crecimiento de 3x en la región para 2027.</div></div>
+    <div class="prop-card"><div class="prop-t">PROPUESTA Q2-S1: Completar Documentación GitBook</div><div class="prop-p">La documentación actual solo cubre WebPhone y Vicky parcialmente. No hay docs de MH, Engage, Notes, BP ni Portal SaaS. Esto impacta directamente el OKR de onboarding (si el cliente no tiene docs, hace "estupideces"). Subtareas de documentación están incluidas en las épicas relevantes con puntos asignados.</div></div>
+    <div class="prop-card"><div class="prop-t">PROPUESTA CONTINUA: Superadmin para Célula de Implementación</div><div class="prop-p">Basado en el OKR de crear la célula multiskill de implementación, considerar un rol de superadmin en el Portal SaaS que permita a tech sales/OPS/IA engineer ver configuraciones del cliente, hacer ajustes guiados, y monitorear onboarding sin acceder como el cliente. Esto es estándar en plataformas SaaS como HubSpot (partner portal) o Zendesk (sandbox accounts).</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ DECISIONES PENDIENTES ═══════════════ -->
+<div class="sec">
+  <div class="sec-h">
+    <div class="sec-dot" style="background:var(--portal)"></div>
+    <div class="sec-title">📌 Decisiones Requeridas Antes de Sprint 1</div>
+  </div>
+  <div class="dep-grid">
+    <div class="dec-card"><div class="dec-t">1. Estado real del Data Warehouse</div><div class="dec-p">¿Cuál es el timeline del DWH? El Sprint 1 de Engage es discovery, pero si el veredicto es negativo, hay que pivotar 200pts. Necesita respuesta del equipo de data antes del 1 de abril.</div></div>
+    <div class="dec-card"><div class="dec-t">2. ¿Superadmin para célula implementación?</div><div class="dec-p">Definir con el equipo si la célula multiskill necesita un superadmin en plataforma. Impacta el scope del onboarding wizard (E5) y potencialmente agrega 30-50pts extra.</div></div>
+    <div class="dec-card"><div class="dec-t">3. Distribución de devs dedicados</div><div class="dec-p">¿Cuáles devs están dedicados a qué producto? Los 2 devs de MH: ¿pueden rotar a Vicky después del Sprint 3? ¿El dev de Engage es el mismo que puede hacer DWH?</div></div>
+    <div class="dec-card"><div class="dec-t">4. Pipeline de transcripciones</div><div class="dec-p">¿Ya existe un pipeline de transcripción en Vicky (mencionan "transcribe" en Engage) o hay que construirlo? Si existe, el sizing de E6 es correcto. Si no, puede subir +50pts.</div></div>
+    <div class="dec-card"><div class="dec-t">5. MH: plataforma vieja — fecha de decommission</div><div class="dec-p">¿Hay deadline para apagar la plataforma vieja de MH? Si sí, la migración tiene deadline fijo. Si no, se puede ser más gradual y reducir riesgo.</div></div>
+    <div class="dec-card"><div class="dec-t">6. Truecaller for Business — ¿dónde entra?</div><div class="dec-p">El sitio web lista Truecaller como producto, pero no aparece en las épicas. ¿Es un producto separado o se integra en BP/Engage? ¿Hay trabajo pendiente?</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ BACKLOG PRIORIZADO ═══════════════ -->
+<div class="sum-section">
+  <div class="sum-title">📋 Backlog Anual — Lo que NO cabe en Q2</div>
+  <table class="sum-table">
+    <thead><tr><th>Prioridad</th><th>Producto</th><th>Épica</th><th>Pts</th><th>Quarter</th><th>Depende de</th></tr></thead>
+    <tbody>
+      <tr><td style="color:var(--xl)">P1</td><td><span class="pdot" style="background:var(--vicky)"></span>Vicky</td><td>Flow omnicanal y flujos de trabajo</td><td class="pts-c">600</td><td>Q3</td><td>E5, E6 de Q2</td></tr>
+      <tr><td style="color:var(--xl)">P1</td><td><span class="pdot" style="background:var(--messenger)"></span>MH</td><td>Conexión omnicanal Vicky bidireccional</td><td class="pts-c">500</td><td>Q3</td><td>E4 de Q2</td></tr>
+      <tr><td style="color:var(--xl)">P1</td><td><span class="pdot" style="background:var(--engage)"></span>Engage</td><td>Desacoplar arquitectura telefónica PBX</td><td class="pts-c">600</td><td>Q4</td><td>Doc refactor BP</td></tr>
+      <tr><td style="color:var(--l)">P2</td><td><span class="pdot" style="background:var(--vicky)"></span>Vicky</td><td>Conexión CRMs externos (HubSpot, SF nativo)</td><td class="pts-c">400</td><td>Q3</td><td>API estable</td></tr>
+      <tr><td style="color:var(--l)">P2</td><td><span class="pdot" style="background:var(--engage)"></span>Engage</td><td>Renovar UX/UI + montar en Portal SaaS</td><td class="pts-c">700</td><td>Q3</td><td>Design system v1</td></tr>
+      <tr><td style="color:var(--l)">P2</td><td><span class="pdot" style="background:var(--notes)"></span>Notes</td><td>Refactor completo + arquitectura nueva</td><td class="pts-c">1,000</td><td>Q3–Q4</td><td>Pipeline transcr.</td></tr>
+      <tr><td style="color:var(--l)">P2</td><td><span class="pdot" style="background:var(--messenger)"></span>MH</td><td>Llamadas por WA con IA</td><td class="pts-c">400</td><td>Q4</td><td>Vicky bidireccional</td></tr>
+      <tr><td style="color:var(--m)">P3</td><td><span class="pdot" style="background:var(--engage)"></span>Engage</td><td>Marcador predictivo</td><td class="pts-c">500</td><td>Q4+</td><td>Desacoplar PBX</td></tr>
+      <tr><td style="color:var(--m)">P3</td><td><span class="pdot" style="background:var(--vicky)"></span>Vicky</td><td>Remarcación y campañas outbound</td><td class="pts-c">250</td><td>Q4</td><td>Tipificador</td></tr>
+      <tr><td style="color:var(--m)">P3</td><td><span class="pdot" style="background:var(--vicky)"></span>Vicky</td><td>Nuevos proveedores voz (11Labs)</td><td class="pts-c">200</td><td>Q4</td><td>—</td></tr>
+      <tr><td style="color:var(--m)">P3</td><td><span class="pdot" style="background:var(--messenger)"></span>MH</td><td>Conectar más RRSS (IG, Telegram, etc)</td><td class="pts-c">300</td><td>Q4</td><td>MH estable</td></tr>
+      <tr><td style="color:var(--td)">P4</td><td><span class="pdot" style="background:var(--webphone)"></span>Webphone</td><td>Creación APP WeKall nativa</td><td class="pts-c">800</td><td>2027</td><td>Desacoplar PBX</td></tr>
+      <tr><td style="color:var(--td)">P4</td><td><span class="pdot" style="background:var(--notes)"></span>Notes</td><td>Conexión Teams, Meet, Zoom, PBX, CC, Vicky</td><td class="pts-c">600</td><td>2027</td><td>Notes refactor</td></tr>
+      <tr><td style="color:var(--td)">P4</td><td><span class="pdot" style="background:var(--portal)"></span>Portal</td><td>Implementar todos los productos con SSO + billing</td><td class="pts-c">1,000</td><td>Continuo</td><td>Todos los productos</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <div class="legend-i"><span class="epic-size sz-s" style="padding:2px 7px;border-radius:4px">S</span> &lt;50 pts</div>
+  <div class="legend-i"><span class="epic-size sz-m" style="padding:2px 7px;border-radius:4px">M</span> 50–100 pts</div>
+  <div class="legend-i"><span class="epic-size sz-l" style="padding:2px 7px;border-radius:4px">L</span> 100–250 pts</div>
+  <div class="legend-i"><span class="epic-size sz-xl" style="padding:2px 7px;border-radius:4px">XL</span> &gt;250 pts</div>
+  <div class="legend-i" style="border-left:1px solid var(--brd);padding-left:14px;margin-left:10px"><span class="mono" style="font-size:10px;color:var(--td)">1 dev ≈ 50 pts/sprint</span></div>
+  <div class="legend-i"><span style="color:#2dd4bf;font-size:10px;border:1px dashed #2dd4bf40;padding:2px 8px;border-radius:5px">PROPUESTA</span> Sugerencia estratégica</div>
+  <div class="legend-i" style="border-left:1px solid var(--brd);padding-left:14px;margin-left:10px"><span class="mono" style="font-size:10px;color:var(--td)">v3 · 14 Abr 2026 · Basado en análisis funcional GitBook MH + Vicky + web</span></div>
+</div>
+
+</div>
+</body>
+</html>
