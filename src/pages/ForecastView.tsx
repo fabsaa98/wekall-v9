@@ -96,7 +96,7 @@ export default function ForecastView() {
       // Usar proxy (service role) para evitar bloqueo RLS
       const [daily, hourly, perfArr, configArr] = await Promise.all([
         proxyQuery<Array<{ fecha: string; total_llamadas: number }>>({ table: 'cdr_daily_metrics', select: 'fecha,total_llamadas', filters: { 'client_id': `eq.${clientId}`, 'fecha': `gte.${fmt(hace90)}` }, order: 'fecha.asc', limit: 10000 }),
-        proxyQuery<Array<{ fecha: string; hora: number; total_llamadas: number }>>({ table: 'cdr_hourly_metrics', select: 'fecha,hora,total_llamadas', filters: { 'client_id': `eq.${clientId}`, 'fecha': `gte.${fmt(hace30)}` }, order: 'fecha.asc', limit: 10000 }),
+        proxyQuery<Array<{ fecha: string; hora: number; total_llamadas: number }>>({ table: 'cdr_hourly_metrics', select: 'fecha,hora,total_llamadas', filters: { 'fecha': `gte.${fmt(hace30)}` }, order: 'fecha.asc', limit: 10000 }),
         proxyQuery<Array<{ aht_segundos: number }>>({ table: 'agents_performance', select: 'aht_segundos', filters: { 'client_id': `eq.${clientId}` }, limit: 1 }),
         proxyQuery<Array<{ agentes_activos: number; costo_agente_mes: number }>>({ table: 'client_config', select: 'agentes_activos,costo_agente_mes', filters: { 'client_id': `eq.${clientId}` }, limit: 1 }),
       ]);
