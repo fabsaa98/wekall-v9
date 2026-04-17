@@ -50,7 +50,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       try {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
-          setAuthState('allowed');
+          // Verificar que haya sesión de usuario guardada (wki_remember_session o wki_current_user)
+          // Si el usuario no marcó "recordar sesión", el wki_current_user solo vive en sessionStorage
+          const hasRemembered = localStorage.getItem('wki_remember_session');
+          const hasSessionUser = sessionStorage.getItem('wki_remember_session');
+          const hasUser = localStorage.getItem('wki_current_user');
+          if (!hasRemembered && !hasSessionUser && !hasUser) {
+            // Supabase tiene JWT pero el usuario no pidió recordar sesión — forzar logout
+            await supabase.auth.signOut();
+            setAuthState('denied');
+          } else {
+            setAuthState('allowed');
+          }
         } else {
           setAuthState('denied');
         }

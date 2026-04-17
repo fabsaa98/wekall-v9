@@ -214,9 +214,11 @@ export function ClientProvider({ children }: { children: ReactNode }) {
           console.warn('[ClientContext] Error al cargar app_user en SIGNED_IN:', err);
         }
       } else if (event === 'SIGNED_OUT') {
-        // Logout — limpiar usuario pero mantener clientId para UX
+        // Logout — limpiar todo
         setCurrentUser(null);
         localStorage.removeItem(LS_CURRENT_USER);
+        localStorage.removeItem('wki_remember_session');
+        sessionStorage.removeItem('wki_remember_session');
       }
     });
 
