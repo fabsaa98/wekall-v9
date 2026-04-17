@@ -2,6 +2,58 @@
 
 ---
 
+## [V22.2.0] — 2026-04-17 — Fixes RLS, Seguridad de Sesión y Logout
+
+### 🐛 Bugs corregidos
+
+**Equipos — loading infinito** (`useAgentsData.ts`)
+- Problema: query `agents_performance` iba directo a Supabase con RLS. El JWT del usuario no coincidía con `get_user_client_id()` → 0 registros.
+- Fix: reemplazar `supabase.from()` por `proxyQuery()` — igual que el resto de la app.
+- Commit: `82ca1b8`
+
+**Forecast — error 400 `cdr_hourly_metrics`** (`ForecastView.tsx`)
+- Problema: `cdr_hourly_metrics` no tiene columna `client_id`. El filtro causaba error 400.
+- Fix: remover `client_id` del filtro de esa tabla.
+- Commit: `f5a90f7`
+
+**Forecast — error 400 `client_config`** (`ForecastView.tsx`)
+- Problema: select `agentes_activos,costo_agente_mes` — columnas que no existen en la tabla.
+- Fix: cambiar a `select: '*'`.
+- Commit: `d4444f2`
+
+**Forecast y Equipos — todas las queries via proxy** (`ForecastView.tsx`)
+- Problema: 4 queries `supabase.from()` directas con RLS bloqueando por JWT.
+- Fix: reemplazar todas por `proxyQuery()` con service role.
+- Commit: `82ca1b8`
+
+### 🔒 Seguridad
+
+**Sesión persistía sin permiso** (`App.tsx`, `ClientContext.tsx`, `Login.tsx`)
+- Problema: Supabase guardaba JWT en localStorage indefinidamente. Al reabrir el browser, `AuthGuard` veía sesión activa y entraba sin pedir login — exponiendo datos del cliente CEO.
+- Fix:
+  1. `rememberMe` default = `false`
+  2. `AuthGuard`: si hay JWT pero no hay `wki_remember_session`, hace `signOut()` forzado
+  3. `SIGNED_OUT` limpia `wki_remember_session` de localStorage y sessionStorage
+- Commit: `2579c62`
+
+### ✨ Features
+
+**Botón Cerrar sesión en sidebar** (`AppSidebar.tsx`)
+- Siempre visible en el footer del menú lateral
+- Modo colapsado: solo ícono con tooltip
+- Al hacer clic: `signOut()` + limpia localStorage + redirige a `/login`
+- Color rojo al hover (destructive)
+- Commit: `a3770ff`
+
+### 📄 Documentación generada
+- Resumen Ejecutivo PDF — funcionalidades, stack, propuesta de valor por rol
+- Manual de Usuario PDF — 10 secciones, screenshots reales, página por sección
+
+### 🏷️ Tag Git
+- `v22.2-fixes-17abr` → commit `d4444f2`
+
+---
+
 ## [V22.0.0] — 2026-04-13 — Seguridad Multi-Tenant Completa, RLS Real, UX & Infraestructura
 
 > Sesión de trabajo: Fabián Saavedra + GlorIA. Enfoque: aislamiento multi-tenant a nivel de base de datos (RLS real en 9 tablas), hardening de seguridad crítica (H-1/H-2), nuevas funcionalidades UX (ForgotPassword, ErrorBoundary, Skeletons), refactoring de componentes y resiliencia de infraestructura.
