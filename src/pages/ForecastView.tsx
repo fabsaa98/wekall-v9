@@ -12,8 +12,22 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
+
+// ─── Proxy helper ─────────────────────────────────────────────────────
+const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
+async function proxyQuery<T>(payload: object): Promise<T> {
+  const resp = await fetch(`${PROXY_URL}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({})) as Record<string, string>;
+    throw new Error(err.error || `query_error_${resp.status}`);
+  }
+  return resp.json() as Promise<T>;
+}
 import {
   calcularForecast,
   calcularDimensionamientoDia,
@@ -79,32 +93,16 @@ export default function ForecastView() {
       hace30.setDate(hace30.getDate() - 30);
       const fmt = (d: Date) => d.toISOString().split('T')[0];
 
-      const [{ data: daily }, { data: hourly }, { data: perf }, { data: config }] =
-        await Promise.all([
-          supabase
-            .from('cdr_daily_metrics')
-            .select('fecha, total_llamadas')
-            .eq('client_id', clientId)
-            .gte('fecha', fmt(hace90))
-            .order('fecha', { ascending: true }),
-          supabase
-            .from('cdr_hourly_metrics')
-            .select('fecha, hora, total_llamadas')
-            .eq('client_id', clientId)
-            .gte('fecha', fmt(hace30))
-            .order('fecha', { ascending: true }),
-          supabase
-            .from('agents_performance')
-            .select('aht_segundos')
-            .eq('client_id', clientId)
-            .limit(1)
-            .maybeSingle(),
-          supabase
-            .from('client_config')
-            .select('agentes_activos, costo_agente_mes')
-            .eq('client_id', clientId)
-            .maybeSingle(),
-        ]);
+      // Usar proxy (service role) para evitar bloqueo RLS
+      const [daily, hourly, perfArr, configArr] = await Promise.all([
+        proxyQuery<Array<{ fecha: string; total_llamadas: number }>>({ table: 'cdr_daily_metrics', select: 'fecha,total_llamadas', filters: { 'client_id': `eq.${clientId}`, 'fecha': `gte.${fmt(hace90)}` }, order: 'fecha.asc', limit: 10000 }),
+        proxyQuery<Array<{ fecha: string; hora: number; total_llamadas: number }>>({ table: 'cdr_hourly_metrics', select: 'fecha,hora,total_llamadas', filters: { 'client_id': `eq.${clientId}`, 'fecha': `gte.${fmt(hace30)}` }, order: 'fecha.asc', limit: 10000 }),
+        proxyQuery<Array<{ aht_segundos: number }>>({ table: 'agents_performance', select: 'aht_segundos', filters: { 'client_id': `eq.${clientId}` }, limit: 1 }),
+        proxyQuery<Array<{ agentes_activos: number; costo_agente_mes: number }>>({ table: 'client_config', select: 'agentes_activos,costo_agente_mes', filters: { 'client_id': `eq.${clientId}` }, limit: 1 }),
+      ]);
+
+      const perf = perfArr?.[0] ?? null;
+      const config = configArr?.[0] ?? null;
 
       // AHT real si está disponible
       if (perf?.aht_segundos && perf.aht_segundos > 0) {

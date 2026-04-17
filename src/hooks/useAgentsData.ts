@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useClient } from '@/contexts/ClientContext';
+
+// ─── Proxy helper (igual que en supabase.ts) ───────────────────────────────────
+const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
+
+async function proxyQuery<T>(payload: object): Promise<T> {
+  const resp = await fetch(`${PROXY_URL}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({})) as Record<string, string>;
+    throw new Error(err.error || `query_error_${resp.status}`);
+  }
+  return resp.json() as Promise<T>;
+}
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -142,16 +157,17 @@ export function useAgentsData(): AgentsDataState {
         cutoff.setDate(cutoff.getDate() - 45); // buffer de 45 días para garantizar 30 hábiles
         const cutoffStr = cutoff.toISOString().split('T')[0];
 
-        const { data, error } = await supabase
-          .from('agents_performance')
-          .select('*')
-          .eq('client_id', clientId)
-          .gte('fecha', cutoffStr)
-          .order('fecha', { ascending: true });
-
-        if (error) throw error;
-
-        const rows = (data || []) as AgentDayRecord[];
+        // Usar proxy (service role) en vez de supabase directo — evita bloqueo RLS
+        const rows = await proxyQuery<AgentDayRecord[]>({
+          table: 'agents_performance',
+          select: '*',
+          filters: {
+            'client_id': `eq.${clientId}`,
+            'fecha': `gte.${cutoffStr}`,
+          },
+          order: 'fecha.asc',
+          limit: 10000,
+        });
 
         if (rows.length === 0) {
           setState({
