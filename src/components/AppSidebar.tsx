@@ -1,7 +1,8 @@
-import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
+import { signOut } from '@/lib/supabase';
 
 const navItems = [
   { label: 'Overview', path: '/', icon: LayoutDashboard },
@@ -29,11 +30,25 @@ interface AppSidebarProps {
 
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { role } = useRole();
-  const { clientConfig, clientBranding, currentUser } = useClient();
+  const { clientConfig, clientBranding, currentUser, setCurrentUser } = useClient();
   const clientDisplayName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
 
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
+
+  async function handleLogout() {
+    try {
+      await signOut();
+    } catch { /* ignorar errores de signOut */ }
+    // Limpiar estado local
+    setCurrentUser(null);
+    localStorage.removeItem('wki_current_user');
+    localStorage.removeItem('wki_remember_session');
+    localStorage.removeItem('wki_client_id');
+    sessionStorage.removeItem('wki_remember_session');
+    navigate('/login');
+  }
 
   return (
     <>
@@ -167,12 +182,21 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               {initials}
             </div>
             {!collapsed && (
-              <div className="overflow-hidden">
+              <div className="overflow-hidden flex-1">
                 <p className="text-sm font-medium text-foreground truncate">{role}</p>
                 <p className="text-[10px] text-muted-foreground truncate">{clientDisplayName}</p>
               </div>
             )}
           </div>
+          {/* Botón Cerrar sesión */}
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20 transition-all"
+            title={collapsed ? 'Cerrar sesión' : undefined}
+          >
+            <LogOut size={16} className="shrink-0" />
+            {!collapsed && <span>Cerrar sesión</span>}
+          </button>
         </div>
       </aside>
     </>
