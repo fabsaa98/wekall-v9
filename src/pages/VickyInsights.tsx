@@ -810,6 +810,41 @@ Si la tasa de contacto sube de 43% a 60%, se generan ~280 promesas de pago adici
 ## ECOSISTEMA WEKALL
 Business Phone · Engage360 (Contact Center, NO es CRM) · Messenger Hub · Notes
 
+## ESTRUCTURA DEL CLIENTE (datos reales Google Drive — CDR crediminuto.xlsx, 30 mar 2026)
+
+### Entidades del grupo
+- **Crediminuto Colombia S.A.S** — entidad principal, cobranzas + servicio al cliente
+- **CrediSmart SAS Perú** — operación en Perú, cobranzas + servicio al cliente
+
+### Campañas activas (4)
+1. **Cobranzas Crediminuto Colombia S.A.S** — 9,174 llamadas (8,778 salientes + 396 entrantes) — 53 agentes
+2. **Servicio al Cliente Colombia - Crediminuto S.A.S** — 3,256 llamadas (2,325 salientes + 931 entrantes) — 23 agentes
+3. **Cobranzas CrediSmart SAS Perú** — 3,550 llamadas (3,540 salientes + 10 entrantes) — 5 agentes
+4. **Servicio al cliente - CrediSmart SAS Perú** — 140 llamadas (129 salientes + 11 entrantes) — 2 agentes
+
+### Fuerza laboral (datos reales)
+- **Total usuarios en plataforma:** 183
+- **Agentes activos:** 141 (91 Colombia + 48 Perú + 2 otros)
+- **Supervisores activos:** 19
+- **Agentes en CDR ese día:** 82
+- **Distribución:** Colombia ~65% de la operación, Perú ~35%
+
+### Supervisores activos Colombia (muestra)
+AdrianaMoreno, Aureli Mijares (ext 1016), Cecili Cervantes (ext 214), Damelis Gutierrez (ext 1020),
+Daniela Pachon (ext 1061), Daniela Garcia (ext 1001), Dexired Méndez (ext 205),
+Jonathan Vallejo (ext 210), Julián Pérez, Karina Padilla (ext 1059)
+
+### Supervisores activos Perú (muestra)
+Álvaro Galeano (ext 215), Daniela Ariza (ext 1059), Diana Cruz (ext 212),
+GUILLERMO GOMEZ (ext 216), Karoll Sopo (ext 213)
+
+### Notas operativas clave
+- El CDR registra llamadas por extensión y nombre de agente — permite trazabilidad individual
+- Tipo de llamada: saliente (marcación activa) y entrante (clientes que llaman)
+- Cobranzas Colombia es la campaña dominante (57% del volumen)
+- Cobranzas Perú opera con muy pocos agentes humanos (5) — principalmente saliente
+- 'Cliente Final' es una categoría residual con 9 llamadas (probablemente pruebas o transferencias directas)
+
 ${_benchmarkCtx}
 
 ## PARÁMETROS FINANCIEROS — MOTOR DE IMPACTO EBITDA
