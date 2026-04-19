@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeKall Intelligence — Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0b10;
+    --card: #11131c;
+    --border: #22263a;
+    --violet: #818cf8;
+    --violet-dim: #4c5280;
+    --green: #4ade80;
+    --cyan: #38bdf8;
+    --yellow: #fbbf24;
+    --text: #eef0f6;
+    --muted: #636987;
+    --muted-light: #8890b0;
+    --red: #f87171;
+  }
+
+  html { scroll-behavior: smooth; scroll-snap-type: y mandatory; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ─── NAVIGATION DOTS ─── */
+  .nav-dots {
+    position: fixed;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+  }
+  .nav-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+  }
+  .nav-dot.active {
+    background: var(--violet);
+    transform: scale(1.4);
+    box-shadow: 0 0 8px var(--violet);
+  }
+
+  /* ─── SLIDE BASE ─── */
+  .slide {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    scroll-snap-align: start;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-inner {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* ─── AMBIENT GLOW ─── */
+  .glow-violet {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(129,140,248,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .glow-cyan {
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .glow-green {
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* ─── TYPOGRAPHY ─── */
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--violet);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .label::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--violet);
+  }
+
+  h1 { font-size: clamp(36px, 5vw, 64px); font-weight: 800; line-height: 1.1; }
+  h2 { font-size: clamp(28px, 3.5vw, 48px); font-weight: 700; line-height: 1.2; }
+  h3 { font-size: clamp(18px, 2vw, 24px); font-weight: 600; }
+  p { font-size: 16px; line-height: 1.7; color: var(--muted-light); }
+
+  .gradient-text {
+    background: linear-gradient(135deg, var(--violet) 0%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-text-green {
+    background: linear-gradient(135deg, var(--green) 0%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── BUTTON ─── */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--violet) 0%, #6366f1 100%);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 14px 32px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 32px rgba(129,140,248,0.3);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(129,140,248,0.45);
+  }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    color: var(--muted-light);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    padding: 14px 28px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  .btn-ghost:hover {
+    border-color: var(--violet);
+    color: var(--violet);
+  }
+
+  /* ─── CARD ─── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    transition: border-color 0.3s ease, transform 0.3s ease;
+  }
+  .card:hover {
+    border-color: var(--violet-dim);
+    transform: translateY(-2px);
+  }
+
+  /* ─── BADGE ─── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(74,222,128,0.12);
+    border: 1px solid rgba(74,222,128,0.3);
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+  }
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* ─── SEPARATOR ─── */
+  .sep {
+    width: 48px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--violet), var(--cyan));
+    border-radius: 2px;
+    margin: 20px 0;
+  }
+
+  /* ─── SCROLL ANIMATION ─── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+  .reveal-delay-5 { transition-delay: 0.5s; }
+  .reveal-delay-6 { transition-delay: 0.6s; }
+
+  /* ══════════════════════════════════════════
+     SLIDE 1 — HERO
+  ══════════════════════════════════════════ */
+  #slide-1 {
+    background: var(--bg);
+    text-align: center;
+  }
+  .hero-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 48px;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted-light);
+  }
+  .hero-logo .logo-icon {
+    width: 24px; height: 24px;
+    background: linear-gradient(135deg, var(--violet), var(--cyan));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .hero-tagline {
+    font-size: clamp(36px, 5.5vw, 68px);
+    font-weight: 800;
+    line-height: 1.08;
+    max-width: 900px;
+    margin: 0 auto 24px;
+  }
+  .hero-sub {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--muted-light);
+    max-width: 600px;
+    margin: 0 auto 48px;
+    line-height: 1.6;
+  }
+  .hero-cta-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 64px;
+  }
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+    padding-top: 48px;
+    border-top: 1px solid var(--border);
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat-number {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--violet), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(129,140,248,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(129,140,248,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  /* ══════════════════════════════════════════
+     SLIDE 2 — PROBLEMA
+  ══════════════════════════════════════════ */
+  #slide-2 { background: var(--bg); }
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 40px 0;
+  }
+  .pain-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pain-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--red), transparent);
+  }
+  .pain-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+  }
+  .pain-q {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+  .pain-a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.25);
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 8px;
+  }
+  .blockquote {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--violet);
+    border-radius: 0 12px 12px 0;
+    padding: 24px 28px;
+    margin-top: 32px;
+  }
+  .blockquote p {
+    font-size: 18px;
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .blockquote cite {
+    display: block;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: normal;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ══════════════════════════════════════════
+     SLIDE 3 — ECOSISTEMA
+  ══════════════════════════════════════════ */
+  #slide-3 { background: var(--bg); }
+  .ecosystem-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 36px 0;
+  }
+  @media (max-width: 768px) {
+    .ecosystem-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .ecosystem-grid { grid-template-columns: 1fr; }
+  }
+  .eco-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    transition: all 0.3s ease;
+    cursor: default;
+  }
+  .eco-card:hover {
+    border-color: var(--violet-dim);
+    background: #13152000;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .eco-icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .eco-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .eco-data {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .eco-data span {
+    color: var(--cyan);
+  }
+  .brain-label {
+    text-align: center;
+    margin-top: 24px;
+    padding: 18px;
+    background: linear-gradient(135deg, rgba(129,140,248,0.08), rgba(56,189,248,0.08));
+    border: 1px solid rgba(129,140,248,0.2);
+    border-radius: 12px;
+    font-weight: 600;
+    color: var(--text);
+    font-size: 15px;
+  }
+  .brain-label span { color: var(--violet); }
+
+  /* ══════════════════════════════════════════
+     SLIDE 4 — LO QUE TIENES HOY
+  ══════════════════════════════════════════ */
+  #slide-4 { background: var(--bg); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px;
+    margin: 36px 0;
+  }
+  .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+  .feature-item:hover {
+    border-color: rgba(74,222,128,0.3);
+    background: rgba(74,222,128,0.04);
+  }
+  .check-icon {
+    width: 22px; height: 22px;
+    min-width: 22px;
+    background: rgba(74,222,128,0.15);
+    border: 1px solid rgba(74,222,128,0.4);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .feature-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .feature-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .production-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(56,189,248,0.05));
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .production-banner p {
+    font-size: 14px;
+    color: var(--muted-light);
+    margin: 0;
+  }
+  .production-banner strong { color: var(--text); }
+
+  /* ══════════════════════════════════════════
+     SLIDE 5 — DASHBOARD MOCKUP (HERO VISUAL)
+  ══════════════════════════════════════════ */
+  #slide-5 { background: var(--bg); padding: 60px 30px; }
+  .slide5-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) {
+    .slide5-layout { grid-template-columns: 1fr; }
+  }
+  .slide5-text h2 { margin-bottom: 16px; }
+  .slide5-text p { margin-bottom: 24px; }
+  .warning-box {
+    background: rgba(251,191,36,0.07);
+    border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .warning-box .wi {
+    font-size: 16px;
+    margin-top: 1px;
+  }
+  .warning-box p {
+    font-size: 13px;
+    color: var(--yellow);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* ─── DASHBOARD MOCKUP ─── */
+  .dashboard-mock {
+    background: #0d0f1a;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .db-topbar {
+    background: #0a0c15;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .db-dots { display: flex; gap: 5px; }
+  .db-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .db-dot-r { background: #ff5f57; }
+  .db-dot-y { background: #febc2e; }
+  .db-dot-g { background: #28c840; }
+  .db-title {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 8px;
+    letter-spacing: 0.05em;
+  }
+  .db-live {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--green);
+  }
+  .db-live::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* Sidebar */
+  .db-body {
+    display: flex;
+    min-height: 460px;
+  }
+  .db-sidebar {
+    width: 44px;
+    background: #0a0c15;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 14px;
+  }
+  .db-sb-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .db-sb-icon.active {
+    background: rgba(129,140,248,0.15);
+    color: var(--violet);
+  }
+
+  .db-content {
+    flex: 1;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  /* KPI Row - ACTIVE */
+  .db-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .db-kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .db-kpi-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+  .db-kpi-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .db-kpi-delta {
+    font-size: 9px;
+    margin-top: 4px;
+  }
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--red); }
+
+  /* Middle row */
+  .db-mid-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 8px;
+  }
+
+  /* Chart area - ACTIVE */
+  .db-chart-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .db-chart-title {
+    font-size: 10px;
+    color: var(--muted-light);
+    margin-bottom: 10px;
+    letter-spacing: 0.03em;
+  }
+  .db-chart-svg { width: 100%; height: 80px; }
+
+  /* ─── LOCKED SECTIONS ─── */
+  .db-locked-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .db-locked-section::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(10,11,16,0.72);
+    backdrop-filter: blur(2px);
+    border-radius: 8px;
+  }
+  .db-locked-label {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+  }
+  .db-lock-icon {
+    width: 28px; height: 28px;
+    background: rgba(99,105,135,0.2);
+    border: 1px solid rgba(99,105,135,0.3);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .db-lock-text {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .db-lock-source {
+    font-size: 9px;
+    color: var(--violet);
+    opacity: 0.7;
+  }
+
+  /* Fake locked content (blurred) */
+  .db-fake-content {
+    filter: blur(4px);
+    opacity: 0.35;
+  }
+  .db-fake-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .db-fake-label-sm { width: 40px; height: 8px; background: var(--muted); border-radius: 3px; opacity: 0.4; }
+  .db-fake-bar { height: 8px; background: linear-gradient(90deg, var(--violet), var(--cyan)); border-radius: 3px; }
+  .db-fake-val { width: 20px; height: 8px; background: var(--muted); border-radius: 3px; opacity: 0.3; }
+
+  /* Bottom row */
+  .db-bottom-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  /* Engage agents table (ACTIVE) */
+  .db-table-header {
+    display: grid;
+    grid-template-columns: 1fr 40px 40px;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .db-th {
+    font-size: 8px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .db-tr {
+    display: grid;
+    grid-template-columns: 1fr 40px 40px;
+    gap: 4px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .db-td { font-size: 10px; color: var(--text); }
+  .db-td-green { font-size: 10px; color: var(--green); }
+  .db-td-muted { font-size: 10px; color: var(--muted); }
+
+  /* Speech analytics mini (ACTIVE) */
+  .db-speech-item {
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .db-speech-q { font-size: 9px; color: var(--muted); margin-bottom: 3px; }
+  .db-speech-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .db-speech-fill { height: 100%; border-radius: 2px; }
+
+  /* Section title inside db */
+  .db-section-title {
+    font-size: 10px;
+    color: var(--muted-light);
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Financial locked card (bigger) */
+  .db-fin-locked {
+    background: var(--card);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 8px;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .db-fin-locked::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(10,11,16,0.75);
+    backdrop-filter: blur(3px);
+    border-radius: 8px;
+  }
+  .db-fin-label {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-align: center;
+  }
+  .db-fin-badge {
+    background: rgba(251,191,36,0.15);
+    border: 1px solid rgba(251,191,36,0.35);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 9px;
+    color: var(--yellow);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Legend */
+  .db-legend {
+    display: flex;
+    gap: 16px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    background: #0a0c15;
+  }
+  .db-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    color: var(--muted);
+  }
+  .db-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .db-legend-dot-active { background: var(--green); }
+  .db-legend-dot-locked { background: var(--muted); opacity: 0.4; }
+
+  /* ══════════════════════════════════════════
+     SLIDE 6 — FINANCIAL INTELLIGENCE
+  ══════════════════════════════════════════ */
+  #slide-6 { background: var(--bg); }
+  .sprint-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin: 40px 0;
+    align-items: stretch;
+  }
+  @media (max-width: 768px) { .sprint-layout { grid-template-columns: 1fr; } }
+  .sprint-card {
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .sprint-card-before {
+    background: var(--card);
+    border: 1px solid rgba(248,113,113,0.25);
+  }
+  .sprint-card-before::before {
+    content: 'ANTES';
+    position: absolute;
+    top: 16px; right: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--red);
+    letter-spacing: 0.12em;
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.25);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .sprint-card-after {
+    background: linear-gradient(135deg, rgba(74,222,128,0.06), rgba(129,140,248,0.06));
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .sprint-card-after::before {
+    content: 'DESPUÉS';
+    position: absolute;
+    top: 16px; right: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.12em;
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.25);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .sprint-icon { font-size: 32px; margin-bottom: 16px; }
+  .sprint-quote {
+    font-size: clamp(15px, 1.8vw, 18px);
+    font-style: italic;
+    line-height: 1.6;
+    color: var(--muted-light);
+    margin-bottom: 20px;
+  }
+  .sprint-quote strong { color: var(--text); font-style: normal; }
+  .sprint-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(22px, 3vw, 36px);
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1.2;
+  }
+  .sprint-number-red {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--red);
+  }
+  .sprint-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.25);
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .conversion-stat {
+    margin-top: 20px;
+    padding: 14px;
+    background: rgba(74,222,128,0.06);
+    border-radius: 10px;
+    border: 1px solid rgba(74,222,128,0.15);
+  }
+  .conv-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .conv-val { font-size: 20px; font-weight: 700; color: var(--green); font-family: 'JetBrains Mono', monospace; }
+
+  /* ══════════════════════════════════════════
+     SLIDE 7 — ROADMAP
+  ══════════════════════════════════════════ */
+  #slide-7 { background: var(--bg); }
+  .roadmap-timeline {
+    position: relative;
+    margin: 40px 0;
+    padding-left: 0;
+  }
+  .roadmap-track {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0;
+    margin-bottom: 0;
+  }
+  .rm-quarters {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    margin-left: 80px;
+  }
+  .rm-q {
+    flex: 1;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .rm-q::before {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 50%;
+    transform: translateX(-50%);
+    width: 7px; height: 7px;
+    background: var(--border);
+    border-radius: 50%;
+  }
+  .rm-item {
+    display: contents;
+  }
+  .rm-label-col {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .rm-label-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-light);
+    white-space: nowrap;
+    text-align: right;
+    padding-right: 16px;
+    width: 80px;
+  }
+  .rm-bar-col {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .rm-bar-track {
+    width: 100%;
+    height: 36px;
+    display: flex;
+    position: relative;
+  }
+  .rm-bar {
+    height: 100%;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    position: absolute;
+    top: 0;
+  }
+  /* Audience row */
+  .rm-audience {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .rm-audience-tag {
+    padding: 6px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--muted-light);
+    font-weight: 500;
+  }
+  .rm-legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .rm-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .rm-legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  /* ══════════════════════════════════════════
+     SLIDE 8 — DIFERENCIADORES
+  ══════════════════════════════════════════ */
+  #slide-8 { background: var(--bg); }
+  .diff-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin: 40px 0;
+  }
+  @media (max-width: 768px) { .diff-grid { grid-template-columns: 1fr; } }
+  .diff-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .diff-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .diff-card-1 { border-top: 2px solid var(--violet); }
+  .diff-card-1:hover { border-color: var(--violet); box-shadow: 0 20px 60px rgba(129,140,248,0.15); }
+  .diff-card-2 { border-top: 2px solid var(--cyan); }
+  .diff-card-2:hover { border-color: var(--cyan); box-shadow: 0 20px 60px rgba(56,189,248,0.15); }
+  .diff-card-3 { border-top: 2px solid var(--green); }
+  .diff-card-3:hover { border-color: var(--green); box-shadow: 0 20px 60px rgba(74,222,128,0.15); }
+  .diff-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 16px;
+    opacity: 0.15;
+    position: absolute;
+    top: 16px; right: 20px;
+  }
+  .diff-icon { font-size: 40px; margin-bottom: 16px; display: block; }
+  .diff-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .diff-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .diff-tag {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .diff-tag-1 { background: rgba(129,140,248,0.1); color: var(--violet); }
+  .diff-tag-2 { background: rgba(56,189,248,0.1); color: var(--cyan); }
+  .diff-tag-3 { background: rgba(74,222,128,0.1); color: var(--green); }
+
+  /* ══════════════════════════════════════════
+     SLIDE 9 — VEREDICTO CEO
+  ══════════════════════════════════════════ */
+  #slide-9 { background: var(--bg); text-align: center; }
+  .verdict-layout {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .score-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    margin: 40px 0;
+    flex-wrap: wrap;
+  }
+  .score-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .score-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 80px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-now { color: var(--muted); }
+  .score-future {
+    background: linear-gradient(135deg, var(--green), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .score-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .score-arrow {
+    font-size: 40px;
+    color: var(--violet);
+    opacity: 0.6;
+  }
+  .score-slash {
+    font-size: 48px;
+    color: var(--border);
+    font-weight: 200;
+  }
+  .score-denom {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .verdict-quote {
+    background: linear-gradient(135deg, rgba(129,140,248,0.06), rgba(56,189,248,0.04));
+    border: 1px solid rgba(129,140,248,0.2);
+    border-radius: 16px;
+    padding: 32px 36px;
+    margin-top: 32px;
+    text-align: left;
+    position: relative;
+  }
+  .verdict-quote::before {
+    content: '"';
+    position: absolute;
+    top: -20px; left: 24px;
+    font-size: 80px;
+    color: var(--violet);
+    opacity: 0.2;
+    font-family: Georgia, serif;
+    line-height: 1;
+  }
+  .verdict-quote p {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--text);
+    line-height: 1.65;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .verdict-quote cite {
+    display: block;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: normal;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .no-competitor {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(74,222,128,0.06);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--green);
+  }
+
+  /* ══════════════════════════════════════════
+     SLIDE 10 — CTA FINAL
+  ══════════════════════════════════════════ */
+  #slide-10 { background: var(--bg); text-align: center; }
+  .cta-url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(14px, 2vw, 20px);
+    color: var(--muted);
+    margin: 24px 0 40px;
+    letter-spacing: 0.02em;
+  }
+  .cta-url a { color: var(--violet); text-decoration: none; }
+  .cta-url a:hover { text-decoration: underline; }
+  .cta-btn-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .btn-cta-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--violet), #6366f1);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    padding: 18px 40px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 12px 40px rgba(129,140,248,0.35);
+    letter-spacing: -0.01em;
+  }
+  .btn-cta-main:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 60px rgba(129,140,248,0.5);
+  }
+  .cta-footer {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .cta-footer-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .cta-footer-dot {
+    width: 4px; height: 4px;
+    background: var(--border);
+    border-radius: 50%;
+  }
+  .wk-logo-big {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(18px, 2.5vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .wk-logo-w { color: var(--violet); }
+  .wk-logo-i { color: var(--cyan); }
+
+  /* ─── FOOTER SLIDE INDICATOR ─── */
+  .slide-indicator {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    animation: bounce 2s infinite;
+  }
+  .scroll-arrow { font-size: 18px; }
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-6px); }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .slide { padding: 60px 20px; }
+    .db-kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .db-bottom-row { grid-template-columns: 1fr; }
+    .diff-grid { grid-template-columns: 1fr; }
+    .hero-stats { gap: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV DOTS -->
+<nav class="nav-dots" id="navDots" aria-label="Navegación por slides">
+  <button class="nav-dot active" data-slide="0" title="Hero"></button>
+  <button class="nav-dot" data-slide="1" title="Problema"></button>
+  <button class="nav-dot" data-slide="2" title="Ecosistema"></button>
+  <button class="nav-dot" data-slide="3" title="Hoy"></button>
+  <button class="nav-dot" data-slide="4" title="Demo"></button>
+  <button class="nav-dot" data-slide="5" title="Financial Intelligence"></button>
+  <button class="nav-dot" data-slide="6" title="Roadmap"></button>
+  <button class="nav-dot" data-slide="7" title="Diferenciadores"></button>
+  <button class="nav-dot" data-slide="8" title="Veredicto"></button>
+  <button class="nav-dot" data-slide="9" title="Demo"></button>
+</nav>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 1 — HERO
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-1">
+  <div class="hero-grid-bg"></div>
+  <div class="glow-violet" style="top:-200px;left:-100px;"></div>
+  <div class="glow-cyan" style="bottom:-100px;right:-100px;"></div>
+
+  <div class="slide-inner" style="text-align:center;">
+    <div class="reveal">
+      <div class="hero-logo">
+        <div class="logo-icon">W</div>
+        WeKall Intelligence
+      </div>
+    </div>
+
+    <h1 class="hero-tagline reveal reveal-delay-1">
+      El cerebro que le dice al CEO<br>
+      <span class="gradient-text">cuánto vale su operación</span><br>
+      — no solo cómo opera
+    </h1>
+
+    <p class="hero-sub reveal reveal-delay-2">
+      Inteligencia financiera y operativa en tiempo real para decisiones de negocio,
+      no de contact center.
+    </p>
+
+    <div class="hero-cta-row reveal reveal-delay-3">
+      <a href="https://wekall-intelligence.pages.dev" target="_blank" class="btn-primary">
+        <span>▶</span> Ver la demo
+      </a>
+      <a href="#slide-2" class="btn-ghost">
+        Conocer más ↓
+      </a>
+    </div>
+
+    <div class="hero-stats reveal reveal-delay-4">
+      <div class="hero-stat">
+        <div class="hero-stat-number">3</div>
+        <div class="hero-stat-label">Clientes activos</div>
+      </div>
+      <div style="width:1px;height:40px;background:var(--border);"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-number">Real-time</div>
+        <div class="hero-stat-label">KPIs en vivo</div>
+      </div>
+      <div style="width:1px;height:40px;background:var(--border);"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-number">30 min</div>
+        <div class="hero-stat-label">Ahorrados/día al CEO</div>
+      </div>
+      <div style="width:1px;height:40px;background:var(--border);"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-number">6</div>
+        <div class="hero-stat-label">Productos integrados</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-arrow">↓</div>
+    <span>scroll</span>
+  </div>
+  <div class="slide-indicator">01 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 2 — EL PROBLEMA
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-2">
+  <div class="glow-violet" style="top:50%;left:-200px;transform:translateY(-50%);"></div>
+
+  <div class="slide-inner">
+    <div class="label reveal">El problema</div>
+    <h2 class="reveal reveal-delay-1">
+      Hoy el CEO tiene datos.<br>
+      <span style="color:var(--muted-light);font-weight:400;">No tiene respuestas.</span>
+    </h2>
+    <div class="sep reveal reveal-delay-1"></div>
+
+    <div class="pain-grid">
+      <div class="pain-card reveal reveal-delay-2">
+        <div class="pain-num">01 / CAJA</div>
+        <div class="pain-q">"Hice 22,000 llamadas ayer.<br>¿Eso generó $X de caja?"</div>
+        <div class="pain-a"><span>✕</span> No lo sé</div>
+        <p style="margin-top:14px;font-size:13px;">Los datos operativos no tienen traducción financiera. El CEO ve volumen, no valor.</p>
+      </div>
+      <div class="pain-card reveal reveal-delay-3">
+        <div class="pain-num">02 / CANALES</div>
+        <div class="pain-q">"¿Cuál canal me cuesta menos por contacto efectivo?"</div>
+        <div class="pain-a"><span>✕</span> No hay comparativo</div>
+        <p style="margin-top:14px;font-size:13px;">Voz, bot y mensajería en silos separados. No existe un comparativo real de eficiencia por canal.</p>
+      </div>
+      <div class="pain-card reveal reveal-delay-4">
+        <div class="pain-num">03 / CLIENTE</div>
+        <div class="pain-q">"¿Qué pasó con el cliente en todos mis canales?"</div>
+        <div class="pain-a"><span>✕</span> Tres portales, cinco minutos</div>
+        <p style="margin-top:14px;font-size:13px;">Información fragmentada. El journey completo del cliente no existe en ningún sistema.</p>
+      </div>
+    </div>
+
+    <div class="blockquote reveal reveal-delay-5">
+      <p>"Tengo datos operativos. No tengo resultados de negocio."</p>
+      <cite>— El CEO de toda empresa con contact center en LATAM</cite>
+    </div>
+  </div>
+  <div class="slide-indicator">02 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 3 — ECOSISTEMA WEKALL
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-3">
+  <div class="glow-cyan" style="top:-100px;right:-100px;"></div>
+  <div class="glow-green" style="bottom:-50px;left:-50px;"></div>
+
+  <div class="slide-inner">
+    <div class="label reveal">Ecosistema WeKall</div>
+    <h2 class="reveal reveal-delay-1">
+      Un cerebro sobre<br>
+      <span class="gradient-text">todo el ecosistema.</span>
+    </h2>
+    <p class="reveal reveal-delay-2" style="margin-top:8px;margin-bottom:0;">
+      WeKall es dueño de todos los datos. WeIntelligence los conecta en tiempo real.
+    </p>
+    <div class="sep reveal reveal-delay-2"></div>
+
+    <div class="ecosystem-grid">
+      <div class="eco-card reveal reveal-delay-2">
+        <span class="eco-icon">📞</span>
+        <div class="eco-name">Business Phone (PBX)</div>
+        <div class="eco-data">
+          <span>→</span> CDR voz<br>
+          <span>→</span> Grabaciones<br>
+          <span>→</span> Tipificaciones
+        </div>
+      </div>
+      <div class="eco-card reveal reveal-delay-3">
+        <span class="eco-icon">🎯</span>
+        <div class="eco-name">Engage 360°</div>
+        <div class="eco-data">
+          <span>→</span> Campañas · Agentes<br>
+          <span>→</span> SLA · AHT<br>
+          <span>→</span> Wallboard en tiempo real
+        </div>
+      </div>
+      <div class="eco-card reveal reveal-delay-4">
+        <span class="eco-icon">🤖</span>
+        <div class="eco-name">Vicky IA</div>
+        <div class="eco-data">
+          <span>→</span> Bots de voz<br>
+          <span>→</span> Conversiones · Sentiment<br>
+          <span>→</span> Variables capturadas
+        </div>
+      </div>
+      <div class="eco-card reveal reveal-delay-3">
+        <span class="eco-icon">💬</span>
+        <div class="eco-name">Messenger Hub</div>
+        <div class="eco-data">
+          <span>→</span> WhatsApp · IG · Telegram<br>
+          <span>→</span> CSAT · Bots texto<br>
+          <span>→</span> Campañas masivas
+        </div>
+      </div>
+      <div class="eco-card reveal reveal-delay-4">
+        <span class="eco-icon">📝</span>
+        <div class="eco-name">Notes IA</div>
+        <div class="eco-data">
+          <span>→</span> Transcripciones<br>
+          <span>→</span> Resúmenes ejecutivos<br>
+          <span>→</span> Acuerdos y compromisos
+        </div>
+      </div>
+      <div class="eco-card reveal reveal-delay-5">
+        <span class="eco-icon">🔗</span>
+        <div class="eco-name">CRM Integrado</div>
+        <div class="eco-data">
+          <span>→</span> Historial del cliente<br>
+          <span>→</span> Promesas · Seguimiento<br>
+          <span>→</span> Pipeline comercial
+        </div>
+      </div>
+    </div>
+
+    <div class="brain-label reveal reveal-delay-6">
+      <span class="wk-logo-w">We</span><span class="wk-logo-i">Intelligence</span> conecta todo.
+      <span style="color:var(--muted);"> Un solo cerebro. Una sola pantalla. Una sola verdad.</span>
+    </div>
+  </div>
+  <div class="slide-indicator">03 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 4 — LO QUE TIENES HOY
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-4">
+  <div class="glow-green" style="top:-100px;right:-50px;"></div>
+
+  <div class="slide-inner">
+    <div class="reveal" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:8px;">
+      <div>
+        <div class="label">En producción hoy</div>
+        <h2>Lo que tienes.<br><span class="gradient-text-green">Disponible ahora.</span></h2>
+      </div>
+      <div class="badge">En producción · 3 clientes activos</div>
+    </div>
+    <div class="sep reveal reveal-delay-1"></div>
+
+    <div class="features-grid">
+      <div class="feature-item reveal reveal-delay-1">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Dashboard CEO + Executive Brief</div>
+          <div class="feature-desc">KPIs en tiempo real, anomalías detectadas automáticamente, resumen ejecutivo al arrancar el día</div>
+        </div>
+      </div>
+      <div class="feature-item reveal reveal-delay-2">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Vicky IA — GPT-4o con datos reales</div>
+          <div class="feature-desc">Function Calling sobre datos de Engage 360°. Ahorra 30 min/día al CEO. Responde en lenguaje natural.</div>
+        </div>
+      </div>
+      <div class="feature-item reveal reveal-delay-2">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Speech Analytics</div>
+          <div class="feature-desc">Transcripciones, objeciones frecuentes, CSAT inferido, análisis semántico de grabaciones de Engage</div>
+        </div>
+      </div>
+      <div class="feature-item reveal reveal-delay-3">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Forecast + Erlang C</div>
+          <div class="feature-desc">Dimensionamiento óptimo de agentes por SLA. Evita sobrecosto y subcapacidad.</div>
+        </div>
+      </div>
+      <div class="feature-item reveal reveal-delay-3">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Ranking de equipos</div>
+          <div class="feature-desc">CSAT, FCR, volumen por agente. Identifica top performers y cuellos de botella.</div>
+        </div>
+      </div>
+      <div class="feature-item reveal reveal-delay-4">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Alertas proactivas</div>
+          <div class="feature-desc">Umbrales configurables. Notificación inmediata cuando un KPI crítico cae fuera de rango.</div>
+        </div>
+      </div>
+      <div class="feature-item reveal reveal-delay-4">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Tasa de contacto en tiempo real</div>
+          <div class="feature-desc">AHT, ocupación, SLA y efectividad de campaña actualizados al minuto.</div>
+        </div>
+      </div>
+      <div class="feature-item reveal reveal-delay-5">
+        <div class="check-icon">✓</div>
+        <div>
+          <div class="feature-title">Multi-tenant seguro (RLS Supabase)</div>
+          <div class="feature-desc">Cada cliente ve solo sus datos. Arquitectura enterprise-grade desde el día uno.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="production-banner reveal reveal-delay-6">
+      <p>Todo lo anterior está <strong>en producción</strong>, funcionando con datos reales, con clientes reales.</p>
+      <div class="badge">Live · Engage 360°</div>
+    </div>
+  </div>
+  <div class="slide-indicator">04 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 5 — DEMO VISUAL: DATOS EN GRIS
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-5">
+  <div class="glow-violet" style="top:30%;right:-100px;"></div>
+
+  <div class="slide-inner">
+    <div class="slide5-layout">
+      <!-- TEXT COLUMN -->
+      <div class="slide5-text">
+        <div class="label reveal">El gap visual</div>
+        <h2 class="reveal reveal-delay-1">
+          Ves todo lo que tienes.<br>
+          <span style="color:var(--muted-light);font-weight:400;">Y lo que te falta.</span>
+        </h2>
+        <div class="sep reveal reveal-delay-1"></div>
+        <p class="reveal reveal-delay-2">
+          Los datos de <strong style="color:var(--text);">Engage 360°</strong> están encendidos.
+          Los de <strong style="color:var(--text);">Vicky IA</strong> y <strong style="color:var(--text);">Messenger Hub</strong> aún no se conectaron.
+        </p>
+        <p class="reveal reveal-delay-3" style="margin-top:12px;">
+          Cada dato en gris es una oportunidad de negocio que todavía no estás capturando.
+        </p>
+
+        <div class="warning-box reveal reveal-delay-4" style="margin-top:24px;">
+          <span class="wi">⚠️</span>
+          <p>Sin Financial Intelligence, el CEO ve <em>operación</em>. No ve <em>margen</em>, no ve <em>caja</em>, no ve <em>ROI</em>.</p>
+        </div>
+
+        <div style="margin-top:24px;" class="reveal reveal-delay-5">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);">
+              <div style="width:10px;height:10px;background:var(--green);border-radius:3px;"></div>
+              Activo · Engage 360°
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);">
+              <div style="width:10px;height:10px;background:var(--muted);border-radius:3px;opacity:0.4;"></div>
+              Por conectar · Vicky IA
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--yellow);">
+              <div style="width:10px;height:10px;background:var(--yellow);border-radius:3px;"></div>
+              Sprint · Financial Intel
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD MOCK -->
+      <div class="dashboard-mock reveal reveal-delay-2">
+        <!-- Top bar -->
+        <div class="db-topbar">
+          <div class="db-dots">
+            <div class="db-dot db-dot-r"></div>
+            <div class="db-dot db-dot-y"></div>
+            <div class="db-dot db-dot-g"></div>
+          </div>
+          <div class="db-title">WeIntelligence · Dashboard CEO</div>
+          <div class="db-live">EN VIVO</div>
+        </div>
+
+        <!-- Body -->
+        <div class="db-body">
+          <!-- Sidebar -->
+          <div class="db-sidebar">
+            <div class="db-sb-icon active" title="Dashboard">⊞</div>
+            <div class="db-sb-icon" title="Speech">🎙</div>
+            <div class="db-sb-icon" title="Agentes">👥</div>
+            <div class="db-sb-icon" title="Vicky IA">🤖</div>
+            <div class="db-sb-icon" title="Finanzas">💰</div>
+            <div class="db-sb-icon" title="Alertas">🔔</div>
+          </div>
+
+          <!-- Main content -->
+          <div class="db-content">
+
+            <!-- KPI Row — ACTIVE (Engage data) -->
+            <div class="db-kpi-row">
+              <div class="db-kpi">
+                <div class="db-kpi-label">Llamadas hoy</div>
+                <div class="db-kpi-value" style="color:var(--text);">22,847</div>
+                <div class="db-kpi-delta delta-up">↑ 4.2% vs ayer</div>
+              </div>
+              <div class="db-kpi">
+                <div class="db-kpi-label">SLA</div>
+                <div class="db-kpi-value" style="color:var(--green);">87.3%</div>
+                <div class="db-kpi-delta delta-down">↓ 1.1pp</div>
+              </div>
+              <div class="db-kpi">
+                <div class="db-kpi-label">AHT</div>
+                <div class="db-kpi-value" style="color:var(--cyan);">4m 22s</div>
+                <div class="db-kpi-delta delta-up">↑ mejora</div>
+              </div>
+              <!-- LOCKED: Financial -->
+              <div class="db-kpi" style="position:relative;overflow:hidden;border-color:rgba(251,191,36,0.25);">
+                <div class="db-kpi-label" style="filter:blur(3px);opacity:0.3;">Promesas $</div>
+                <div class="db-kpi-value" style="filter:blur(5px);opacity:0.25;color:var(--yellow);">$???M</div>
+                <div class="db-kpi-delta" style="filter:blur(3px);opacity:0.2;">tendencia</div>
+                <div style="position:absolute;inset:0;background:rgba(10,11,16,0.78);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;">
+                  <span style="font-size:14px;">🔒</span>
+                  <span style="font-size:9px;color:var(--yellow);letter-spacing:0.05em;text-align:center;">Financial<br>Intel</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mid row -->
+            <div class="db-mid-row">
+              <!-- Chart ACTIVE -->
+              <div class="db-chart-box">
+                <div class="db-chart-title">📞 Volumen por hora — Engage 360°</div>
+                <svg class="db-chart-svg" viewBox="0 0 260 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.3"/>
+                      <stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,70 L20,55 L45,42 L65,30 L85,20 L105,28 L125,35 L145,22 L165,18 L185,25 L205,32 L225,45 L245,38 L260,30 L260,80 L0,80 Z" fill="url(#chartGrad)"/>
+                  <path d="M0,70 L20,55 L45,42 L65,30 L85,20 L105,28 L125,35 L145,22 L165,18 L185,25 L205,32 L225,45 L245,38 L260,30" stroke="#818cf8" stroke-width="1.5" fill="none"/>
+                  <circle cx="165" cy="18" r="3" fill="#818cf8"/>
+                  <line x1="165" y1="18" x2="165" y2="80" stroke="#818cf8" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.4"/>
+                  <!-- X axis labels -->
+                  <text x="0" y="78" font-size="7" fill="#636987" font-family="JetBrains Mono">6a</text>
+                  <text x="60" y="78" font-size="7" fill="#636987" font-family="JetBrains Mono">9a</text>
+                  <text x="120" y="78" font-size="7" fill="#636987" font-family="JetBrains Mono">12p</text>
+                  <text x="185" y="78" font-size="7" fill="#636987" font-family="JetBrains Mono">3p</text>
+                  <text x="240" y="78" font-size="7" fill="#636987" font-family="JetBrains Mono">6p</text>
+                </svg>
+              </div>
+
+              <!-- Vicky IA — LOCKED -->
+              <div class="db-locked-section">
+                <div class="db-section-title db-fake-content">🤖 Vicky IA — Conversiones</div>
+                <div class="db-fake-content">
+                  <div class="db-fake-bar-row">
+                    <div class="db-fake-label-sm"></div>
+                    <div class="db-fake-bar" style="width:70%;"></div>
+                    <div class="db-fake-val"></div>
+                  </div>
+                  <div class="db-fake-bar-row">
+                    <div class="db-fake-label-sm"></div>
+                    <div class="db-fake-bar" style="width:45%;background:linear-gradient(90deg,var(--cyan),var(--green));"></div>
+                    <div class="db-fake-val"></div>
+                  </div>
+                  <div class="db-fake-bar-row">
+                    <div class="db-fake-label-sm"></div>
+                    <div class="db-fake-bar" style="width:55%;"></div>
+                    <div class="db-fake-val"></div>
+                  </div>
+                  <div style="height:12px;background:rgba(129,140,248,0.15);border-radius:4px;margin-top:6px;"></div>
+                </div>
+                <div class="db-locked-label">
+                  <div class="db-lock-icon">🔒</div>
+                  <div class="db-lock-text">Vicky IA</div>
+                  <div class="db-lock-source">Próxima integración</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom row -->
+            <div class="db-bottom-row">
+              <!-- Agents ranking ACTIVE -->
+              <div class="db-chart-box">
+                <div class="db-chart-title">👥 Top agentes — FCR</div>
+                <div class="db-table-header">
+                  <div class="db-th">Agente</div>
+                  <div class="db-th">FCR</div>
+                  <div class="db-th">CSAT</div>
+                </div>
+                <div class="db-tr"><div class="db-td">M. García</div><div class="db-td-green">94%</div><div class="db-td-green">4.8</div></div>
+                <div class="db-tr"><div class="db-td">L. Torres</div><div class="db-td-green">91%</div><div class="db-td-green">4.6</div></div>
+                <div class="db-tr"><div class="db-td">R. López</div><div class="db-td-muted">78%</div><div class="db-td-muted">4.1</div></div>
+                <div class="db-tr"><div class="db-td">A. Ruiz</div><div class="db-td-muted">71%</div><div class="db-td-muted">3.9</div></div>
+              </div>
+
+              <!-- Speech ACTIVE -->
+              <div class="db-chart-box">
+                <div class="db-chart-title">🎙 Speech Analytics</div>
+                <div class="db-speech-item">
+                  <div class="db-speech-q">Precio / costo</div>
+                  <div class="db-speech-bar"><div class="db-speech-fill" style="width:78%;background:var(--red);opacity:0.7;"></div></div>
+                </div>
+                <div class="db-speech-item">
+                  <div class="db-speech-q">Problema técnico</div>
+                  <div class="db-speech-bar"><div class="db-speech-fill" style="width:52%;background:var(--yellow);opacity:0.7;"></div></div>
+                </div>
+                <div class="db-speech-item">
+                  <div class="db-speech-q">Cancelación</div>
+                  <div class="db-speech-bar"><div class="db-speech-fill" style="width:35%;background:var(--violet);opacity:0.7;"></div></div>
+                </div>
+                <div class="db-speech-item">
+                  <div class="db-speech-q">Consulta info</div>
+                  <div class="db-speech-bar"><div class="db-speech-fill" style="width:62%;background:var(--cyan);opacity:0.6;"></div></div>
+                </div>
+              </div>
+
+              <!-- Messenger Hub LOCKED -->
+              <div class="db-locked-section">
+                <div class="db-section-title db-fake-content">💬 Messenger Hub</div>
+                <div class="db-fake-content">
+                  <div style="height:8px;background:rgba(56,189,248,0.3);border-radius:3px;margin-bottom:6px;width:80%;"></div>
+                  <div style="height:8px;background:rgba(56,189,248,0.2);border-radius:3px;margin-bottom:6px;width:60%;"></div>
+                  <div style="height:8px;background:rgba(56,189,248,0.15);border-radius:3px;margin-bottom:6px;width:70%;"></div>
+                  <div style="height:8px;background:rgba(56,189,248,0.1);border-radius:3px;width:45%;"></div>
+                </div>
+                <div class="db-locked-label">
+                  <div class="db-lock-icon">🔒</div>
+                  <div class="db-lock-text">Messenger Hub</div>
+                  <div class="db-lock-source">Próxima integración</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Financial Intelligence LOCKED BANNER -->
+            <div class="db-fin-locked">
+              <div class="db-fake-content" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                <div style="height:32px;background:rgba(251,191,36,0.15);border-radius:6px;"></div>
+                <div style="height:32px;background:rgba(251,191,36,0.1);border-radius:6px;"></div>
+                <div style="height:32px;background:rgba(251,191,36,0.08);border-radius:6px;"></div>
+              </div>
+              <div class="db-fin-label">
+                <div class="db-lock-icon" style="background:rgba(251,191,36,0.15);border-color:rgba(251,191,36,0.3);">💰</div>
+                <div class="db-fin-badge">🚧 Financial Intelligence — Sprint Activo</div>
+                <div class="db-lock-text" style="color:var(--yellow);opacity:0.8;font-size:9px;">Promesas de pago · Costo por canal · Margen operativo</div>
+              </div>
+            </div>
+
+          </div><!-- /db-content -->
+        </div><!-- /db-body -->
+
+        <!-- Legend -->
+        <div class="db-legend">
+          <div class="db-legend-item">
+            <div class="db-legend-dot db-legend-dot-active"></div>
+            Datos activos (Engage 360° + Speech)
+          </div>
+          <div class="db-legend-item">
+            <div class="db-legend-dot db-legend-dot-locked"></div>
+            Por conectar (Vicky IA · Messenger Hub)
+          </div>
+          <div class="db-legend-item">
+            <div class="db-legend-dot" style="background:var(--yellow);"></div>
+            En sprint (Financial Intel)
+          </div>
+        </div>
+      </div><!-- /dashboard-mock -->
+    </div>
+  </div>
+  <div class="slide-indicator">05 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 6 — FINANCIAL INTELLIGENCE
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-6">
+  <div class="glow-green" style="bottom:-100px;right:-50px;"></div>
+  <div class="glow-violet" style="top:-100px;left:-100px;"></div>
+
+  <div class="slide-inner">
+    <div class="label reveal">Sprint activo · Q2 2026</div>
+    <h2 class="reveal reveal-delay-1">
+      El sprint que convierte<br>
+      <span style="color:var(--muted);">WeIntelligence de</span>
+      <span style="font-family:'JetBrains Mono',monospace;color:var(--muted);"> 4/10 </span>
+      <span style="color:var(--muted);">a</span>
+      <span class="gradient-text-green" style="font-family:'JetBrains Mono',monospace;"> 9/10.</span>
+    </h2>
+    <div class="sep reveal reveal-delay-1"></div>
+
+    <div class="sprint-layout">
+      <div class="sprint-card sprint-card-before reveal reveal-delay-2">
+        <div class="sprint-icon">😶</div>
+        <div class="sprint-quote">"Hice <strong>22,000 llamadas</strong>.<br>No sé cuánto generé."</div>
+        <div style="margin-top:20px;">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;font-family:'JetBrains Mono',monospace;">El CEO hoy ve</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted-light);">
+              <span style="color:var(--red);">✕</span> Volumen de llamadas
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted-light);">
+              <span style="color:var(--red);">✕</span> Ocupación de agentes
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted-light);">
+              <span style="color:var(--red);">✕</span> SLA y tiempos
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted-light);">
+              <span style="color:var(--red);">✕</span> Sin traducción a pesos
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sprint-card sprint-card-after reveal reveal-delay-3">
+        <div class="sprint-icon">🧠</div>
+        <div class="sprint-quote">"Hoy tu operación generó<br><strong>$142M COP</strong> en promesas de pago."</div>
+        <div class="sprint-number">$142M COP</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace;">vs $158M ayer</div>
+        <div class="sprint-trend">↓ −10% · Tendencia negativa</div>
+
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+            <span style="color:var(--green);">✓</span> Promesas de pago en COP
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+            <span style="color:var(--green);">✓</span> Costo por contacto efectivo
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+            <span style="color:var(--green);">✓</span> Margen por canal
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+            <span style="color:var(--green);">✓</span> ROI de cada campaña
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal reveal-delay-4" style="padding:16px 20px;background:rgba(129,140,248,0.06);border:1px solid rgba(129,140,248,0.2);border-radius:10px;text-align:center;">
+      <p style="color:var(--text);font-size:14px;margin:0;">
+        <span style="color:var(--violet);font-weight:700;">Financial Intelligence</span> es el módulo que convierte WeIntelligence de una herramienta de contact center
+        en un <strong>activo estratégico del CEO.</strong>
+      </p>
+    </div>
+  </div>
+  <div class="slide-indicator">06 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 7 — ROADMAP
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-7">
+  <div class="glow-cyan" style="top:0;right:-50px;"></div>
+
+  <div class="slide-inner">
+    <div class="label reveal">Roadmap 2026</div>
+    <h2 class="reveal reveal-delay-1">
+      De <span style="color:var(--muted);">4/10</span> a <span class="gradient-text-green">líder regional</span><br>
+      en tres trimestres.
+    </h2>
+    <div class="sep reveal reveal-delay-1"></div>
+
+    <!-- Quarter headers -->
+    <div class="reveal reveal-delay-2" style="display:flex;margin-bottom:8px;">
+      <div style="width:90px;flex-shrink:0;"></div>
+      <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);">
+        <div style="text-align:center;padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid var(--border);position:relative;">
+          Q2 2026
+          <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:6px;height:6px;background:var(--border);border-radius:50%;"></div>
+        </div>
+        <div style="text-align:center;padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid var(--border);position:relative;">
+          Q3 2026
+          <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:6px;height:6px;background:var(--border);border-radius:50%;"></div>
+        </div>
+        <div style="text-align:center;padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid var(--border);position:relative;">
+          Q4 2026
+          <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:6px;height:6px;background:var(--border);border-radius:50%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roadmap items -->
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+
+      <!-- Item 1: Financial Intelligence -->
+      <div class="reveal reveal-delay-2" style="display:flex;align-items:center;gap:0;">
+        <div style="width:90px;flex-shrink:0;font-size:11px;color:var(--muted-light);font-weight:600;text-align:right;padding-right:16px;">Financial<br>Intel</div>
+        <div style="flex:1;height:40px;position:relative;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="position:absolute;left:0;top:0;height:100%;width:36%;background:linear-gradient(135deg,rgba(251,191,36,0.8),rgba(251,191,36,0.5));border-radius:8px 0 0 8px;display:flex;align-items:center;padding:0 14px;">
+            <span style="font-size:11px;font-weight:700;color:#000;white-space:nowrap;">💰 En sprint</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 2: Omnichannel Journey -->
+      <div class="reveal reveal-delay-3" style="display:flex;align-items:center;gap:0;">
+        <div style="width:90px;flex-shrink:0;font-size:11px;color:var(--muted-light);font-weight:600;text-align:right;padding-right:16px;">Omnichannel<br>Journey</div>
+        <div style="flex:1;height:40px;position:relative;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="position:absolute;left:33%;top:0;height:100%;width:40%;background:linear-gradient(135deg,rgba(56,189,248,0.7),rgba(56,189,248,0.4));border-radius:6px;display:flex;align-items:center;padding:0 14px;">
+            <span style="font-size:11px;font-weight:700;color:#0a0b10;white-space:nowrap;">🗺️ Journey completo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 3: Speech Analytics expandido -->
+      <div class="reveal reveal-delay-4" style="display:flex;align-items:center;gap:0;">
+        <div style="width:90px;flex-shrink:0;font-size:11px;color:var(--muted-light);font-weight:600;text-align:right;padding-right:16px;">Speech<br>Expandido</div>
+        <div style="flex:1;height:40px;position:relative;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="position:absolute;left:33%;top:0;height:100%;width:32%;background:linear-gradient(135deg,rgba(74,222,128,0.7),rgba(74,222,128,0.4));border-radius:6px;display:flex;align-items:center;padding:0 14px;">
+            <span style="font-size:11px;font-weight:700;color:#0a0b10;white-space:nowrap;">🎙 Todos los canales</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 4: Vicky Omnicanal -->
+      <div class="reveal reveal-delay-5" style="display:flex;align-items:center;gap:0;">
+        <div style="width:90px;flex-shrink:0;font-size:11px;color:var(--muted-light);font-weight:600;text-align:right;padding-right:16px;">Vicky<br>Omnicanal</div>
+        <div style="flex:1;height:40px;position:relative;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="position:absolute;left:65%;top:0;height:100%;width:35%;background:linear-gradient(135deg,rgba(56,189,248,0.6),rgba(129,140,248,0.5));border-radius:0 6px 6px 0;display:flex;align-items:center;padding:0 14px;">
+            <span style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;">🤖 Alertas con $</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Audience + legend -->
+    <div class="reveal reveal-delay-6" style="margin-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;font-family:'JetBrains Mono',monospace;">Audiencia objetivo</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted-light);">CEO</span>
+          <span style="padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted-light);">CFO</span>
+          <span style="padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted-light);">VP Ventas</span>
+          <span style="padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted-light);">VP CX</span>
+          <span style="padding:5px 12px;background:var(--card);border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted-light);">COO</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;font-family:'JetBrains Mono',monospace;">Referencias</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);">
+            <div style="width:12px;height:12px;border-radius:3px;background:rgba(251,191,36,0.7);"></div>Financial
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);">
+            <div style="width:12px;height:12px;border-radius:3px;background:rgba(56,189,248,0.7);"></div>Omnicanal
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);">
+            <div style="width:12px;height:12px;border-radius:3px;background:rgba(74,222,128,0.7);"></div>Speech
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);">
+            <div style="width:12px;height:12px;border-radius:3px;background:rgba(129,140,248,0.7);"></div>Vicky IA
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-indicator">07 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 8 — DIFERENCIADORES
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-8">
+  <div class="glow-violet" style="top:50%;left:50%;transform:translate(-50%,-50%);width:800px;height:800px;"></div>
+
+  <div class="slide-inner">
+    <div class="label reveal">Por qué WeIntelligence</div>
+    <h2 class="reveal reveal-delay-1" style="text-align:center;">
+      Tres diferenciadores.<br>
+      <span class="gradient-text">Ninguno replicable hoy en LATAM.</span>
+    </h2>
+    <div class="sep reveal reveal-delay-1" style="margin:20px auto;"></div>
+
+    <div class="diff-grid">
+      <!-- Card 1 -->
+      <div class="diff-card diff-card-1 reveal reveal-delay-2">
+        <div class="diff-number" style="color:var(--violet);">01</div>
+        <span class="diff-icon">🗄️</span>
+        <h3 class="diff-title">Datos nativos propios</h3>
+        <p class="diff-desc">
+          WeKall es dueño de todos los datos — voz, bot, mensajería, CRM.
+          No necesita integraciones externas. No hay fricción, no hay latencia, no hay riesgo.
+        </p>
+        <div class="diff-tag diff-tag-1">Ventaja estructural</div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="diff-card diff-card-2 reveal reveal-delay-3">
+        <div class="diff-number" style="color:var(--cyan);">02</div>
+        <span class="diff-icon">🌎</span>
+        <h3 class="diff-title">El único en LATAM</h3>
+        <p class="diff-desc">
+          Voz IA + mensajería + contact center integrados con BI propio
+          en una sola plataforma. No existe otro jugador con esta combinación en la región.
+        </p>
+        <div class="diff-tag diff-tag-2">Único en el mercado</div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="diff-card diff-card-3 reveal reveal-delay-4">
+        <div class="diff-number" style="color:var(--green);">03</div>
+        <span class="diff-icon">💼</span>
+        <h3 class="diff-title">Habla el idioma del CEO</h3>
+        <p class="diff-desc">
+          Sin TMO, sin ocupación, sin jerga de contact center.
+          WeIntelligence habla margen, caja y ROI. La única métrica que importa al C-suite.
+        </p>
+        <div class="diff-tag diff-tag-3">Lenguaje ejecutivo</div>
+      </div>
+    </div>
+
+    <div class="reveal reveal-delay-5" style="margin-top:8px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="font-size:24px;">⚡</div>
+      <p style="margin:0;font-size:14px;color:var(--muted-light);">
+        Ningún competidor en LATAM tiene <strong style="color:var(--text);">los tres</strong> simultáneamente.
+        Quien tenga BI sin datos propios, pierde. Quien tenga datos sin lenguaje ejecutivo, pierde.
+        <strong style="color:var(--violet);">WeIntelligence tiene los tres.</strong>
+      </p>
+    </div>
+  </div>
+  <div class="slide-indicator">08 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 9 — VEREDICTO CEO
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-9">
+  <div class="glow-green" style="bottom:-100px;left:50%;transform:translateX(-50%);"></div>
+
+  <div class="slide-inner">
+    <div style="max-width:820px;margin:0 auto;text-align:center;">
+      <div class="label reveal" style="justify-content:center;">El veredicto del CEO</div>
+      <h2 class="reveal reveal-delay-1" style="text-align:center;">
+        Hoy vale <span style="font-family:'JetBrains Mono',monospace;color:var(--muted);">4.</span><br>
+        Con Financial Intelligence vale <span class="gradient-text-green" style="font-family:'JetBrains Mono',monospace;">9.</span>
+      </h2>
+
+      <!-- Score visual -->
+      <div class="score-visual reveal reveal-delay-2">
+        <div class="score-box">
+          <div>
+            <span class="score-number score-now">4</span>
+            <span class="score-slash">/</span>
+            <span class="score-denom">10</span>
+          </div>
+          <div class="score-label">Hoy</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <div style="font-size:32px;color:var(--violet);opacity:0.7;">→</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--violet);letter-spacing:0.1em;">Financial Intel</div>
+        </div>
+
+        <div class="score-box">
+          <div>
+            <span class="score-number score-future">9</span>
+            <span class="score-slash" style="color:rgba(74,222,128,0.3);">/</span>
+            <span class="score-denom">10</span>
+          </div>
+          <div class="score-label" style="color:var(--green);">Con sprint</div>
+        </div>
+      </div>
+
+      <!-- Progress bar visual -->
+      <div class="reveal reveal-delay-3" style="margin:16px 0 32px;">
+        <div style="height:8px;background:var(--card);border-radius:999px;overflow:hidden;border:1px solid var(--border);">
+          <div style="height:100%;width:40%;background:linear-gradient(90deg,var(--muted),rgba(99,105,135,0.5));border-radius:999px;position:relative;">
+            <div style="position:absolute;right:-40px;top:-20px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);">HOY</div>
+          </div>
+        </div>
+        <div style="height:8px;background:var(--card);border-radius:999px;overflow:hidden;border:1px solid rgba(74,222,128,0.3);margin-top:8px;">
+          <div style="height:100%;width:90%;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:999px;position:relative;">
+            <div style="position:absolute;right:-50px;top:-20px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green);">SPRINT</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="verdict-quote reveal reveal-delay-4">
+        <p>
+          "Cuando WeIntelligence responda esa pregunta — vale un 9/10 y no hay
+          competidor en LATAM que me lo quite."
+        </p>
+        <cite>— Veredicto estratégico · WeKall Intelligence</cite>
+      </div>
+
+      <div class="no-competitor reveal reveal-delay-5">
+        🌎 El único en LATAM con esta combinación. Y el único que puede responderla con datos propios.
+      </div>
+    </div>
+  </div>
+  <div class="slide-indicator">09 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SLIDE 10 — CTA FINAL
+════════════════════════════════════════════ -->
+<section class="slide" id="slide-10">
+  <div class="hero-grid-bg"></div>
+  <div class="glow-violet" style="top:30%;left:20%;"></div>
+  <div class="glow-cyan" style="bottom:20%;right:20%;"></div>
+
+  <div class="slide-inner" style="text-align:center;">
+    <div class="label reveal" style="justify-content:center;">Listo para verlo en vivo</div>
+
+    <div class="reveal reveal-delay-1" style="margin-bottom:24px;">
+      <span class="wk-logo-big">
+        <span class="wk-logo-w">WeKall</span> <span class="wk-logo-i">Intelligence</span>
+      </span>
+    </div>
+
+    <h1 class="reveal reveal-delay-2" style="font-size:clamp(28px,4vw,52px);max-width:700px;margin:0 auto 16px;">
+      Empieza a tomar decisiones<br>
+      <span class="gradient-text">con datos que importan.</span>
+    </h1>
+
+    <div class="cta-url reveal reveal-delay-3">
+      <a href="https://wekall-intelligence.pages.dev" target="_blank">wekall-intelligence.pages.dev</a>
+    </div>
+
+    <div class="cta-btn-row reveal reveal-delay-4">
+      <a href="https://wekall-intelligence.pages.dev" target="_blank" class="btn-cta-main">
+        <span>▶</span> Ver demo en vivo
+      </a>
+      <a href="#slide-1" class="btn-ghost">← Volver al inicio</a>
+    </div>
+
+    <div class="cta-footer reveal reveal-delay-5">
+      <div class="cta-footer-item">
+        <span>🏢</span> WeKall · Bogotá, Colombia
+      </div>
+      <div class="cta-footer-dot"></div>
+      <div class="cta-footer-item">
+        <span>🌎</span> Operando en LATAM
+      </div>
+      <div class="cta-footer-dot"></div>
+      <div class="cta-footer-item">
+        <span>⚡</span> 3 clientes activos en producción
+      </div>
+      <div class="cta-footer-dot"></div>
+      <div class="cta-footer-item">
+        <span>🔒</span> Multi-tenant · RLS Supabase
+      </div>
+    </div>
+  </div>
+  <div class="slide-indicator">10 / 10</div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  // ─── SLIDE SECTIONS ───
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const dots = Array.from(document.querySelectorAll('.nav-dot'));
+
+  // ─── INTERSECTION OBSERVER for reveal ───
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => {
+    revealObserver.observe(el);
+  });
+
+  // ─── ACTIVE DOT on scroll ───
+  const slideObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = slides.indexOf(entry.target);
+        if (idx !== -1) {
+          dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+
+  slides.forEach(s => slideObserver.observe(s));
+
+  // ─── DOT CLICK: smooth scroll to slide ───
+  dots.forEach((dot, idx) => {
+    dot.addEventListener('click', () => {
+      slides[idx].scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // ─── KEYBOARD NAVIGATION ───
+  let currentSlide = 0;
+  function getCurrentSlide() {
+    return slides.findIndex(s => {
+      const r = s.getBoundingClientRect();
+      return r.top >= -50 && r.top < window.innerHeight / 2;
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    const cur = getCurrentSlide();
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      e.preventDefault();
+      const next = Math.min(cur + 1, slides.length - 1);
+      slides[next].scrollIntoView({ behavior: 'smooth' });
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      const prev = Math.max(cur - 1, 0);
+      slides[prev].scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  // ─── ANIMATED COUNTER for hero stats ───
+  function animateValue(el, start, end, duration, suffix) {
+    const range = end - start;
+    const startTime = performance.now();
+    function update(ts) {
+      const elapsed = ts - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.floor(start + range * eased) + (suffix || '');
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  // Animate score bars on slide 9 entry
+  const slide9 = document.getElementById('slide-9');
+  let slide9Animated = false;
+  const slide9Observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !slide9Animated) {
+      slide9Animated = true;
+      // Animate the score numbers visually (already in HTML, just trigger CSS)
+    }
+  }, { threshold: 0.3 });
+  if (slide9) slide9Observer.observe(slide9);
+
+  // ─── DASHBOARD: subtle live data tick ───
+  const kpiCalls = document.querySelector('.db-kpi-value');
+  if (kpiCalls) {
+    setInterval(() => {
+      const base = 22847;
+      const variation = Math.floor(Math.random() * 40) - 10;
+      const val = base + Math.floor(Date.now() / 30000) * 3 + variation;
+      kpiCalls.textContent = val.toLocaleString('es-CO');
+    }, 4000);
+  }
+
+})();
+</script>
+</body>
+</html>
