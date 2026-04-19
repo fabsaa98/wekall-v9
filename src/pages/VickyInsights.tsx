@@ -838,12 +838,22 @@ Jonathan Vallejo (ext 210), Julián Pérez, Karina Padilla (ext 1059)
 Álvaro Galeano (ext 215), Daniela Ariza (ext 1059), Diana Cruz (ext 212),
 GUILLERMO GOMEZ (ext 216), Karoll Sopo (ext 213)
 
+### Volumen real por campaña (ene 2024 → abr 2026 — 12,083,522 llamadas totales)
+| Campaña | Llamadas | Contactos efectivos | Tasa contacto |
+|---|---|---|---|
+| Cobranzas Crediminuto Colombia | 6,832,540 | 1,003,626 | 14.7% |
+| Servicio al Cliente Colombia | 2,039,323 | 243,100 | 11.9% |
+| Cobranzas CrediSmart Perú | 1,955,779 | 380,502 | 19.5% |
+| Servicio al cliente Perú | 57,839 | 2,037 | 3.5% |
+| Otros | 1,198,041 | 133,539 | 11.1% |
+
 ### Notas operativas clave
-- El CDR registra llamadas por extensión y nombre de agente — permite trazabilidad individual
-- Tipo de llamada: saliente (marcación activa) y entrante (clientes que llaman)
-- Cobranzas Colombia es la campaña dominante (57% del volumen)
-- Cobranzas Perú opera con muy pocos agentes humanos (5) — principalmente saliente
-- 'Cliente Final' es una categoría residual con 9 llamadas (probablemente pruebas o transferencias directas)
+- El CDR registra: id, call_start, call_end, src, dst, campaign_id, disposition_id, tipo_descripcion
+- Tipos que indican CONTACTO EFECTIVO: Promesa, En Negociáción, Mensaje con Tercero, Colgó, Información Credicash, Desbloqueo de equipos, Atención al Cliente
+- Tipos que indican NO CONTACTO: Llamada Perdida, No contesta, Buzón de Voz, Llamada Abandonada, Fuera de Servicio, Ilocalizable
+- Cobranzas Colombia es la campaña dominante (57% del volumen total)
+- Perú tiene MEJOR tasa de contacto (19.5%) que Colombia (14.7%) — insight estratégico
+- Tabla en Supabase: cdr_campaign_metrics — usarla via query_cdr_data con query_type='date_range' filtrando por campaign_id
 
 ${_benchmarkCtx}
 
