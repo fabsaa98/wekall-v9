@@ -375,6 +375,19 @@ export default function Alertas() {
     for (const entry of toFire) {
       try {
         await insertAlertLog({ ...entry, client_id: clientId });
+        // D1 Scale — notificar via Worker /notify-alert
+        try {
+          const proxyUrl = import.meta.env.VITE_PROXY_URL?.replace(/\/$/, '') || '';
+          if (proxyUrl) {
+            await fetch(proxyUrl + '/notify-alert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...entry, client_id: clientId }),
+            });
+          }
+        } catch (notifErr) {
+          console.warn('notify-alert error (no bloqueante):', notifErr);
+        }
         ok++;
       } catch (e) {
         console.error('Error insertando alerta:', e);
@@ -384,7 +397,7 @@ export default function Alertas() {
 
     setFireMsg(
       fail === 0
-        ? `✅ ${ok} alerta(s) registrada(s) en Supabase. GlorIA notificará vía cron.`
+        ? `✅ ${ok} alerta(s) registrada(s) en Supabase y notificación WhatsApp enviada.`
         : `⚠️ ${ok} OK · ${fail} fallaron (RLS — ver consola)`,
     );
     setFiring(false);

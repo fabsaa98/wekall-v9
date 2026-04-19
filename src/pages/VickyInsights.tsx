@@ -984,7 +984,12 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 - Si la pregunta requiere datos que NO tienes (ej: horarios de marcación, datos por hora, tendencias históricas, comparativos de períodos anteriores), responde EXACTAMENTE así:
   "No tengo esa dimensión en los datos disponibles. El CDR del 30 de marzo incluye [menciona qué sí tienes]. Para responder esta pregunta necesitaría [explica qué dato falta]."
 - Es preferible admitir la limitación que fabricar un insight. La credibilidad ejecutiva depende de la precisión, no de parecer omnisciente.
-- Los datos disponibles son SOLO los del CDR del 30 de marzo y las 50 grabaciones transcritas. Nada más.`;
+- Los datos disponibles son SOLO los del CDR del 30 de marzo y las 50 grabaciones transcritas. Nada más.
+
+## NUEVAS CAPACIDADES DE CONSULTA DINÁMICA
+- Usa `query_agents_data` cuando pregunten por rendimiento de agentes específicos, top performers, bottom performers, CSAT individual, FCR por agente, o cuántos agentes activos hay.
+- Usa `get_client_config` cuando pregunten por configuración del cliente, número de agentes contratados, costo por agente, o umbrales configurados.
+- Usa `query_benchmarks` cuando quieran comparar sus KPIs vs la industria o benchmarks del sector.`;
 
       // ─── Function Calling — cálculos determinísticos ─────────────────────────────
       const TOOLS = [
@@ -1065,6 +1070,67 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 },
               },
               required: ['consulta', 'proposito'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'query_agents_data',
+            description: 'Consulta datos de rendimiento de agentes desde agents_performance en tiempo real. Úsalo para: top/bottom performers, CSAT por agente, FCR, tasa de promesa, AHT individual, agentes activos. Siempre usa esto en lugar de datos hardcodeados cuando pregunten por agentes.',
+            parameters: {
+              type: 'object',
+              properties: {
+                query_type: {
+                  type: 'string',
+                  enum: ['top_performers', 'bottom_performers', 'agent_detail', 'team_summary'],
+                  description: 'top_performers=mejores agentes | bottom_performers=peores agentes | agent_detail=un agente específico | team_summary=resumen del equipo',
+                },
+                params: {
+                  type: 'object',
+                  properties: {
+                    limit: { type: 'number', description: 'Cantidad de agentes a retornar (default 10)' },
+                    metric: { type: 'string', description: 'Métrica de ordenamiento: csat | fcr | tasa_promesa | aht | total_llamadas' },
+                    agent_id: { type: 'string', description: 'ID del agente para agent_detail' },
+                    from_date: { type: 'string', description: 'Fecha inicio YYYY-MM-DD' },
+                    to_date: { type: 'string', description: 'Fecha fin YYYY-MM-DD' },
+                  },
+                },
+              },
+              required: ['query_type'],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'get_client_config',
+            description: 'Obtiene la configuración actual del cliente: número de agentes contratados, costo por agente/mes, umbrales de alertas, nombre del cliente, industria, país. Úsalo cuando pregunten por costos, configuración o parámetros del cliente.',
+            parameters: {
+              type: 'object',
+              properties: {},
+              required: [],
+            },
+          },
+        },
+        {
+          type: 'function' as const,
+          function: {
+            name: 'query_benchmarks',
+            description: 'Consulta benchmarks de la industria para comparar KPIs del cliente vs estándares del sector (cobranza, ventas, soporte, retención). Úsalo cuando pregunten cómo están vs la competencia o la industria.',
+            parameters: {
+              type: 'object',
+              properties: {
+                industry: {
+                  type: 'string',
+                  description: 'Industria: cobranza | ventas | soporte | retencion',
+                },
+                metric: {
+                  type: 'string',
+                  description: 'Métrica específica: tasa_contacto | csat | aht | fcr | conversion (opcional — si no se especifica, retorna todos los benchmarks de la industria)',
+                },
+              },
+              required: ['industry'],
             },
           },
         },
@@ -1156,6 +1222,46 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
               mensaje: 'Búsqueda web en tiempo real requiere integración adicional. Usar datos disponibles en el contexto o indicar al CEO que el dato necesita verificación externa.',
               alternativa: 'Si el dato es salarial: Colombia=COP $3M/mes (Decreto 2381/2023), Perú≈COP $1.6M/mes (RMV PEN 1,025 + prestaciones). Para otros países, citar OIT/CEPAL como referencia.',
             };
+          }
+          else if (fnName === 'query_agents_data') {
+            try {
+              const orderField = fnArgs.params?.metric || 'csat';
+              const agentsResp = await fetch(BASE_PROXY + '/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  table: 'agents_performance',
+                  select: '*',
+                  filters: { client_id: `eq.${clientId}` },
+                  order: fnArgs.query_type === 'bottom_performers' ? `${orderField}.asc` : `${orderField}.desc`,
+                  limit: fnArgs.params?.limit || 10,
+                }),
+              });
+              calcResult = await agentsResp.json();
+            } catch (e) { calcResult = { error: String(e) }; }
+          }
+          else if (fnName === 'get_client_config') {
+            // clientConfig ya disponible en el contexto React
+            calcResult = clientConfig || { error: 'No se pudo obtener la configuración del cliente' };
+          }
+          else if (fnName === 'query_benchmarks') {
+            try {
+              const benchFilters: Record<string, string> = {
+                industry: `eq.${fnArgs.industry || 'cobranza'}`,
+              };
+              if (fnArgs.metric) benchFilters['metric'] = `eq.${fnArgs.metric}`;
+              const benchResp = await fetch(BASE_PROXY + '/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  table: 'benchmarks',
+                  select: '*',
+                  filters: benchFilters,
+                  limit: 20,
+                }),
+              });
+              calcResult = await benchResp.json();
+            } catch (e) { calcResult = { error: String(e) }; }
           }
           else if (fnName === 'query_cdr_data') {
             // Consulta dinámica al CDR via worker /cdr-stats
