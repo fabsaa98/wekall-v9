@@ -737,6 +737,17 @@ export default function VickyInsights() {
 ## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
 - Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)${_cdrSection}${_agentKPIsSection}
 
+## REGLA DE ORO — NUNCA DIGAS "NO TENGO DATOS" SIN CONSULTAR PRIMERO
+⚠️ OBLIGATORIO: Antes de responder "no tengo datos de X período", SIEMPRE usa query_cdr_data para consultarlos.
+El CDR tiene datos desde enero 2024 hasta abril 2026 (822 días). Si el período pedido está dentro de ese rango, los datos EXISTEN en Supabase.
+
+FLUJO OBLIGATORIO para preguntas históricas:
+1. ¿El período pedido está entre ene-2024 y abr-2026? → USA query_cdr_data, NO respondas de memoria
+2. Para "cómo nos fue en abril 2025" → usa query_type="monthly_summary" con year=2025, luego filtra el mes
+3. Para "datos mes a mes" → usa query_type="annual_summary" o "monthly_summary"
+4. Para tendencias recientes → usa query_type="daily_trend" con days=30 o 90
+5. Solo di "no tengo datos" si query_cdr_data retorna vacío para ese período
+
 ## RESUMEN ANUAL CDR
 Para obtener totales anuales, mensuales o tendencias históricas del CDR, usa la función query_cdr_data con el query_type apropiado. Los datos se consultan en tiempo real desde Supabase.
 
