@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
 import { useAgentKPIs } from '@/hooks/useAgentKPIs';
+import { useAgentsData } from '@/hooks/useAgentsData';
 import { convertirMarkdownAProsa } from '@/lib/vickyMarkdown';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
@@ -421,6 +422,7 @@ export default function VickyInsights() {
   const { clientConfig, clientBranding, clientId } = useClient(); // Fix 1A + 1F: clientId para RAG seguro
   const cdr = useCDRData();
   const agentKPIs = useAgentKPIs();
+  const agentsData = useAgentsData();
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
 
   // Actualizar mensaje de bienvenida cuando carga el clientConfig
@@ -1255,6 +1257,26 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           question: text,
           client_id: clientId,
           history: conversationHistoryRef.current.slice(-6),
+          // Pasar datos de agentes que el frontend ya tiene (via useAgentsData que usa /query con service key)
+          agent_context: _hasAgentKPIs ? {
+            csat_promedio: agentKPIs.csatPromedio,
+            fcr_promedio: agentKPIs.fcrPromedio,
+            agentes_activos: agentKPIs.agentesActivos,
+            ocupacion_promedio: agentKPIs.ocupacionPromedio,
+            llamadas_hora_promedio: agentKPIs.llamadasXHoraPromedio,
+            // Lista de agentes individuales (top 15 por CSAT + bottom 5)
+            top_agents: agentsData.agents
+              .slice()
+              .sort((a: any, b: any) => (b.avg_csat || 0) - (a.avg_csat || 0))
+              .slice(0, 15)
+              .map((a: any) => ({
+                name: a.agent_name,
+                csat: a.avg_csat,
+                fcr: a.avg_fcr,
+                promesa: a.avg_tasa_promesa,
+                contacto: a.avg_tasa_contacto,
+              })),
+          } : null,
         } : {
           model: 'gpt-4o',
           messages: [
