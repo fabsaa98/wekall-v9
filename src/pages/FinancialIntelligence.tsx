@@ -1,31 +1,23 @@
-import { useEffect, useState, useRef } from 'react';
+/**
+ * FinancialIntelligence — V22 (reescritura completa, 20 abr 2026)
+ * Consistente con Overview/KPICard: sparklines, Executive Brief, vs-industria,
+ * paleta dark unificada, banner estimativos minimalista.
+ */
+import { useEffect, useState } from 'react';
 import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  Loader2,
-  Upload,
-  CheckCircle2,
-  XCircle,
-  Info,
+  DollarSign, TrendingUp, TrendingDown, AlertTriangle, Loader2,
+  Upload, CheckCircle2, XCircle, Info, FileText, Zap,
 } from 'lucide-react';
 import {
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  ComposedChart,
-  BarChart,
-  Cell,
+  AreaChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend, ComposedChart, BarChart, Cell,
 } from 'recharts';
+import { KPICard } from '@/components/KPICard';
 import { useClient } from '@/contexts/ClientContext';
+import type { KPIData } from '@/data/mockData';
+import { useRef } from 'react';
 
-// ─── Proxy helper ──────────────────────────────────────────────────────────────
+// ─── Proxy ─────────────────────────────────────────────────────────────────────
 const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
 
 async function proxyQuery<T>(payload: object): Promise<T> {
@@ -42,13 +34,19 @@ async function proxyQuery<T>(payload: object): Promise<T> {
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const TICKET_PROMEDIO_COP = 160_000;      // Mediana de análisis de 50 transcripciones
-const TASA_CUMPLIMIENTO = 0.60;           // 60% — estándar industria cobranzas
-const TASA_PROMESA = 0.40;               // 40% de contactos efectivos hacen promesa
-const COSTO_AGENTE_MES = 3_000_000;       // COP — nómina + carga social estimada
-const AGENTES_ACTIVOS = 81;
-const DIAS_LABORALES_MES = 22;
-const COSTO_OP_MES = COSTO_AGENTE_MES * AGENTES_ACTIVOS;  // COP $243M/mes
+const TICKET_PROMEDIO_COP = 160_000;
+const TASA_CUMPLIMIENTO   = 0.60;
+const TASA_PROMESA        = 0.40;
+const COSTO_AGENTE_MES    = 3_000_000;
+const AGENTES_ACTIVOS     = 81;
+const DIAS_LABORALES_MES  = 22;
+const COSTO_OP_MES        = COSTO_AGENTE_MES * AGENTES_ACTIVOS;
+
+// Benchmarks industria cobranzas LATAM (COPC 2024)
+const BM_TASA_CONTACTO_PCT  = 22.5;   // %
+const BM_TASA_PROMESA_PCT   = 35.0;   // % contactos efectivos
+const BM_TASA_CUMPLIM_PCT   = 55.0;   // % promesas cumplidas
+const BM_MARGEN_OP_PCT      = 20.0;   // % margen operativo saludable
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface CDRDaily {
@@ -57,28 +55,17 @@ interface CDRDaily {
   contactos_efectivos: number;
 }
 
-interface FinancialResult {
-  client_id: string;
-  fecha: string;
-  campana: string;
-  promesas_pago: number;
-  monto_prometido_cop: number;
-  monto_recaudado_cop: number;
-  tasa_cumplimiento_pct: number;
-  ticket_promedio_cop: number;
-  fuente: string;
-  notas?: string;
-}
-
 interface MonthlyFinancial {
-  mes: string;          // YYYY-MM
-  mesLabel: string;     // Abr 2026
-  recaudoEstimado: number;
+  mes: string;
+  mesLabel: string;
+  recaudo: number;
   costoOp: number;
   margen: number;
+  margenPct: number;
   promesas: number;
   llamadas: number;
   contactos: number;
+  tasaContacto: number;
 }
 
 interface CampaignRow {
@@ -91,15 +78,11 @@ interface CampaignRow {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 function fmtCOP(n: number): string {
-  if (Math.abs(n) >= 1_000_000_000) {
-    return `$${(n / 1_000_000_000).toFixed(2)}B`;
-  }
-  if (Math.abs(n) >= 1_000_000) {
-    return `$${(n / 1_000_000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}M`;
-  }
+  if (Math.abs(n) >= 1_000_000_000) return `$${(n/1_000_000_000).toFixed(2)}B`;
+  if (Math.abs(n) >= 1_000_000)     return `$${(n/1_000_000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}M`;
   return `$${n.toLocaleString('es-CO')}`;
 }
 
@@ -114,26 +97,97 @@ function mesLabel(ym: string): string {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
-// Campaign distribution
 const CAMPANAS_DIST = [
   { name: 'Cobranzas Colombia', pct: 0.55 },
-  { name: 'Cobranzas Perú', pct: 0.25 },
-  { name: 'Servicio CO', pct: 0.12 },
-  { name: 'Servicio PE', pct: 0.08 },
+  { name: 'Cobranzas Perú',     pct: 0.25 },
+  { name: 'Servicio CO',        pct: 0.12 },
+  { name: 'Servicio PE',        pct: 0.08 },
 ];
 
 // ─── Custom Tooltip ────────────────────────────────────────────────────────────
-function FinancialTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; fill?: string; stroke?: string; color?: string }>; label?: string }) {
+function FinancialTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; fill?: string; stroke?: string; color?: string }>;
+  label?: string;
+}) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-[#22263A] bg-[#11131c] p-3 text-xs shadow-xl">
-      <p className="font-semibold text-[#EEF0F6] mb-2">{label}</p>
+    <div className="rounded-lg border border-border bg-card p-3 text-xs shadow-xl">
+      <p className="font-semibold text-foreground mb-2">{label}</p>
       {payload.map((p, i) => (
         <div key={i} className="flex items-center justify-between gap-4">
           <span style={{ color: p.fill || p.stroke || p.color }} className="font-medium">{p.name}</span>
-          <span className="text-[#EEF0F6] font-bold">{fmtCOP(p.value)}</span>
+          <span className="text-foreground font-bold">{fmtCOP(p.value)}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Executive Brief ──────────────────────────────────────────────────────────
+function ExecutiveBrief({
+  recaudoHoy, recaudoMes, margenMes, tendenciaPct, hasRealData,
+  tasaContacto, mesLabel,
+}: {
+  recaudoHoy: number; recaudoMes: number; margenMes: number;
+  tendenciaPct: number; hasRealData: boolean; tasaContacto: number; mesLabel: string;
+}) {
+  const margenPct = recaudoMes > 0 ? (margenMes / recaudoMes) * 100 : 0;
+  const margenOk   = margenPct >= BM_MARGEN_OP_PCT;
+  const tcVsBm     = tasaContacto - BM_TASA_CONTACTO_PCT;
+  const tendOk     = tendenciaPct >= 0;
+
+  const statusColor = margenOk ? 'text-emerald-400' : 'text-red-400';
+  const statusText  = margenOk ? 'Operación en positivo' : 'Margen operativo negativo';
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start gap-2 mb-3">
+        <FileText className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Executive Brief — {mesLabel}</h2>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Síntesis ejecutiva · {hasRealData ? 'Datos reales' : 'Estimativos CDR'}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`h-2 w-2 rounded-full ${margenOk ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
+        <span className={`text-sm font-bold ${statusColor}`}>{statusText}</span>
+      </div>
+
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        En <span className="text-foreground font-medium">{mesLabel}</span> la operación{' '}
+        {tendOk
+          ? <>muestra una tendencia <span className="text-emerald-400 font-semibold">positiva de +{tendenciaPct.toFixed(1)}%</span> vs. el mes anterior.</>
+          : <>registra una caída de <span className="text-red-400 font-semibold">{tendenciaPct.toFixed(1)}%</span> vs. el mes anterior.</>
+        }{' '}
+        El recaudo {hasRealData ? 'real' : 'estimado'} acumulado asciende a{' '}
+        <span className="text-foreground font-semibold">{fmtCOP(recaudoMes)}</span> frente a un costo operativo de{' '}
+        <span className="text-foreground font-semibold">{fmtCOP(COSTO_OP_MES)}</span>, generando un margen{' '}
+        <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-red-400'}`}>
+          {margenPct >= 0 ? '+' : ''}{margenPct.toFixed(1)}%
+        </span>
+        {margenOk
+          ? ` (benchmark saludable: ≥${BM_MARGEN_OP_PCT}%).`
+          : ` — por debajo del benchmark saludable de ${BM_MARGEN_OP_PCT}%.`
+        }{' '}
+        La tasa de contacto{' '}
+        {tcVsBm >= 0
+          ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+          : <><span className="text-amber-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+        }{' '}
+        Proyección diaria: <span className="text-foreground font-semibold">{fmtCOP(recaudoHoy)}</span> de recaudo hoy.
+      </p>
+
+      {!margenOk && (
+        <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-500/8 border border-red-500/20 p-3">
+          <Zap className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-red-300 leading-relaxed">
+            <strong>Acción recomendada:</strong> El margen actual es insuficiente. Conectar datos reales de recaudo
+            para diagnóstico preciso. Si los datos son correctos, revisar eficiencia de cobranza y estructura de costos.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -142,20 +196,22 @@ function FinancialTooltip({ active, payload, label }: { active?: boolean; payloa
 export default function FinancialIntelligence() {
   const { clientId } = useClient();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState<string | null>(null);
   const [hasRealData, setHasRealData] = useState(false);
 
-  const [monthlyData, setMonthlyData] = useState<MonthlyFinancial[]>([]);
-  const [todayRecaudo, setTodayRecaudo] = useState(0);
-  const [mesActualRecaudo, setMesActualRecaudo] = useState(0);
-  const [mesAnteriorRecaudo, setMesAnteriorRecaudo] = useState(0);
-  const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
+  const [monthlyData,       setMonthlyData]       = useState<MonthlyFinancial[]>([]);
+  const [todayRecaudo,      setTodayRecaudo]      = useState(0);
+  const [mesActualRecaudo,  setMesActualRecaudo]  = useState(0);
+  const [mesAnteriorRecaudo,setMesAnteriorRecaudo]= useState(0);
+  const [campaigns,         setCampaigns]         = useState<CampaignRow[]>([]);
+  const [kpis,              setKpis]              = useState<KPIData[]>([]);
+  const [avgTasaContacto,   setAvgTasaContacto]   = useState(0);
 
   // Upload state
-  const [uploading, setUploading] = useState(false);
+  const [uploading,    setUploading]    = useState(false);
   const [uploadResult, setUploadResult] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [previewRows, setPreviewRows] = useState<Record<string, string | number>[]>([]);
+  const [previewRows,  setPreviewRows]  = useState<Record<string, string | number>[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -169,12 +225,12 @@ export default function FinancialIntelligence() {
       setLoading(true);
       setError(null);
 
-      // Try to fetch real financial_results first
-      let realRows: FinancialResult[] = [];
+      // 1. Try real financial_results
+      let realRows: Array<{ fecha: string; monto_recaudado_cop: number }> = [];
       try {
-        const result = await proxyQuery<FinancialResult[]>({
+        const result = await proxyQuery<typeof realRows>({
           table: 'financial_results',
-          select: '*',
+          select: 'fecha,monto_recaudado_cop',
           filters: { 'client_id': `eq.${clientId}` },
           order: 'fecha.asc',
           limit: 10000,
@@ -183,12 +239,9 @@ export default function FinancialIntelligence() {
           realRows = result;
           setHasRealData(true);
         }
-      } catch {
-        // Table doesn't exist or no data — use CDR estimates
-        setHasRealData(false);
-      }
+      } catch { setHasRealData(false); }
 
-      // Always fetch CDR daily for estimates
+      // 2. Always fetch CDR daily
       const hace400 = new Date();
       hace400.setDate(hace400.getDate() - 400);
       const fmt = (d: Date) => d.toISOString().split('T')[0];
@@ -206,84 +259,150 @@ export default function FinancialIntelligence() {
         return;
       }
 
-      // ─── Group CDR by month ──────────────────────────────────────────────────
+      // 3. Group by month
       const byMonth: Record<string, { llamadas: number; contactos: number }> = {};
       for (const row of cdrData) {
         const ym = row.fecha.slice(0, 7);
         if (!byMonth[ym]) byMonth[ym] = { llamadas: 0, contactos: 0 };
-        byMonth[ym].llamadas += row.total_llamadas;
+        byMonth[ym].llamadas  += row.total_llamadas;
         byMonth[ym].contactos += row.contactos_efectivos;
       }
 
       const allMonths = Object.keys(byMonth).sort();
-      const last12 = allMonths.slice(-12);
+      const last12    = allMonths.slice(-12);
 
-      // Today metrics (latest day in CDR)
+      // 4. Today metrics
       const sortedDays = [...cdrData].sort((a, b) => b.fecha.localeCompare(a.fecha));
-      const todayRow = sortedDays[0];
-      const todayPromesas = todayRow ? Math.round(todayRow.contactos_efectivos * TASA_PROMESA) : 0;
-      const todayRec = Math.round(todayPromesas * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
+      const todayRow   = sortedDays[0];
+      const todayProm  = todayRow ? Math.round(todayRow.contactos_efectivos * TASA_PROMESA) : 0;
+      const todayRec   = Math.round(todayProm * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
       setTodayRecaudo(todayRec);
 
-      // Build monthly financial data
+      // 5. Build monthly financial
       const financial: MonthlyFinancial[] = last12.map(ym => {
-        const m = byMonth[ym];
+        const m        = byMonth[ym];
         const promesas = Math.round(m.contactos * TASA_PROMESA);
+        let recaudo    = Math.round(promesas * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
 
-        let recaudo = Math.round(promesas * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
-
-        // Override with real data if available
         if (realRows.length > 0) {
-          const monthRealRows = realRows.filter(r => r.fecha.slice(0, 7) === ym);
-          if (monthRealRows.length > 0) {
-            recaudo = monthRealRows.reduce((s, r) => s + r.monto_recaudado_cop, 0);
-          }
+          const mReal = realRows.filter(r => r.fecha.slice(0, 7) === ym);
+          if (mReal.length > 0) recaudo = mReal.reduce((s, r) => s + r.monto_recaudado_cop, 0);
         }
+
+        const margen    = recaudo - COSTO_OP_MES;
+        const margenPct = recaudo > 0 ? (margen / recaudo) * 100 : 0;
+        const tasaContacto = m.llamadas > 0 ? (m.contactos / m.llamadas) * 100 : 0;
 
         return {
           mes: ym,
           mesLabel: mesLabel(ym),
-          recaudoEstimado: recaudo,
+          recaudo,
           costoOp: COSTO_OP_MES,
-          margen: recaudo - COSTO_OP_MES,
+          margen,
+          margenPct,
           promesas,
           llamadas: m.llamadas,
           contactos: m.contactos,
+          tasaContacto,
         };
       });
 
       setMonthlyData(financial);
 
-      // Current + previous month
-      const now = new Date();
-      const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const prevYM = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-
-      const currentMonth = financial.find(m => m.mes === currentYM);
+      // 6. Current / previous month
+      const now       = new Date();
+      const curYM     = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const prevDate  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevYM    = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+      const curMonth  = financial.find(m => m.mes === curYM);
       const prevMonth = financial.find(m => m.mes === prevYM);
-      setMesActualRecaudo(currentMonth?.recaudoEstimado ?? 0);
-      setMesAnteriorRecaudo(prevMonth?.recaudoEstimado ?? 0);
+      setMesActualRecaudo(curMonth?.recaudo ?? 0);
+      setMesAnteriorRecaudo(prevMonth?.recaudo ?? 0);
 
-      // Build campaign table from last available month
-      const lastMonthData = financial[financial.length - 1];
-      if (lastMonthData) {
-        const campRows: CampaignRow[] = CAMPANAS_DIST.map(camp => {
-          const llamadas = Math.round(lastMonthData.llamadas * camp.pct);
-          const contactos = Math.round(lastMonthData.contactos * camp.pct);
-          const promesasEst = Math.round(lastMonthData.promesas * camp.pct);
-          const recaudoEst = Math.round(promesasEst * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
-          return {
-            campana: camp.name,
-            llamadas,
-            contactos,
-            promesasEst,
-            recaudoEst,
-            pctTotal: camp.pct * 100,
-          };
-        });
-        setCampaigns(campRows);
+      // 7. Avg tasa contacto (last 3 months)
+      const last3 = financial.slice(-3);
+      const avgTC  = last3.length > 0
+        ? last3.reduce((s, m) => s + m.tasaContacto, 0) / last3.length
+        : 0;
+      setAvgTasaContacto(avgTC);
+
+      // 8. Campaign table
+      const lastM = financial[financial.length - 1];
+      if (lastM) {
+        setCampaigns(CAMPANAS_DIST.map(camp => {
+          const llamadas    = Math.round(lastM.llamadas   * camp.pct);
+          const contactos   = Math.round(lastM.contactos  * camp.pct);
+          const promesasEst = Math.round(lastM.promesas   * camp.pct);
+          const recaudoEst  = Math.round(promesasEst * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
+          return { campana: camp.name, llamadas, contactos, promesasEst, recaudoEst, pctTotal: camp.pct * 100 };
+        }));
       }
+
+      // 9. Build KPIData for KPICard (sparklines from monthly recaudo/margen)
+      const spark = financial.slice(-7).map(m => m.recaudo / 1_000_000); // en millones
+      const sparkMargen = financial.slice(-7).map(m => m.margenPct);
+      const sparkTC = financial.slice(-7).map(m => m.tasaContacto);
+      const curRec  = curMonth?.recaudo ?? 0;
+      const prevRec = prevMonth?.recaudo ?? 0;
+      const tendPct = prevRec > 0 ? ((curRec - prevRec) / prevRec) * 100 : 0;
+      const curMargenPct = curMonth?.margenPct ?? 0;
+      const margenVsBm = curMargenPct - BM_MARGEN_OP_PCT;
+      const tcVsBm = avgTC - BM_TASA_CONTACTO_PCT;
+
+      const kpisBuilt: KPIData[] = [
+        {
+          id: 'recaudo_mes',
+          title: 'Recaudo est. Mes',
+          value: fmtCOP(curRec),
+          numericValue: curRec,
+          change: tendPct,
+          changeLabel: `${tendPct >= 0 ? '+' : ''}${tendPct.toFixed(1)}%`,
+          vsIndustry: 0,
+          sparkline: spark,
+          roles: ['CEO', 'COO'],
+          description: 'Recaudo estimado del mes actual basado en CDR y supuestos de industria',
+        },
+        {
+          id: 'margen_op',
+          title: 'Margen Operativo',
+          value: `${curMargenPct >= 0 ? '+' : ''}${curMargenPct.toFixed(1)}%`,
+          numericValue: curMargenPct,
+          change: margenVsBm,
+          changeLabel: `${margenVsBm >= 0 ? '+' : ''}${margenVsBm.toFixed(1)}pp vs bm`,
+          vsIndustry: margenVsBm,
+          sparkline: sparkMargen,
+          invertColor: false,
+          roles: ['CEO', 'COO'],
+          description: `Benchmark saludable: ≥${BM_MARGEN_OP_PCT}%`,
+        },
+        {
+          id: 'tasa_contacto',
+          title: 'Tasa Contacto',
+          value: `${avgTC.toFixed(1)}%`,
+          numericValue: avgTC,
+          change: tcVsBm,
+          changeLabel: `${tcVsBm >= 0 ? '+' : ''}${tcVsBm.toFixed(1)}pp vs bm`,
+          vsIndustry: tcVsBm,
+          sparkline: sparkTC,
+          roles: ['CEO', 'VP Ventas', 'COO'],
+          description: `Benchmark COPC LATAM: ${BM_TASA_CONTACTO_PCT}%`,
+        },
+        {
+          id: 'costo_op',
+          title: 'Costo Operativo',
+          value: fmtCOP(COSTO_OP_MES),
+          numericValue: COSTO_OP_MES,
+          change: 0,
+          changeLabel: `${AGENTES_ACTIVOS} agentes × $3M`,
+          vsIndustry: 0,
+          sparkline: Array(7).fill(COSTO_OP_MES / 1_000_000),
+          invertColor: true,
+          roles: ['CEO', 'COO'],
+          description: 'Nómina estimada + carga social',
+        },
+      ];
+      setKpis(kpisBuilt);
+
     } catch (e: unknown) {
       setError(`Error cargando datos financieros: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -291,104 +410,87 @@ export default function FinancialIntelligence() {
     }
   }
 
-  // ─── Upload handler ──────────────────────────────────────────────────────────
+  // ─── Upload ─────────────────────────────────────────────────────────────────
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     setUploadResult(null);
     setPreviewRows([]);
 
     try {
-      // Basic CSV parsing (handles simple CSVs)
-      const text = await file.text();
-      const lines = text.trim().split('\n');
+      const text    = await file.text();
+      const lines   = text.trim().split('\n');
       const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      const rows = lines.slice(1, 6).map(line => {
+      const preview = lines.slice(1, 6).map(line => {
         const vals = line.split(',').map(v => v.trim().replace(/"/g, ''));
         return Object.fromEntries(headers.map((h, i) => [h, vals[i] ?? '']));
       });
-      setPreviewRows(rows);
+      setPreviewRows(preview);
 
-      // Validate required columns
-      const requiredCols = ['fecha', 'monto_recaudado'];
-      const missing = requiredCols.filter(col => !headers.some(h => h.toLowerCase().includes(col.toLowerCase())));
+      const required = ['fecha', 'monto_recaudado'];
+      const missing  = required.filter(col => !headers.some(h => h.toLowerCase().includes(col)));
       if (missing.length > 0) {
-        setUploadResult({ ok: false, msg: `Columnas requeridas faltantes: ${missing.join(', ')}. El archivo debe tener: fecha, monto_recaudado (y opcionalmente: campana)` });
+        setUploadResult({ ok: false, msg: `Columnas faltantes: ${missing.join(', ')}` });
         setUploading(false);
         return;
       }
 
-      // Build rows for financial_results
-      const allLines = lines.slice(1).filter(l => l.trim());
-      const financialRows = allLines.map(line => {
+      const rows = lines.slice(1).filter(l => l.trim()).map(line => {
         const vals = line.split(',').map(v => v.trim().replace(/"/g, ''));
-        const obj = Object.fromEntries(headers.map((h, i) => [h.toLowerCase(), vals[i] ?? '']));
-        const fecha = obj['fecha'] || obj['date'] || '';
-        const monto = parseInt(String(obj['monto_recaudado'] || obj['monto'] || '0').replace(/\D/g, ''), 10);
-        const campana = obj['campana'] || obj['campaign'] || 'General';
+        const obj  = Object.fromEntries(headers.map((h, i) => [h.toLowerCase(), vals[i] ?? '']));
         return {
           client_id: clientId,
-          fecha,
-          campana,
+          fecha: obj['fecha'] || '',
+          campana: obj['campana'] || 'General',
           promesas_pago: 0,
-          monto_prometido_cop: monto,
-          monto_recaudado_cop: monto,
+          monto_prometido_cop: parseInt(String(obj['monto_recaudado'] || '0').replace(/\D/g, ''), 10),
+          monto_recaudado_cop: parseInt(String(obj['monto_recaudado'] || '0').replace(/\D/g, ''), 10),
           tasa_cumplimiento_pct: 100.0,
           ticket_promedio_cop: TICKET_PROMEDIO_COP,
           fuente: 'manual',
-          notas: `Cargado desde archivo: ${file.name}`,
+          notas: `Archivo: ${file.name}`,
         };
       }).filter(r => r.fecha && r.monto_recaudado_cop > 0);
 
-      if (financialRows.length === 0) {
-        setUploadResult({ ok: false, msg: 'No se encontraron filas válidas con fecha y monto_recaudado > 0' });
+      if (rows.length === 0) {
+        setUploadResult({ ok: false, msg: 'No se encontraron filas válidas.' });
         setUploading(false);
         return;
       }
 
-      // Upload to Supabase via Worker
       const resp = await fetch(`${PROXY_URL}/load-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: 'wekall-load-2026',
-          table: 'financial_results',
-          rows: financialRows,
-          on_conflict: 'client_id,fecha,campana',
-        }),
+        body: JSON.stringify({ token: 'wekall-load-2026', table: 'financial_results', rows, on_conflict: 'client_id,fecha,campana' }),
       });
       const result = await resp.json() as { ok: boolean; rows?: number; detail?: string };
 
       if (result.ok) {
-        setUploadResult({ ok: true, msg: `✅ ${financialRows.length} registros cargados exitosamente. Recargando datos...` });
+        setUploadResult({ ok: true, msg: `✅ ${rows.length} registros cargados. Recargando...` });
         setTimeout(() => load(), 1500);
       } else {
-        setUploadResult({ ok: false, msg: `Error al cargar: ${result.detail || 'Error desconocido'}. Es posible que la tabla financial_results aún no esté creada en Supabase.` });
+        setUploadResult({ ok: false, msg: `Error: ${result.detail || 'desconocido'}` });
       }
     } catch (err: unknown) {
-      setUploadResult({ ok: false, msg: `Error procesando archivo: ${err instanceof Error ? err.message : String(err)}` });
+      setUploadResult({ ok: false, msg: `Error: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
 
-  // ─── Trend ──────────────────────────────────────────────────────────────────
+  // ─── Derived ────────────────────────────────────────────────────────────────
   const tendenciaMes = mesAnteriorRecaudo > 0
     ? ((mesActualRecaudo - mesAnteriorRecaudo) / mesAnteriorRecaudo) * 100
     : 0;
-
   const margenMesActual = mesActualRecaudo - COSTO_OP_MES;
-  const margenPct = mesActualRecaudo > 0
-    ? ((margenMesActual / mesActualRecaudo) * 100).toFixed(1)
-    : '0';
+  const currentMesLabel = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].mesLabel : '';
 
-  // ─── Loading / Error states ─────────────────────────────────────────────────
+  // ─── States ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 gap-3 text-[#818CF8]">
+      <div className="flex items-center justify-center h-64 gap-3 text-primary">
         <Loader2 className="animate-spin h-5 w-5" />
         <span className="text-sm">Calculando Financial Intelligence...</span>
       </div>
@@ -397,8 +499,8 @@ export default function FinancialIntelligence() {
 
   if (error) {
     return (
-      <div className="flex items-center gap-3 p-6 text-[#F87171] bg-[#F87171]/10 rounded-lg mx-4 mt-6 border border-[#F87171]/20">
-        <XCircle className="h-5 w-5 flex-shrink-0" />
+      <div className="flex items-center gap-3 p-6 text-destructive bg-destructive/10 rounded-lg m-4 border border-destructive/20">
+        <XCircle className="h-5 w-5 shrink-0" />
         <span className="text-sm">{error}</span>
       </div>
     );
@@ -406,324 +508,212 @@ export default function FinancialIntelligence() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#EEF0F6] flex items-center gap-2">
-            <DollarSign className="h-6 w-6 text-[#818CF8]" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <DollarSign className="h-6 w-6 text-primary" />
             Financial Intelligence
           </h1>
-          <p className="text-sm text-[#818CF8]/80 mt-1">¿Cuánto está generando tu operación hoy?</p>
+          <p className="text-sm text-muted-foreground mt-0.5">¿Cuánto está generando tu operación hoy?</p>
         </div>
+        {/* Badge estimativos — minimalista, no dominante */}
         {!hasRealData && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-400 self-start">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Estimativos basados en transcripciones
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-medium text-amber-400 self-start">
+            <AlertTriangle className="h-3 w-3" />
+            Estimativos CDR
           </span>
         )}
       </div>
 
-      {/* ── Banner estimativos ────────────────────────────────────────────── */}
-      {!hasRealData && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/8 p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-amber-300 mb-1">⚠️ Datos estimativos — no conectados a tu sistema de cobranza</p>
-              <p className="text-xs text-amber-400/80 leading-relaxed">
-                Los valores mostrados son estimativos basados en análisis de <strong>50 transcripciones de llamadas</strong> y supuestos de industria
-                (ticket promedio COP $160K, 40% tasa de promesa, 60% cumplimiento de promesas).
-                El margen de error puede ser <strong>±40%</strong>.
-                Para análisis exacto, conecta tu sistema de cobranza usando el botón de abajo.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Executive Brief ─────────────────────────────────────────────────── */}
+      <ExecutiveBrief
+        recaudoHoy={todayRecaudo}
+        recaudoMes={mesActualRecaudo}
+        margenMes={margenMesActual}
+        tendenciaPct={tendenciaMes}
+        hasRealData={hasRealData}
+        tasaContacto={avgTasaContacto}
+        mesLabel={currentMesLabel}
+      />
 
-      {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Recaudo HOY */}
-        <div className="rounded-xl border border-[#22263A] bg-[#11131c] p-4 flex flex-col gap-2">
-          <p className="text-[10px] font-semibold text-[#818CF8]/70 uppercase tracking-widest">Recaudo est. HOY</p>
-          <p className="text-2xl font-bold text-[#EEF0F6]">{fmtCOP(todayRecaudo)}</p>
-          <p className="text-xs text-[#818CF8]/60">
-            {Math.round(todayRecaudo / TICKET_PROMEDIO_COP / TASA_CUMPLIMIENTO).toLocaleString()} promesas × COP $160K × 60%
-          </p>
-          <div className="mt-auto pt-2 border-t border-[#22263A]">
-            <span className="text-[10px] text-[#818CF8]/50 uppercase tracking-wider">{hasRealData ? 'Real' : 'Estimado'}</span>
-          </div>
-        </div>
-
-        {/* Recaudo MES */}
-        <div className="rounded-xl border border-[#22263A] bg-[#11131c] p-4 flex flex-col gap-2">
-          <p className="text-[10px] font-semibold text-[#818CF8]/70 uppercase tracking-widest">Recaudo est. MES</p>
-          <p className="text-2xl font-bold text-[#EEF0F6]">{fmtCOP(mesActualRecaudo)}</p>
-          <div className="flex items-center gap-1">
-            {tendenciaMes >= 0
-              ? <TrendingUp className="h-3.5 w-3.5 text-[#4ADE80]" />
-              : <TrendingDown className="h-3.5 w-3.5 text-[#F87171]" />
-            }
-            <span className={`text-xs font-semibold ${tendenciaMes >= 0 ? 'text-[#4ADE80]' : 'text-[#F87171]'}`}>
-              {tendenciaMes >= 0 ? '+' : ''}{tendenciaMes.toFixed(1)}% vs mes anterior
-            </span>
-          </div>
-          <div className="mt-auto pt-2 border-t border-[#22263A]">
-            <span className="text-[10px] text-[#818CF8]/50 uppercase tracking-wider">{hasRealData ? 'Real' : 'Estimado'}</span>
-          </div>
-        </div>
-
-        {/* Costo operativo */}
-        <div className="rounded-xl border border-[#22263A] bg-[#11131c] p-4 flex flex-col gap-2">
-          <p className="text-[10px] font-semibold text-[#818CF8]/70 uppercase tracking-widest">Costo op. / mes</p>
-          <p className="text-2xl font-bold text-[#EEF0F6]">{fmtCOP(COSTO_OP_MES)}</p>
-          <p className="text-xs text-[#818CF8]/60">{AGENTES_ACTIVOS} agentes × COP $3M</p>
-          <div className="mt-auto pt-2 border-t border-[#22263A]">
-            <span className="text-[10px] text-[#818CF8]/50 uppercase tracking-wider">Nómina estimada</span>
-          </div>
-        </div>
-
-        {/* Margen estimado */}
-        <div className={`rounded-xl border p-4 flex flex-col gap-2 ${
-          margenMesActual >= 0
-            ? 'border-[#4ADE80]/20 bg-[#4ADE80]/5'
-            : 'border-[#F87171]/20 bg-[#F87171]/5'
-        }`}>
-          <p className="text-[10px] font-semibold text-[#818CF8]/70 uppercase tracking-widest">Margen estimado</p>
-          <p className={`text-2xl font-bold ${margenMesActual >= 0 ? 'text-[#4ADE80]' : 'text-[#F87171]'}`}>
-            {fmtCOP(margenMesActual)}
-          </p>
-          <p className="text-xs text-[#818CF8]/60">
-            Margen bruto: <span className={`font-semibold ${margenMesActual >= 0 ? 'text-[#4ADE80]' : 'text-[#F87171]'}`}>{margenPct}%</span>
-          </p>
-          <div className="mt-auto pt-2 border-t border-[#22263A]/50">
-            <span className="text-[10px] text-[#818CF8]/50 uppercase tracking-wider">Recaudo − Costo op.</span>
-          </div>
+      {/* ── KPI Cards con sparklines ─────────────────────────────────────── */}
+      <div>
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Indicadores Financieros</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {kpis.map(kpi => (
+            <KPICard key={kpi.id} kpi={kpi} />
+          ))}
         </div>
       </div>
 
-      {/* ── Gráfico principal ─────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[#22263A] bg-[#11131c] p-5">
-        <div className="flex items-center justify-between mb-5">
+      {/* ── Gráfico principal: Recaudo + Costo ──────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-sm font-semibold text-[#EEF0F6] flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-[#818CF8]" />
-              Recaudo estimado — últimos 12 meses
+            <h2 className="text-base font-medium text-foreground flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Recaudo — últimos 12 meses
             </h2>
-            <p className="text-xs text-[#818CF8]/60 mt-0.5">Barras = recaudo estimado · Línea = costo operativo fijo</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Barras = recaudo · Línea roja = costo operativo fijo</p>
           </div>
           {!hasRealData && (
-            <div className="flex items-center gap-1.5 text-xs text-amber-400/80">
-              <Info className="h-3.5 w-3.5" />
-              <span>Estimativos</span>
-            </div>
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Info className="h-3 w-3" /> estimativos
+            </span>
           )}
         </div>
-
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
             <defs>
               <linearGradient id="recaudoGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#818CF8" stopOpacity={0.9} />
-                <stop offset="100%" stopColor="#818CF8" stopOpacity={0.5} />
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#22263A" />
-            <XAxis
-              dataKey="mesLabel"
-              tick={{ fill: '#818CF8', fontSize: 10 }}
-              axisLine={{ stroke: '#22263A' }}
-              tickLine={false}
-            />
-            <YAxis
-              tickFormatter={(v) => fmtCOP(v)}
-              tick={{ fill: '#818CF8', fontSize: 10 }}
-              axisLine={{ stroke: '#22263A' }}
-              tickLine={false}
-              width={70}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="mesLabel" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={fmtCOP} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickLine={false} width={72} />
             <Tooltip content={<FinancialTooltip />} />
-            <Legend
-              formatter={(value) => <span style={{ color: '#818CF8', fontSize: 11 }}>{value}</span>}
-            />
-            <Bar
-              dataKey="recaudoEstimado"
-              name="Recaudo est."
-              fill="url(#recaudoGrad)"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={40}
-            />
-            <Line
-              type="monotone"
-              dataKey="costoOp"
-              name="Costo op."
-              stroke="#F87171"
-              strokeWidth={2}
-              dot={false}
-              strokeDasharray="5 3"
-            />
+            <Legend formatter={(v) => <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 11 }}>{v}</span>} />
+            <Bar dataKey="recaudo" name="Recaudo est." fill="url(#recaudoGrad)" radius={[4,4,0,0]} maxBarSize={40} />
+            <Line type="monotone" dataKey="costoOp" name="Costo op." stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 3" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {/* ── Tabla por campaña ─────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[#22263A] bg-[#11131c] p-5">
-        <h2 className="text-sm font-semibold text-[#EEF0F6] mb-4">
-          Desglose por campaña — {monthlyData[monthlyData.length - 1]?.mesLabel ?? 'último mes'}
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-[#22263A]">
-                <th className="text-left py-2 pr-4 text-[#818CF8]/70 font-semibold uppercase tracking-wider">Campaña</th>
-                <th className="text-right py-2 pr-4 text-[#818CF8]/70 font-semibold uppercase tracking-wider">Llamadas</th>
-                <th className="text-right py-2 pr-4 text-[#818CF8]/70 font-semibold uppercase tracking-wider">Contactos</th>
-                <th className="text-right py-2 pr-4 text-[#818CF8]/70 font-semibold uppercase tracking-wider">Promesas est.</th>
-                <th className="text-right py-2 pr-4 text-[#818CF8]/70 font-semibold uppercase tracking-wider">Recaudo est.</th>
-                <th className="text-right py-2 text-[#818CF8]/70 font-semibold uppercase tracking-wider">% Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {campaigns.map((c, i) => (
-                <tr key={i} className="border-b border-[#22263A]/50 hover:bg-[#818CF8]/5 transition-colors">
-                  <td className="py-3 pr-4 font-medium text-[#EEF0F6]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-[#818CF8]" style={{ opacity: 0.4 + (i * 0.2) }} />
-                      {c.campana}
-                    </div>
-                  </td>
-                  <td className="py-3 pr-4 text-right text-[#EEF0F6]/80">{c.llamadas.toLocaleString('es-CO')}</td>
-                  <td className="py-3 pr-4 text-right text-[#EEF0F6]/80">{c.contactos.toLocaleString('es-CO')}</td>
-                  <td className="py-3 pr-4 text-right text-[#818CF8]">{c.promesasEst.toLocaleString('es-CO')}</td>
-                  <td className="py-3 pr-4 text-right font-semibold text-[#4ADE80]">{fmtCOP(c.recaudoEst)}</td>
-                  <td className="py-3 text-right">
-                    <span className="inline-flex items-center rounded-full bg-[#818CF8]/10 border border-[#818CF8]/20 px-2 py-0.5 text-[#818CF8] font-semibold">
-                      {c.pctTotal.toFixed(0)}%
-                    </span>
-                  </td>
+      {/* ── Margen mensual + Tabla campañas ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* Margen chart */}
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 shadow-wk-sm">
+          <h2 className="text-base font-medium text-foreground mb-4">Margen operativo</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={monthlyData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="mesLabel" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={fmtCOP} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} tickLine={false} width={65} />
+              <Tooltip content={<FinancialTooltip />} />
+              <Bar dataKey="margen" name="Margen" radius={[4,4,0,0]} maxBarSize={32}>
+                {monthlyData.map((entry, i) => (
+                  <Cell key={`cell-${i}`} fill={entry.margen >= 0 ? '#22c55e' : '#ef4444'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Tabla campañas */}
+        <div className="lg:col-span-3 rounded-xl border border-border bg-card p-5 shadow-wk-sm">
+          <h2 className="text-base font-medium text-foreground mb-4">
+            Desglose por campaña — {currentMesLabel}
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="pb-2 font-medium text-muted-foreground">Campaña</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Llamadas</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Contactos</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Recaudo est.</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">%</th>
                 </tr>
-              ))}
-              {/* Totals row */}
-              {campaigns.length > 0 && (
-                <tr className="border-t-2 border-[#22263A] font-bold">
-                  <td className="py-3 pr-4 text-[#EEF0F6]">TOTAL</td>
-                  <td className="py-3 pr-4 text-right text-[#EEF0F6]">
-                    {campaigns.reduce((s, c) => s + c.llamadas, 0).toLocaleString('es-CO')}
-                  </td>
-                  <td className="py-3 pr-4 text-right text-[#EEF0F6]">
-                    {campaigns.reduce((s, c) => s + c.contactos, 0).toLocaleString('es-CO')}
-                  </td>
-                  <td className="py-3 pr-4 text-right text-[#818CF8]">
-                    {campaigns.reduce((s, c) => s + c.promesasEst, 0).toLocaleString('es-CO')}
-                  </td>
-                  <td className="py-3 pr-4 text-right text-[#4ADE80]">
-                    {fmtCOP(campaigns.reduce((s, c) => s + c.recaudoEst, 0))}
-                  </td>
-                  <td className="py-3 text-right text-[#EEF0F6]">100%</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {campaigns.map((c, i) => (
+                  <tr key={i} className="border-b border-border/50 last:border-0 hover:bg-primary/5 transition-colors">
+                    <td className="py-2.5 font-medium text-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary" style={{ opacity: 0.4 + i * 0.2 }} />
+                        {c.campana}
+                      </div>
+                    </td>
+                    <td className="py-2.5 text-right text-muted-foreground">{c.llamadas.toLocaleString('es-CO')}</td>
+                    <td className="py-2.5 text-right text-muted-foreground">{c.contactos.toLocaleString('es-CO')}</td>
+                    <td className="py-2.5 text-right font-semibold text-emerald-400">{fmtCOP(c.recaudoEst)}</td>
+                    <td className="py-2.5 text-right">
+                      <span className="inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] text-primary font-semibold">
+                        {c.pctTotal.toFixed(0)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {campaigns.length > 0 && (
+                  <tr className="border-t-2 border-border font-bold">
+                    <td className="py-2.5 text-foreground">TOTAL</td>
+                    <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.llamadas,0).toLocaleString('es-CO')}</td>
+                    <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.contactos,0).toLocaleString('es-CO')}</td>
+                    <td className="py-2.5 text-right text-emerald-400">{fmtCOP(campaigns.reduce((s,c)=>s+c.recaudoEst,0))}</td>
+                    <td className="py-2.5 text-right text-foreground">100%</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* ── Margen mensual chart ──────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[#22263A] bg-[#11131c] p-5">
-        <h2 className="text-sm font-semibold text-[#EEF0F6] mb-4">Margen operativo mensual</h2>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#22263A" />
-            <XAxis dataKey="mesLabel" tick={{ fill: '#818CF8', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tickFormatter={(v) => fmtCOP(v)} tick={{ fill: '#818CF8', fontSize: 10 }} axisLine={false} tickLine={false} width={70} />
-            <Tooltip content={<FinancialTooltip />} />
-            <Bar
-              dataKey="margen"
-              name="Margen"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={36}
-            >
-              {monthlyData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.margen >= 0 ? '#4ADE80' : '#F87171'}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* ── Conectar datos reales ─────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[#818CF8]/30 bg-[#818CF8]/5 p-5">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+      {/* ── Conectar datos reales — compacto ─────────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-[#EEF0F6] flex items-center gap-2 mb-2">
-              <Upload className="h-4 w-4 text-[#818CF8]" />
-              {hasRealData ? 'Actualizar datos de recaudo' : 'Conectar datos reales de recaudo'}
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-1">
+              <Upload className="h-4 w-4 text-primary" />
+              {hasRealData ? 'Actualizar datos de recaudo' : 'Conectar datos reales'}
             </h2>
-            <p className="text-xs text-[#818CF8]/70 mb-3">
-              Sube tu reporte de recaudo para reemplazar los estimativos con datos exactos.
-              Formatos aceptados: <strong>.csv</strong>, <strong>.xlsx</strong>
-            </p>
-            <p className="text-[11px] text-[#818CF8]/50">
-              Columnas requeridas: <code className="bg-[#22263A] px-1 rounded">fecha</code>, <code className="bg-[#22263A] px-1 rounded">monto_recaudado</code>
-              {' '}— Opcional: <code className="bg-[#22263A] px-1 rounded">campana</code>
+            <p className="text-xs text-muted-foreground">
+              Sube tu reporte para reemplazar estimativos con datos exactos.{' '}
+              <span className="text-muted-foreground/60">
+                Req: <code className="bg-secondary px-1 rounded text-[10px]">fecha</code>,{' '}
+                <code className="bg-secondary px-1 rounded text-[10px]">monto_recaudado</code>
+              </span>
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:items-end">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.xlsx"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#818CF8] hover:bg-[#818CF8]/90 disabled:opacity-50 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
-            >
-              {uploading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
-              ) : (
-                <><Upload className="h-4 w-4" /> Subir Excel / CSV</>
-              )}
-            </button>
-          </div>
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={handleFileUpload} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors"
+          >
+            {uploading
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Procesando...</>
+              : <><Upload className="h-4 w-4" /> Subir CSV / Excel</>
+            }
+          </button>
         </div>
 
-        {/* Upload result */}
         {uploadResult && (
-          <div className={`mt-4 rounded-lg border p-3 flex items-start gap-2 text-xs ${
+          <div className={`mt-3 rounded-lg border p-3 flex items-start gap-2 text-xs ${
             uploadResult.ok
-              ? 'border-[#4ADE80]/30 bg-[#4ADE80]/10 text-[#4ADE80]'
-              : 'border-[#F87171]/30 bg-[#F87171]/10 text-[#F87171]'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : 'border-destructive/30 bg-destructive/10 text-destructive'
           }`}>
-            {uploadResult.ok ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5" /> : <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />}
+            {uploadResult.ok
+              ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+              : <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            }
             <span>{uploadResult.msg}</span>
           </div>
         )}
 
-        {/* Preview */}
         {previewRows.length > 0 && (
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-[#818CF8]/70 mb-2">Vista previa (primeras 5 filas):</p>
-            <div className="overflow-x-auto rounded-lg border border-[#22263A]">
+          <div className="mt-3">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Vista previa (primeras 5 filas):</p>
+            <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-[#22263A] bg-[#0a0b10]">
+                  <tr className="border-b border-border bg-secondary/30">
                     {Object.keys(previewRows[0] || {}).map(h => (
-                      <th key={h} className="text-left px-3 py-2 text-[#818CF8]/70 font-semibold uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-3 py-2 text-muted-foreground font-semibold uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {previewRows.map((row, i) => (
-                    <tr key={i} className="border-b border-[#22263A]/50">
+                    <tr key={i} className="border-b border-border/50">
                       {Object.values(row).map((v, j) => (
-                        <td key={j} className="px-3 py-2 text-[#EEF0F6]/70">{String(v)}</td>
+                        <td key={j} className="px-3 py-2 text-muted-foreground">{String(v)}</td>
                       ))}
                     </tr>
                   ))}
@@ -734,24 +724,24 @@ export default function FinancialIntelligence() {
         )}
       </div>
 
-      {/* ── Parámetros del modelo ─────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[#22263A] bg-[#11131c] p-5">
-        <h2 className="text-sm font-semibold text-[#EEF0F6] mb-4 flex items-center gap-2">
-          <Info className="h-4 w-4 text-[#818CF8]" />
+      {/* ── Parámetros del modelo ─────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
+        <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Info className="h-4 w-4 text-primary" />
           Parámetros del modelo estimativo
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
-            { label: 'Ticket promedio', value: fmtCOPFull(TICKET_PROMEDIO_COP), note: 'Mediana 50 transcripciones' },
-            { label: 'Tasa promesa', value: '40%', note: 'Contactos → promesa pago' },
-            { label: 'Tasa cumplimiento', value: '60%', note: 'Promesas → recaudo real' },
-            { label: 'Agentes activos', value: String(AGENTES_ACTIVOS), note: 'Base CDR' },
-            { label: 'Costo/agente/mes', value: fmtCOPFull(COSTO_AGENTE_MES), note: 'Nómina + carga social' },
+            { label: 'Ticket promedio',   value: fmtCOPFull(TICKET_PROMEDIO_COP), note: 'Mediana 50 transcrip.' },
+            { label: 'Tasa promesa',      value: `${(TASA_PROMESA*100).toFixed(0)}%`,   note: `Bm: ${BM_TASA_PROMESA_PCT}%` },
+            { label: 'Tasa cumplimiento', value: `${(TASA_CUMPLIMIENTO*100).toFixed(0)}%`, note: `Bm: ${BM_TASA_CUMPLIM_PCT}%` },
+            { label: 'Agentes activos',   value: String(AGENTES_ACTIVOS),          note: 'Base CDR' },
+            { label: 'Costo/agente/mes',  value: fmtCOPFull(COSTO_AGENTE_MES),    note: 'Nómina + carga social' },
           ].map((p, i) => (
-            <div key={i} className="rounded-lg border border-[#22263A] bg-[#0a0b10] p-3">
-              <p className="text-[10px] text-[#818CF8]/60 uppercase tracking-wider mb-1">{p.label}</p>
-              <p className="text-sm font-bold text-[#818CF8]">{p.value}</p>
-              <p className="text-[10px] text-[#818CF8]/40 mt-0.5">{p.note}</p>
+            <div key={i} className="rounded-lg border border-border bg-secondary/20 p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{p.label}</p>
+              <p className="text-sm font-bold text-primary">{p.value}</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{p.note}</p>
             </div>
           ))}
         </div>
