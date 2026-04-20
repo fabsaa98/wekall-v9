@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 import { signOut } from '@/lib/supabase';
@@ -18,6 +18,7 @@ const navItems = [
   // Fix 2C: Búsqueda semántica global en transcripciones
   { label: 'Búsqueda', path: '/search', icon: Search },
   { label: 'Forecast', path: '/forecast', icon: TrendingUp },
+  { label: 'Financial Intel', path: '/financial', icon: DollarSign },
   { label: 'Configuración', path: '/config', icon: Settings },
 ];
 

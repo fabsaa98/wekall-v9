@@ -29,6 +29,7 @@ import SearchView from '@/pages/SearchView';
 // Feature V20: Speech Analytics
 import SpeechAnalytics from '@/pages/SpeechAnalytics';
 import ForecastView from '@/pages/ForecastView';
+import FinancialIntelligence from '@/pages/FinancialIntelligence';
 // Fix 2D: ChatRAG NO se enruta — es redundante con VickyInsights (misma función de RAG/chat).
 // Fix 2E: AlertsView, IntegrationsView, SettingsView y Dashboard son redundantes con
 //   Alertas y Configuracion actuales — NO se enrutan para evitar fragmentación de UX.
@@ -138,6 +139,7 @@ export default function App() {
                 <Route path="/search" element={<ErrorBoundary><SearchView /></ErrorBoundary>} />
                 <Route path="/speech-analytics" element={<ErrorBoundary><SpeechAnalytics /></ErrorBoundary>} />
                 <Route path="/forecast" element={<ErrorBoundary><ForecastView /></ErrorBoundary>} />
+                <Route path="/financial" element={<ErrorBoundary><FinancialIntelligence /></ErrorBoundary>} />
               </Route>
 
               {/* Fallback */}
