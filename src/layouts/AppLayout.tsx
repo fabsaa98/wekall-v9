@@ -221,7 +221,7 @@ export default function AppLayout() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-hidden flex flex-col">
+        <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
