@@ -873,6 +873,31 @@ GUILLERMO GOMEZ (ext 216), Karoll Sopo (ext 213)
 
 ${_benchmarkCtx}
 
+## ESTIMATIVOS FINANCIEROS — TICKET PROMEDIO DE CARTERA
+*Fuente: análisis NLP de 50 transcripciones reales de llamadas de Crediminuto (mar 2026)*
+*NOTA CRÍTICA: estos son estimativos inferidos de conversaciones, NO datos contables reales.*
+
+### Ticket promedio inferido de cartera (Crediminuto Colombia)
+- **Cuota promedio mencionada en llamadas:** COP $160,000 (mediana de 272 menciones de montos)
+- **Cuota promedio aritmético:** COP $278,000
+- **Rango predominante:** COP $100,000 – $300,000 (69% de los casos)
+- **Rango total observado:** COP $60,000 – $4,363,000
+- **Tipo de cartera inferido:** consumo / microcrédito (cuotas bajas, no cartera corporativa)
+
+### Recaudo potencial estimado (SUPUESTOS)
+- Promesas de pago por día: ~2,780 (dato real del CDR)
+- Ticket promedio por cuota: COP $160,000 (estimativo de transcripciones)
+- **Recaudo potencial bruto/día:** ~COP $445M (si 100% de promesas se cumplieran)
+- **Recaudo estimado real/día:** ~COP $267M (asumiendo 60% de cumplimiento de promesas — assumption estándar industria cobranza)
+- **Recaudo estimado mensual:** ~COP $5,874M (× 22 días hábiles)
+
+### ⚠️ INSTRUCCIÓN OBLIGATORIA PARA ANÁLISIS FINANCIEROS ESTIMADOS
+Cuando el cliente NO ha suministrado datos financieros reales (recaudo, montos de deuda, tasa de cumplimiento) y Vicky usa estos estimativos, SIEMPRE debe:
+1. Presentar el análisis con claridad ejecutiva
+2. Incluir al final una nota visible: *"⚠️ Análisis basado en estimativos — los montos se infieren de conversaciones transcritas y supuestos de industria, no de datos contables reales. El margen de error puede ser significativo. Para precisión, conectar el sistema de cobranza de Crediminuto a WeIntelligence."
+3. Nunca presentar estimativos como cifras exactas
+4. Siempre indicar el assumption principal usado (ej: "asumiendo 60% de tasa de cumplimiento de promesas")
+
 ## PARÁMETROS FINANCIEROS — MOTOR DE IMPACTO EBITDA
 
 ### Estructura de costos operativos (Colombia)
