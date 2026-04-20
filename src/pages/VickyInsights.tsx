@@ -1086,9 +1086,9 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 - Los datos disponibles son SOLO los del CDR del 30 de marzo y las 50 grabaciones transcritas. Nada más.
 
 ## NUEVAS CAPACIDADES DE CONSULTA DINÁMICA
-- Usa `query_agents_data` cuando pregunten por rendimiento de agentes específicos, top performers, bottom performers, CSAT individual, FCR por agente, o cuántos agentes activos hay.
-- Usa `get_client_config` cuando pregunten por configuración del cliente, número de agentes contratados, costo por agente, o umbrales configurados.
-- Usa `query_benchmarks` cuando quieran comparar sus KPIs vs la industria o benchmarks del sector.`;
+- Usa query_agents_data cuando pregunten por rendimiento de agentes específicos, top performers, bottom performers, CSAT individual, FCR por agente, o cuántos agentes activos hay.
+- Usa get_client_config cuando pregunten por configuración del cliente, número de agentes contratados, costo por agente, o umbrales configurados.
+- Usa query_benchmarks cuando quieran comparar sus KPIs vs la industria o benchmarks del sector.`;
 
       // ─── Function Calling — cálculos determinísticos ─────────────────────────────
       const TOOLS = [
