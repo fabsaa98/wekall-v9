@@ -686,8 +686,11 @@ export default function VickyInsights() {
     // Activar RAG si hay agente detectado (actual o en hilo) + contexto de desempeño/estrategia
     const isAgentQuery = !!(detectedAgent && (agentContextPattern.test(text) || agentContextPattern.test(recentText) || agentNamePattern.test(text)));
 
+    // Usar el endpoint RAG /vicky para todas las preguntas conversacionales
+    // RAG clasifica la intención, consulta solo los datos relevantes y responde con contexto mínimo
+    const USE_VICKY_RAG = !!BASE_PROXY && !isAgentQuery; // RAG para preguntas normales; rag-query para preguntas de agentes con transcripciones
     const PROXY_URL = BASE_PROXY
-      ? (isAgentQuery ? BASE_PROXY + '/rag-query' : BASE_PROXY + '/chat')
+      ? (isAgentQuery ? BASE_PROXY + '/rag-query' : BASE_PROXY + '/vicky')
       : 'https://api.openai.com/v1/chat/completions';
     const USE_PROXY = !!BASE_PROXY;
 
@@ -1244,15 +1247,18 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         },
         body: JSON.stringify(isAgentQuery && USE_PROXY ? {
           // RAG query: el worker busca transcripciones relevantes por similitud semántica
-          // Fix 1A: incluir client_id para aislar transcripciones por cliente (SEGURIDAD CRÍTICA)
           query: text,
           match_count: 5,
           client_id: clientId,
+        } : USE_VICKY_RAG ? {
+          // Nuevo endpoint RAG /vicky: contexto mínimo dinámico, sin function calling
+          question: text,
+          client_id: clientId,
+          history: conversationHistoryRef.current.slice(-6),
         } : {
           model: 'gpt-4o',
           messages: [
             { role: 'system', content: CONTEXT },
-            // Feature 1: Include conversation history (last 10 turns) — use ref to avoid stale closure
             ...conversationHistoryRef.current.slice(-10),
             { role: 'user', content: text },
           ],
