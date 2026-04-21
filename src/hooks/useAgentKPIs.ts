@@ -55,12 +55,20 @@ export function useAgentKPIs(): AgentKPIsSummary {
     }
 
     // Ocupación estimada por agente:
-    // ocupacion = (aht_segundos × llamadas_total_prom_dia) / (horas_trabajo × 3600) × 100
+    // Usar contactos (no llamadas_total) × AHT — solo llamadas conectadas consumen tiempo real
+    // ocupacion = (aht_seg × contactos_prom_dia) / (horas_trabajo × 3600) × 100
+    // Cap en 95% — 100% exacto es matemáticamente imposible en producción real
     const ocupaciones = agents.map(a => {
+      const contactosDia = a.days_count > 0 ? (a.total_promesas * 2.5) / a.days_count : 0;
+      // Estimación conservadora: contactos/día desde promesas (tasa_promesa ~40%)
+      // Fallback: llamadas/día × tasa_contacto promedio (~25%)
       const llamasDia = a.days_count > 0 ? a.total_llamadas / a.days_count : 0;
-      const tiempoEnLlamadas = a.avg_aht_segundos * llamasDia;
+      const contactosEstimados = a.avg_tasa_contacto > 0
+        ? llamasDia * (a.avg_tasa_contacto / 100)
+        : contactosDia;
+      const tiempoEnLlamadas = a.avg_aht_segundos * contactosEstimados;
       const tiempoDisponible = HORAS_TRABAJO * 3600;
-      return Math.min(100, (tiempoEnLlamadas / tiempoDisponible) * 100);
+      return Math.min(95, (tiempoEnLlamadas / tiempoDisponible) * 100); // cap 95%
     });
 
     const ocupacionPromedio = ocupaciones.length > 0
