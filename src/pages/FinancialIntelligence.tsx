@@ -371,17 +371,20 @@ export default function FinancialIntelligence() {
         : 0;
       setAvgTasaContacto(avgTC);
 
-      // Scale-G Fix #1 (21 abr 2026) — Campañas servicio: recaudoEst = 0
-      // 8. Campaign table
+      // Scale-G Fix #1+2b (21 abr 2026) — recaudoEst en moneda local correcta por campaña
+      // Colombia: ticket en COP → recaudoEst en COP → toUSD con USD_COP
+      // Perú: ticket en PEN → recaudoEst en PEN → toUSD con USD_PEN
+      // Servicio: recaudoEst = 0 (sin recaudo directo)
       const lastM = financial[financial.length - 1];
       if (lastM) {
         setCampaigns(CAMPANAS_DIST.map(camp => {
-          const llamadas    = Math.round(lastM.llamadas   * camp.pct);
-          const contactos   = Math.round(lastM.contactos  * camp.pct);
-          const promesasEst = Math.round(lastM.promesas   * camp.pct);
+          const llamadas    = Math.round(lastM.llamadas  * camp.pct);
+          const contactos   = Math.round(lastM.contactos * camp.pct);
+          const promesasEst = Math.round(lastM.promesas  * camp.pct);
+          const ticket      = camp.moneda === 'PEN' ? TICKET_PEN : TICKET_PROMEDIO_COP;
           const recaudoEst  = camp.tipo === 'servicio'
             ? 0
-            : Math.round(promesasEst * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
+            : Math.round(promesasEst * ticket * TASA_CUMPLIMIENTO);
           return { campana: camp.name, tipo: camp.tipo, moneda: camp.moneda, llamadas, contactos, promesasEst, recaudoEst, pctTotal: camp.pct * 100 };
         }));
       }
