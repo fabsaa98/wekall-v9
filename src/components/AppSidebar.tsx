@@ -60,16 +60,19 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
 
   async function handleLogout() {
-    try {
-      await signOut();
-    } catch { /* ignorar errores de signOut */ }
-    // Limpiar estado local
+    // Cerrar sidebar móvil primero
+    onMobileClose();
+    // Limpiar estado local SIEMPRE (antes del signOut para no quedar atrapado)
     setCurrentUser(null);
     localStorage.removeItem('wki_current_user');
     localStorage.removeItem('wki_remember_session');
     localStorage.removeItem('wki_client_id');
     sessionStorage.removeItem('wki_remember_session');
-    navigate('/login');
+    sessionStorage.removeItem('wki_current_user');
+    // Intentar signOut de Supabase (ignorar error — la limpieza ya se hizo)
+    try { await signOut(); } catch { /* ignorar */ }
+    // Forzar navegación a login siempre
+    navigate('/login', { replace: true });
   }
 
   return (
