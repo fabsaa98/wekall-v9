@@ -30,9 +30,9 @@ import SearchView from '@/pages/SearchView';
 import SpeechAnalytics from '@/pages/SpeechAnalytics';
 import ForecastView from '@/pages/ForecastView';
 import FinancialIntelligence from '@/pages/FinancialIntelligence';
-// Fix 2D: ChatRAG NO se enruta — es redundante con VickyInsights (misma función de RAG/chat).
-// Fix 2E: AlertsView, IntegrationsView, SettingsView y Dashboard son redundantes con
-//   Alertas y Configuracion actuales — NO se enrutan para evitar fragmentación de UX.
+// Scale-G (21 abr 2026): ChatRAG, AlertsView, IntegrationsView, SettingsView y Dashboard
+// son páginas huérfanas — NO se enrutan. Funcionalidad cubierta por VickyInsights y Alertas.
+// Se mantienen en el repo pero sin ruta activa para evitar fragmentación de UX.
 
 /**
  * AuthGuard — Control de acceso estricto:

@@ -4,23 +4,44 @@ import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 import { signOut } from '@/lib/supabase';
 
-const navItems = [
-  { label: 'Overview', path: '/', icon: LayoutDashboard },
-  { label: 'Vicky Insights', path: '/vicky', icon: Zap },
-  { label: 'Speech Analytics', path: '/speech-analytics', icon: Mic },
-  { label: 'Análisis Docs', path: '/document-analysis', icon: Brain },
-  { label: 'Alertas', path: '/alertas', icon: Bell },
-  { label: 'Equipos', path: '/equipos', icon: Users },
-  // Fix 2A: Transcripciones — análisis de llamadas grabadas (Supabase directo, filtra por client_id)
-  { label: 'Transcripciones', path: '/transcriptions', icon: FileAudio },
-  // Fix 2B: Subir grabación — ingesta de audio
-  { label: 'Subir grabación', path: '/upload', icon: Upload },
-  // Fix 2C: Búsqueda semántica global en transcripciones
-  { label: 'Búsqueda', path: '/search', icon: Search },
-  { label: 'Forecast', path: '/forecast', icon: TrendingUp },
-  { label: 'Financial Intel', path: '/financial', icon: DollarSign },
-  { label: 'Configuración', path: '/config', icon: Settings },
+// ─── Navegación agrupada — Scale-G UX Refactor (21 abr 2026) ───────────────
+// Reducido de 12 ítems planos → 3 grupos con jerarquía clara.
+// Acciones de ingesta (Subir grabación) movidas fuera del menú principal.
+// Financial Intelligence con nombre completo (sin truncar).
+const navGroups = [
+  {
+    label: 'Core',
+    items: [
+      { label: 'Overview', path: '/', icon: LayoutDashboard },
+      { label: 'Vicky Insights', path: '/vicky', icon: Zap },
+      { label: 'Alertas', path: '/alertas', icon: Bell },
+    ],
+  },
+  {
+    label: 'Análisis',
+    items: [
+      // Speech Analytics, Transcripciones y Búsqueda unificados bajo "Análisis de Llamadas"
+      { label: 'Speech Analytics', path: '/speech-analytics', icon: Mic },
+      { label: 'Transcripciones', path: '/transcriptions', icon: FileAudio },
+      { label: 'Búsqueda', path: '/search', icon: Search },
+      { label: 'Análisis Docs', path: '/document-analysis', icon: Brain },
+      // Badge "Estimado" manejado en la página. Nombre completo visible.
+      { label: 'Financial Intelligence', path: '/financial', icon: DollarSign, badge: 'Estimado' },
+      { label: 'Forecast', path: '/forecast', icon: TrendingUp, badge: 'Estimado' },
+    ],
+  },
+  {
+    label: 'Configuración',
+    items: [
+      { label: 'Equipos', path: '/equipos', icon: Users },
+      { label: 'Configuración', path: '/config', icon: Settings },
+    ],
+  },
 ];
+
+// Acción de ingesta — botón flotante dentro de Transcripciones o modal
+// (ya no ocupa ítem de menú de primer nivel)
+const ingestAction = { label: 'Subir grabación', path: '/upload', icon: Upload };
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -104,58 +125,100 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-          {navItems.map(item => {
-            const isActive = item.path === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(item.path);
-            const Icon = item.icon;
+        {/* Nav agrupado — Scale-G UX Refactor */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+          {navGroups.map(group => (
+            <div key={group.label}>
+              {!collapsed && (
+                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  {group.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map(item => {
+                  const isActive = item.path === '/'
+                    ? location.pathname === '/'
+                    : location.pathname.startsWith(item.path);
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={onMobileClose}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                        isActive
+                          ? 'bg-primary/10 text-primary border border-primary/20'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
+                      }`}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <Icon size={18} className="shrink-0" />
+                      {!collapsed && (
+                        <span className="flex-1 truncate">{item.label}</span>
+                      )}
+                      {!collapsed && 'badge' in item && item.badge && (
+                        <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                          {item.badge}
+                        </span>
+                      )}
+                      {isActive && !collapsed && !('badge' in item && item.badge) && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                      )}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Acción de ingesta — separada del nav principal */}
+          {(() => {
+            const isActive = location.pathname === ingestAction.path;
+            const Icon = ingestAction.icon;
             return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={onMobileClose}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
-                }`}
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon size={18} className="shrink-0" />
+              <div className="pt-1 border-t border-border/50">
                 {!collapsed && (
-                  <span className="truncate lg:block">{item.label}</span>
+                  <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                    Acciones
+                  </p>
                 )}
-                {isActive && !collapsed && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                )}
-              </NavLink>
+                <NavLink
+                  to={ingestAction.path}
+                  onClick={onMobileClose}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
+                  }`}
+                  title={collapsed ? ingestAction.label : undefined}
+                >
+                  <Icon size={18} className="shrink-0" />
+                  {!collapsed && <span className="truncate">{ingestAction.label}</span>}
+                </NavLink>
+              </div>
             );
-          })}
+          })()}
 
           {/* Admin — solo para role admin */}
           {currentUser?.role === 'admin' && (() => {
             const isActive = location.pathname.startsWith('/admin');
             return (
-              <NavLink
-                to="/admin"
-                onClick={onMobileClose}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all mt-2 ${
-                  isActive
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
-                }`}
-                title={collapsed ? 'Admin' : undefined}
-              >
-                <ShieldCheck size={18} className="shrink-0" />
-                {!collapsed && (
-                  <span className="truncate lg:block">Admin</span>
-                )}
-                {isActive && !collapsed && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                )}
-              </NavLink>
+              <div className="border-t border-border/50 pt-1">
+                <NavLink
+                  to="/admin"
+                  onClick={onMobileClose}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
+                  }`}
+                  title={collapsed ? 'Admin' : undefined}
+                >
+                  <ShieldCheck size={18} className="shrink-0" />
+                  {!collapsed && <span className="truncate">Admin</span>}
+                  {isActive && !collapsed && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+                </NavLink>
+              </div>
             );
           })()}
         </nav>
