@@ -1055,8 +1055,8 @@ export default function Overview() {
                       <Area type="monotone" dataKey="v" stroke="#6334C0" strokeWidth={2} fill="url(#gDrillDown)" activeDot={false} dot={(() => {
                         const vals = spark30.map(d => d.v);
                         const hasEnough = vals.length >= 3;
-                        // costo_contacto → lower is better (invertColor=true). All others: higher is better.
-                        const invertColor = drillDownMetric === 'costo_contacto';
+                        // invertColor: usar la propiedad del KPI (no hardcodear por id)
+                        const invertColor = drillDownKPI?.invertColor === true;
                         const maxIdx = hasEnough ? vals.reduce((best, v, i) => v > vals[best] ? i : best, 0) : -1;
                         const minIdx = hasEnough ? vals.reduce((best, v, i) => v < vals[best] ? i : best, 0) : -1;
                         const showDots = hasEnough && maxIdx !== minIdx;

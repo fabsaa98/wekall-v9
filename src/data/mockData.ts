@@ -102,7 +102,7 @@ export function buildKPIsFromCDR(
       changeLabel: `Prom. 7d: ${promedio7dTasa}%`,
       vsIndustry: Math.round((tasaContacto - 22.5) * 10) / 10, // Benchmark COPC Latam 20-25%
       sparkline: sparklineTasa.length >= 7 ? sparklineTasa.slice(-7) : sparklineTasa,
-      invertColor: true,
+      invertColor: false, // Tasa contacto: más alto = mejor → máximo verde, mínimo rojo
       roles: ['CEO', 'COO'],
       unit: '%',
       bsc: 'Financiera',
