@@ -252,7 +252,7 @@ export const initialVickyMessages: ChatMessage[] = [
   {
     id: 'init-1',
     role: 'vicky',
-    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR histórico enero 2024 - abril 2026**: 822 días de datos · 12 millones de registros · Supabase en tiempo real\n- **50 grabaciones** transcritas con IA · Análisis de objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero en COP de cada mejora operativa\n\n¿Qué quieres analizar?',
+    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR histórico enero 2024 - abril 2026**: 822 días de datos · 12 millones de registros · Supabase en tiempo real\n- **62 grabaciones** transcritas con IA · Análisis de objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero en COP de cada mejora operativa\n\n¿Qué quieres analizar?',
     timestamp: new Date(Date.now() - 60000),
     sources: ['WeKall CDR · Supabase en tiempo real'],
     confidence: 'Alta',

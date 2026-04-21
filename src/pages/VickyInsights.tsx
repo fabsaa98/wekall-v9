@@ -33,7 +33,7 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
   return {
     id: `vicky-${Date.now()}`,
     role: 'vicky' as const,
-    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros, Supabase) y 50 grabaciones transcritas. Por favor intenta nuevamente en unos segundos — si el problema persiste, verifica la conexión.',
+    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros, Supabase) y 62 grabaciones transcritas. Por favor intenta nuevamente en unos segundos — si el problema persiste, verifica la conexión.',
     timestamp: new Date(),
     sources: ['WeKall CDR · datos en tiempo real · Supabase'],
     confidence: 'Baja' as const,
@@ -765,7 +765,7 @@ Cuando el usuario pregunte por el rendimiento "hace un año", "mismo período a�
 5. Añade interpretación ejecutiva: qué mejoró, qué empeoró, qué explica la diferencia
 Ejemplo: si pregunta "¿cómo estábamos la semana pasada vs hace un año?", calcula la semana pasada y usa year_over_year.
 
-## ANÁLISIS REAL DE 50 GRABACIONES (Whisper + NLP)
+## ANÁLISIS REAL DE 62 GRABACIONES (Whisper + NLP)
 ### Resultados de contacto (fuente: transcripciones reales):
 - Promesa de pago: 40% de contactos efectivos
 - Sin capacidad de pago: 38%
@@ -874,7 +874,7 @@ GUILLERMO GOMEZ (ext 216), Karoll Sopo (ext 213)
 ${_benchmarkCtx}
 
 ## ESTIMATIVOS FINANCIEROS — TICKET PROMEDIO DE CARTERA
-*Fuente: análisis NLP de 50 transcripciones reales de llamadas de Crediminuto (mar 2026)*
+*Fuente: análisis NLP de 62 transcripciones reales de llamadas de Crediminuto (mar 2026)*
 *NOTA CRÍTICA: estos son estimativos inferidos de conversaciones, NO datos contables reales.*
 
 ### Ticket promedio inferido de cartera (Crediminuto Colombia)
@@ -1065,7 +1065,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 - **Evita tecnicismos operativos sin contexto**: no "AHT" a secas — dice "tiempo promedio por llamada". No "FCR" — dice "resolución en el primer contacto". Introduce las siglas solo si las explica de inmediato.
 
 ## REGLAS DE DATOS — INAMOVIBLES
-- Usa datos del CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) y las 50 grabaciones transcritas
+- Usa datos del CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) y las 62 grabaciones transcritas
 - Si el dato no existe, dilo: "Para responder esto necesito [dato específico]"
 - Nunca inventar horarios, tendencias históricas, o datos no disponibles
 - Los cálculos financieros los produce el motor determinístico (funciones TypeScript) — NO calcules tú
@@ -1083,7 +1083,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 - Si la pregunta requiere datos que NO tienes (ej: horarios de marcación, datos por hora, tendencias históricas, comparativos de períodos anteriores), responde EXACTAMENTE así:
   "No tengo esa dimensión en los datos disponibles. El CDR del 30 de marzo incluye [menciona qué sí tienes]. Para responder esta pregunta necesitaría [explica qué dato falta]."
 - Es preferible admitir la limitación que fabricar un insight. La credibilidad ejecutiva depende de la precisión, no de parecer omnisciente.
-- Los datos disponibles son SOLO los del CDR del 30 de marzo y las 50 grabaciones transcritas. Nada más.
+- Los datos disponibles son SOLO los del CDR del 30 de marzo y las 62 grabaciones transcritas. Nada más.
 
 ## NUEVAS CAPACIDADES DE CONSULTA DINÁMICA
 - Usa query_agents_data cuando pregunten por rendimiento de agentes específicos, top performers, bottom performers, CSAT individual, FCR por agente, o cuántos agentes activos hay.
@@ -1445,9 +1445,9 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         role: 'vicky',
         content: finalContent,
         timestamp: new Date(),
-        sources: ['WeKall CDR · 822 días · ene 2024–abr 2026 · 12M registros · Supabase', '50 grabaciones transcritas con Whisper · Análisis NLP real'],
+        sources: ['WeKall CDR · 822 días · ene 2024–abr 2026 · 12M registros · Supabase', '62 grabaciones transcritas con Whisper · Análisis NLP real'],
         confidence: 'Alta',
-        reasoning: `Analicé CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) + 50 transcripciones reales de ${_clientName}. Fuente: Supabase. Modelo: GPT-4o + Function Calling determinístico.`,
+        reasoning: `Analicé CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) + 62 transcripciones reales de ${_clientName}. Fuente: Supabase. Modelo: GPT-4o + Function Calling determinístico.`,
         followUps: [
           '¿Por qué no estamos recuperando cartera?',
           '¿Cuáles son los agentes top performers?',
