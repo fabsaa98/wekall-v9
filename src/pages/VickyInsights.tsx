@@ -33,7 +33,7 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
   return {
     id: `vicky-${Date.now()}`,
     role: 'vicky' as const,
-    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros, Supabase) y 62 grabaciones transcritas. Por favor intenta nuevamente en unos segundos — si el problema persiste, verifica la conexión.',
+    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros, Supabase) y 62 grabaciones transcritas. Por favor intenta nuevamente en unos segundos - si el problema persiste, verifica la conexión.',
     timestamp: new Date(),
     sources: ['WeKall CDR · datos en tiempo real · Supabase'],
     confidence: 'Baja' as const,
@@ -49,13 +49,13 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
 function exportToPDF(content: string, sources?: string[], clientName?: string) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
-  // Usar clientName dinámico del contexto — fallback a 'WeKall Intelligence'
+  // Usar clientName dinámico del contexto - fallback a 'WeKall Intelligence'
   const displayName = clientName || 'WeKall Intelligence';
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>WeKall Intelligence — Análisis Ejecutivo</title>
+      <title>WeKall Intelligence - Análisis Ejecutivo</title>
       <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; color: #12172A; }
         h1 { color: #6334C0; font-size: 20px; border-bottom: 2px solid #6334C0; padding-bottom: 8px; }
@@ -65,11 +65,11 @@ function exportToPDF(content: string, sources?: string[], clientName?: string) {
       </style>
     </head>
     <body>
-      <h1>WeKall Intelligence — Análisis Ejecutivo</h1>
+      <h1>WeKall Intelligence - Análisis Ejecutivo</h1>
       <p style="color:#999;font-size:12px">${displayName} · ${new Date().toLocaleDateString('es-CO')}</p>
       <div style="margin-top:20px;line-height:1.6">${content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>
       ${sources ? `<div class="sources"><strong>Fuentes:</strong> ${sources.join(' · ')}</div>` : ''}
-      <div class="footer">Generado por Vicky Insights — WeKall Intelligence · ${new Date().toLocaleString('es-CO')}</div>
+      <div class="footer">Generado por Vicky Insights - WeKall Intelligence · ${new Date().toLocaleString('es-CO')}</div>
     </body>
     </html>
   `);
@@ -120,7 +120,7 @@ function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
             )}
           </div>
 
-          {/* Content — render markdown-like bold */}
+          {/* Content - render markdown-like bold */}
           <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
             {msg.content.split('\n\n').map((para, i) => (
               <p key={i} dangerouslySetInnerHTML={{
@@ -426,7 +426,7 @@ export default function VickyInsights() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialVickyMessages);
 
   // Actualizar mensaje de bienvenida cuando carga el clientConfig
-  // Fix 4: useEffect del mensaje de bienvenida — reactivo al estado del CDR
+  // Fix 4: useEffect del mensaje de bienvenida - reactivo al estado del CDR
   useEffect(() => {
     if (!clientConfig) return;
     const _name = clientBranding?.company_name || clientConfig.client_name || 'tu operación';
@@ -434,7 +434,7 @@ export default function VickyInsights() {
       ? '*(Cargando datos en tiempo real...)*'
       : cdr.latestDay
         ? `Último dato: **${cdr.latestDay.fecha}** · ${cdr.latestDay.total_llamadas.toLocaleString('es-CO')} llamadas`
-        : '*(Sin datos del día disponibles — usa análisis histórico)*';
+        : '*(Sin datos del día disponibles - usa análisis histórico)*';
     setMessages(prev => {
       if (prev.length !== 1 || prev[0].id !== 'init-1') return prev; // solo reemplazar el mensaje inicial
       return [{
@@ -460,7 +460,7 @@ export default function VickyInsights() {
 
   const [surpriseLoading, setSurpriseLoading] = useState(false);
 
-  // "Sorpréndeme" — análisis proactivo de la semana (Tableau Pulse style)
+  // "Sorpréndeme" - análisis proactivo de la semana (Tableau Pulse style)
   async function handleSorprendeme() {
     setSurpriseLoading(true);
     const last14 = cdr.last30Days.slice(-14);
@@ -542,7 +542,7 @@ export default function VickyInsights() {
         responsible: item.responsable,
         status: item.estado,
         date: item.fecha.split('T')[0],
-        impact: '—',
+        impact: '-',
       }));
       return [...staticDecisionLog, ...mappedLocal];
     } catch {
@@ -577,7 +577,7 @@ export default function VickyInsights() {
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  const TRANSCRIBE_URL = (import.meta.env.VITE_PROXY_URL 
+  const TRANSCRIBE_URL = (import.meta.env.VITE_PROXY_URL
     ? import.meta.env.VITE_PROXY_URL.replace(/\/$/, '') + '/transcribe'
     : null);
 
@@ -639,12 +639,12 @@ export default function VickyInsights() {
   async function sendMessage(text: string) {
     if (!text.trim()) return;
 
-    // Fix 2: Guard — si CDR sigue cargando, informar al usuario y no enviar
+    // Fix 2: Guard - si CDR sigue cargando, informar al usuario y no enviar
     if (cdr.loading) {
       const waitMsg: ChatMessage = {
         id: `vicky-wait-${Date.now()}`,
         role: 'vicky',
-        content: '**Espera un momento** — estoy cargando los datos CDR en tiempo real desde Supabase. Normalmente toma 2-3 segundos. Intenta de nuevo en un momento.',
+        content: '**Espera un momento** - estoy cargando los datos CDR en tiempo real desde Supabase. Normalmente toma 2-3 segundos. Intenta de nuevo en un momento.',
         timestamp: new Date(),
         sources: [],
         confidence: 'Alta',
@@ -701,32 +701,47 @@ export default function VickyInsights() {
       const _clientName = clientConfig?.client_name || 'el cliente';
       const _clientIndustry = clientConfig?.industry || 'cobranzas';
       const _clientCountry = clientConfig?.country || 'colombia';
-      // Fix V1: NO hardcodear "promesa pago deuda" — usar solo el contexto real del cliente
+      // Fix V1: NO hardcodear "promesa pago deuda" - usar solo el contexto real del cliente
       const _opType = detectOperationType(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _region = detectRegion(`${_clientIndustry} ${_clientCountry} ${_clientName}`);
       const _benchmarkCtx = generateBenchmarkContext(_opType, _region);
-      // Fix 3: CDR data real desde Supabase — sin fallbacks hardcodeados
+      // Fix 3: CDR data real desde Supabase - sin fallbacks hardcodeados
       const _latestDay = cdr.latestDay;
       const _datosDisponibles = _latestDay != null;
       const _llamadasHoy = _latestDay?.total_llamadas ?? null;
       const _tasaContacto = _latestDay?.tasa_contacto_pct != null ? (_latestDay.tasa_contacto_pct / 100) : null;
       const _aht = _latestDay?.aht_minutos ?? null;
 
-      // Fix 3: Sección CDR del prompt — explícita sobre disponibilidad de datos
+      // Fix 3: Sección CDR del prompt - explícita sobre disponibilidad de datos
       const _cdrSection = _datosDisponibles ? `
-- Campañas principales: Cobranzas ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Cobranzas Perú · Servicio ${_clientCountry.charAt(0).toUpperCase() + _clientCountry.slice(1)} · Servicio Perú
 - Tasa de contacto efectivo hoy: ${(_tasaContacto! * 100).toFixed(1)}%
-- AHT real: ${_aht} min promedio (rango: 5.2-16.3 min)
+- AHT real: ${_aht} min promedio
 - Total llamadas hoy: ${_llamadasHoy!.toLocaleString('es-CO')}` : `
 - ⚠️ DATOS CDR DEL DÍA NO DISPONIBLES AÚN: Los datos de hoy no han sido cargados todavía.
 - INSTRUCCIÓN CRÍTICA: NO inventes ni estimes métricas de volumen, tasa de contacto ni AHT.
 - USA la función query_cdr_data para obtener datos reales antes de responder.
 - Si query_cdr_data tampoco tiene datos, di explícitamente: "Los datos del día no están disponibles aún. Puedo analizar tendencias históricas si lo deseas."`;
 
-      // Sprint 2B — Sección KPIs de agentes para contexto de Vicky
+      // ─── Datos dinámicos del cliente ──────────────────────────────────────────────
+      const _agentesActivos = clientConfig?.agentes_activos || agentKPIs.agentesActivos || null;
+      const _costoAgenteMes = clientConfig?.costo_agente_mes || null;
+      const _costoNomina = (_agentesActivos && _costoAgenteMes) ? _agentesActivos * _costoAgenteMes : null;
+      const _ticketPromedio = (clientConfig as Record<string, unknown> | null)?.ticket_promedio_cop as number | null ?? null;
+      const _campanas = ((clientConfig as Record<string, unknown> | null)?.campanas as string[] | null) || [];
+      const _topAgentes = agentsData.agents?.slice().sort((a, b) => (b.total_llamadas || 0) - (a.total_llamadas || 0)).slice(0, 10) || [];
+      const _bottomAgentes = agentsData.agents?.slice().sort((a, b) => (a.total_llamadas || 0) - (b.total_llamadas || 0)).slice(0, 10) || [];
+      const _hasTopAgentes = _topAgentes.length > 0;
+      const _paises = ((clientConfig as Record<string, unknown> | null)?.paises_operacion as string[] | null) || (clientConfig?.country ? [clientConfig.country] : ['Colombia']);
+      const _hasMultiPais = Array.isArray(_paises) && _paises.length > 1;
+      const _hasFinancialConfig = !!_costoAgenteMes && !!_agentesActivos;
+      const _diasLaborales = 22;
+      const _costoAgenteHora = _costoAgenteMes ? Math.round(_costoAgenteMes / (_diasLaborales * 8)) : null;
+      const _costoAgenteMin = _costoAgenteHora ? Math.round(_costoAgenteHora / 60) : null;
+
+      // Sprint 2B - Sección KPIs de agentes para contexto de Vicky
       const _hasAgentKPIs = !agentKPIs.loading && agentKPIs.agentesActivos > 0;
       const _agentKPIsSection = _hasAgentKPIs ? `
-## DATOS DE PERFORMANCE DE AGENTES (Engage360 — datos reales, últimos 30 días)
+## DATOS DE PERFORMANCE DE AGENTES (Engage360 - datos reales, últimos 30 días)
 - CSAT promedio del equipo: ${agentKPIs.csatPromedio.toFixed(1)}/5 (umbral calidad: 3.5/5)
 - FCR promedio: ${agentKPIs.fcrPromedio.toFixed(0)}% (benchmark COPC: ≥75%)
 - Tasa de escalaciones promedio: ${agentKPIs.escalacionesPromedio.toFixed(1)}%
@@ -735,19 +750,19 @@ export default function VickyInsights() {
 - Agentes activos últimos 30 días: ${agentKPIs.agentesActivos}
 - Nota: Ocupación calculada como (AHT × llamadas) / (8h × 3600). Un valor >90% indica riesgo de burnout.` : `
 ## DATOS DE PERFORMANCE DE AGENTES (Engage360)
-- Sin datos disponibles aún — NO inventes ni estimes métricas de calidad de agentes.`;
+- Sin datos disponibles aún - NO inventes ni estimes métricas de calidad de agentes.`;
 
       const CONTEXT = `Eres Vicky Insights, la IA analítica de WeKall Intelligence para ${_clientName}.
 
-## DATOS REALES CDR — Supabase en tiempo real (CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros)
+## DATOS REALES CDR - Supabase en tiempo real
 - Los datos son dinámicos y se actualizan en tiempo real desde Supabase (tabla: cdr_daily_metrics)${_cdrSection}${_agentKPIsSection}
 
-## REGLA DE ORO — NUNCA DIGAS "NO TENGO DATOS" SIN CONSULTAR PRIMERO
+## REGLA DE ORO - NUNCA DIGAS "NO TENGO DATOS" SIN CONSULTAR PRIMERO
 ⚠️ OBLIGATORIO: Antes de responder "no tengo datos de X período", SIEMPRE usa query_cdr_data para consultarlos.
-El CDR tiene datos desde enero 2024 hasta abril 2026 (822 días). Si el período pedido está dentro de ese rango, los datos EXISTEN en Supabase.
+Si el período pedido está dentro del rango histórico disponible, los datos EXISTEN en Supabase. Usa query_cdr_data con query_type="annual_summary" para conocer qué años están disponibles.
 
 FLUJO OBLIGATORIO para preguntas históricas:
-1. ¿El período pedido está entre ene-2024 y abr-2026? → USA query_cdr_data, NO respondas de memoria
+1. ¿El período pedido está en el rango disponible? → USA query_cdr_data, NO respondas de memoria
 2. Para "cómo nos fue en abril 2025" → usa query_type="monthly_summary" con year=2025, luego filtra el mes
 3. Para "datos mes a mes" → usa query_type="annual_summary" o "monthly_summary"
 4. Para tendencias recientes → usa query_type="daily_trend" con days=30 o 90
@@ -773,7 +788,7 @@ Ejemplo: si pregunta "¿cómo estábamos la semana pasada vs hace un año?", cal
 - Sin resolución: 8%
 
 ### Objeciones reales (frecuencia en transcripciones):
-- "Pido más plazo / tiempo": 56% — NO niegan la deuda, quieren tiempo
+- "Pido más plazo / tiempo": 56% - NO niegan la deuda, quieren tiempo
 - "No recuerdo / no reconozco la deuda": 52%
 - "No tengo dinero ahora": 40%
 - "Perdí el trabajo": 14%
@@ -784,7 +799,7 @@ Ejemplo: si pregunta "¿cómo estábamos la semana pasada vs hace un año?", cal
 - "Estábamos llamando al de Credit Smart, indica que quería comunicarse con nosotros"
 - Cierre típico: "Le agradezco por haber atendido mi llamada. Contamos con el pago."
 
-### REGLA CRÍTICA — Interpretación del volumen de llamadas y el Dialer automático
+### REGLA CRÍTICA - Interpretación del volumen de llamadas y el Dialer automático
 - El "wekall Dialer" es un agente de marcación automática que genera ~44% del volumen total de llamadas
 - En días con >15,000 llamadas totales: el Dialer domina el volumen → la tasa de contacto efectivo cae porque el Dialer tiene ~5-8% de contacto efectivo vs ~40% de los agentes humanos
 - En días con <5,000 llamadas: es operación reducida (fin de semana, festivo) → la tasa de contacto puede ser más alta porque solo operan agentes humanos de alta productividad
@@ -792,133 +807,70 @@ Ejemplo: si pregunta "¿cómo estábamos la semana pasada vs hace un año?", cal
 - Ejemplo: "El 1-abr: 30,762 llamadas + 7.76% contacto = el Dialer generó ~13,600 llamadas con tasa mínima. Los agentes humanos probablemente mantuvieron su ~40% pero el Dialer diluyó el total."
 - Ejemplo: "El 29-mar: 769 llamadas + 33.81% contacto = operación reducida (sábado), solo agentes humanos activos."
 
-### Distribución real de volumen por agente (CDR histórico — datos de referencia, 81 agentes humanos activos en días pico):
-- Promedio real: 110.7 llamadas/agente/día (el "137" anterior incluía el marcador automático — dato corregido)
-- P10: 49 llamadas/día
-- P25 (peor cuartil — dato REAL, no suposición): 76 llamadas/agente/día
-- P50 (mediana real): 120 llamadas/agente/día
-- P75 (mejor cuartil inicio): 143 llamadas/agente/día
-- P90: 154 llamadas/agente/día
-- Mínimo real: 4 llamadas/día | Máximo real: 261 llamadas/día
+${_hasTopAgentes ? `### Top 10 agentes por volumen (datos dinámicos CDR - últimos 30 días):
+${_topAgentes.map((a, i) => `${i + 1}. ${a.agent_name}: ${a.total_llamadas.toLocaleString()} llamadas (30d) - tasa contacto: ${(a.avg_tasa_contacto * 100).toFixed(1)}%`).join('\n')}
 
-### Top 10 agentes (mejor cuartil — datos reales CDR):
-1. Teresa Meza: 261 llamadas/día
-2. Juan Gutierrez: 211
-3. Nelcy Josefina Contasti: 194
-4. Santiago Cano: 183
-5. Alejandra Perez: 180
-6. Neleanny Sequera: 174
-7. Selena Romero Ventura: 162
-8. Joel Jose: 160
-9. Angel Cuberos: 154
-10. Jennifer Loaiza: 152
+### Bottom 10 agentes por volumen (datos dinámicos CDR):
+${_bottomAgentes.map((a, i) => `${i + 1}. ${a.agent_name}: ${a.total_llamadas.toLocaleString()} llamadas (30d) - tasa contacto: ${(a.avg_tasa_contacto * 100).toFixed(1)}%`).join('\n')}` : '(Sin datos de agentes disponibles. Usa query_agents_data para consultar en tiempo real.)'}
 
-### Bottom 10 agentes (peor cuartil — datos reales CDR):
-- Melisa Campuzano: 55 | Solymar Mijares: 49 | Daniela Vargas: 44
-- Noemi Marin: 40 | Liseth Obando Robayo: 40 | Ana Maria Lopez Rojas: 32
-- Juan Carlos Becerra Manrique: 27 | Vannesa Sauce: 9 | Yuleidy Gonzalez: 7 | Paola Joya: 4
-
-### Insight crítico:
-El 57% de las grabaciones (2,144) son llamadas que NO conectaron (archivo 0 bytes).
-El problema principal de recuperación de cartera NO es la conversación — es la tasa de contacto.
-Si la tasa de contacto sube de 43% a 60%, se generan ~280 promesas de pago adicionales/día.
+### Insight crítico (disponible vía CDR):
+Usa query_cdr_data para calcular la distribución de llamadas por agente y la brecha entre mejor y peor cuartil. El problema principal en operaciones de cobranza no suele ser la conversación - es la tasa de contacto efectivo.
 
 ## ECOSISTEMA WEKALL
 Business Phone · Engage360 (Contact Center, NO es CRM) · Messenger Hub · Notes
 
-## ESTRUCTURA DEL CLIENTE (datos reales Google Drive — CDR crediminuto.xlsx, 30 mar 2026)
+## ESTRUCTURA DEL CLIENTE (datos dinámicos)
 
-### Entidades del grupo
-- **Crediminuto Colombia S.A.S** — entidad principal, cobranzas + servicio al cliente
-- **CrediSmart SAS Perú** — operación en Perú, cobranzas + servicio al cliente
-
-### Campañas activas (4)
-1. **Cobranzas Crediminuto Colombia S.A.S** — 9,174 llamadas (8,778 salientes + 396 entrantes) — 53 agentes
-2. **Servicio al Cliente Colombia - Crediminuto S.A.S** — 3,256 llamadas (2,325 salientes + 931 entrantes) — 23 agentes
-3. **Cobranzas CrediSmart SAS Perú** — 3,550 llamadas (3,540 salientes + 10 entrantes) — 5 agentes
-4. **Servicio al cliente - CrediSmart SAS Perú** — 140 llamadas (129 salientes + 11 entrantes) — 2 agentes
-
-### Fuerza laboral (datos reales)
-- **Total usuarios en plataforma:** 183
-- **Agentes activos:** 141 (91 Colombia + 48 Perú + 2 otros)
-- **Supervisores activos:** 19
-- **Agentes en CDR ese día:** 82
-- **Distribución:** Colombia ~65% de la operación, Perú ~35%
-
-### Supervisores activos Colombia (muestra)
-AdrianaMoreno, Aureli Mijares (ext 1016), Cecili Cervantes (ext 214), Damelis Gutierrez (ext 1020),
-Daniela Pachon (ext 1061), Daniela Garcia (ext 1001), Dexired Méndez (ext 205),
-Jonathan Vallejo (ext 210), Julián Pérez, Karina Padilla (ext 1059)
-
-### Supervisores activos Perú (muestra)
-Álvaro Galeano (ext 215), Daniela Ariza (ext 1059), Diana Cruz (ext 212),
-GUILLERMO GOMEZ (ext 216), Karoll Sopo (ext 213)
-
-### Volumen real por campaña (ene 2024 → abr 2026 — 12,083,522 llamadas totales)
-| Campaña | Llamadas | Contactos efectivos | Tasa contacto |
-|---|---|---|---|
-| Cobranzas Crediminuto Colombia | 6,832,540 | 1,003,626 | 14.7% |
-| Servicio al Cliente Colombia | 2,039,323 | 243,100 | 11.9% |
-| Cobranzas CrediSmart Perú | 1,955,779 | 380,502 | 19.5% |
-| Servicio al cliente Perú | 57,839 | 2,037 | 3.5% |
-| Otros | 1,198,041 | 133,539 | 11.1% |
+- **Nombre:** ${_clientName}
+- **Industria:** ${clientConfig?.industry || 'contact center'}
+${_agentesActivos ? `- **Agentes activos:** ${_agentesActivos}` : '- **Agentes activos:** consultar via query_agents_data'}
+${_hasMultiPais ? `- **Países de operación:** ${_paises.join(', ')}` : `- **País de operación:** ${_paises[0] || 'Colombia'}`}
+${_campanas.length > 0 ? `- **Campañas configuradas:** ${_campanas.join(' · ')}` : '- **Campañas:** consultar via query_cdr_data para listar campañas activas'}
 
 ### Notas operativas clave
 - El CDR registra: id, call_start, call_end, src, dst, campaign_id, disposition_id, tipo_descripcion
-- Tipos que indican CONTACTO EFECTIVO: Promesa, En Negociáción, Mensaje con Tercero, Colgó, Información Credicash, Desbloqueo de equipos, Atención al Cliente
+- Tipos que indican CONTACTO EFECTIVO: Promesa, En Negociación, Mensaje con Tercero, Colgó, Atención al Cliente
 - Tipos que indican NO CONTACTO: Llamada Perdida, No contesta, Buzón de Voz, Llamada Abandonada, Fuera de Servicio, Ilocalizable
-- Cobranzas Colombia es la campaña dominante (57% del volumen total)
-- Perú tiene MEJOR tasa de contacto (19.5%) que Colombia (14.7%) — insight estratégico
-- Tabla en Supabase: cdr_campaign_metrics — usarla via query_cdr_data con query_type='date_range' filtrando por campaign_id
+- Para volumen por campaña: usa query_cdr_data con query_type='date_range' filtrando por campaign_id
+- Tabla en Supabase: cdr_campaign_metrics y cdr_daily_metrics
 
 ${_benchmarkCtx}
 
-## ESTIMATIVOS FINANCIEROS — TICKET PROMEDIO DE CARTERA
-*Fuente: análisis NLP de 62 transcripciones reales de llamadas de Crediminuto (mar 2026)*
-*NOTA CRÍTICA: estos son estimativos inferidos de conversaciones, NO datos contables reales.*
-
-### Ticket promedio inferido de cartera (Crediminuto Colombia)
-- **Cuota promedio mencionada en llamadas:** COP $160,000 (mediana de 272 menciones de montos)
-- **Cuota promedio aritmético:** COP $278,000
-- **Rango predominante:** COP $100,000 – $300,000 (69% de los casos)
-- **Rango total observado:** COP $60,000 – $4,363,000
-- **Tipo de cartera inferido:** consumo / microcrédito (cuotas bajas, no cartera corporativa)
-
-### Recaudo potencial estimado (SUPUESTOS)
-- Promesas de pago por día: ~2,780 (dato real del CDR)
-- Ticket promedio por cuota: COP $160,000 (estimativo de transcripciones)
-- **Recaudo potencial bruto/día:** ~COP $445M (si 100% de promesas se cumplieran)
-- **Recaudo estimado real/día:** ~COP $267M (asumiendo 60% de cumplimiento de promesas — assumption estándar industria cobranza)
-- **Recaudo estimado mensual:** ~COP $5,874M (× 22 días hábiles)
+## ESTIMATIVOS FINANCIEROS - TICKET PROMEDIO DE CARTERA
+${_ticketPromedio ? `
+- **Ticket promedio configurado:** ${clientConfig?.currency || 'COP'} $${_ticketPromedio.toLocaleString()}
+- Recaudo potencial bruto/día: estimar con (promesas_pago_dia × ticket_promedio) una vez obtenidas las promesas del CDR
+- Para recaudo real: aplicar tasa de cumplimiento de promesas del cliente (solicitar si no está disponible)` : `
+- Ticket promedio de cartera: NO configurado. Solicitar al CEO para activar cálculos de recaudo potencial.
+- Sin este dato, los cálculos de impacto en ingresos quedan incompletos (solo se puede calcular el impacto en costo/eficiencia)`}
 
 ### ⚠️ INSTRUCCIÓN OBLIGATORIA PARA ANÁLISIS FINANCIEROS ESTIMADOS
-Cuando el cliente NO ha suministrado datos financieros reales (recaudo, montos de deuda, tasa de cumplimiento) y Vicky usa estos estimativos, SIEMPRE debe:
+Cuando el cliente NO ha suministrado datos financieros reales (recaudo, montos de deuda, tasa de cumplimiento) y Vicky usa estimativos, SIEMPRE debe:
 1. Presentar el análisis con claridad ejecutiva
-2. Incluir al final una nota visible: *"⚠️ Análisis basado en estimativos — los montos se infieren de conversaciones transcritas y supuestos de industria, no de datos contables reales. El margen de error puede ser significativo. Para precisión, conectar el sistema de cobranza de Crediminuto a WeIntelligence."
+2. Indicar explícitamente que los cálculos son estimativos basados en supuestos de industria
 3. Nunca presentar estimativos como cifras exactas
 4. Siempre indicar el assumption principal usado (ej: "asumiendo 60% de tasa de cumplimiento de promesas")
 
-## PARÁMETROS FINANCIEROS — MOTOR DE IMPACTO EBITDA
+## PARÁMETROS FINANCIEROS - MOTOR DE IMPACTO EBITDA
 
-### Estructura de costos operativos (Colombia)
-- Costo empresa por agente/mes: COP $3,000,000 (salario mínimo + prestaciones)
-- Agentes activos: 81 | Pool total: 162
-- Días laborales/mes: 22
+${_hasFinancialConfig ? `### Estructura de costos operativos (datos reales configurados)
+- Costo empresa por agente/mes: ${clientConfig?.currency || 'COP'} $${_costoAgenteMes!.toLocaleString()}
+- Agentes activos: ${_agentesActivos}
+- Días laborales/mes: ${_diasLaborales}
 - Horas trabajo/día: 8 horas
-- Costo agente/hora: COP $17,045 (= 3,000,000 / 22 días / 8 horas)
-- Costo agente/minuto: COP $284 (= 17,045 / 60)
-- Costo total nómina activa/mes: COP $243,000,000 (81 agentes × $3M)
+- Costo agente/hora: ${clientConfig?.currency || 'COP'} $${_costoAgenteHora?.toLocaleString() || 'N/A'}
+- Costo agente/minuto: ${clientConfig?.currency || 'COP'} $${_costoAgenteMin?.toLocaleString() || 'N/A'}
+- Costo total nómina activa/mes: ${clientConfig?.currency || 'COP'} $${_costoNomina?.toLocaleString() || 'N/A'}` : `### Estructura de costos operativos
+- Los parámetros financieros no están configurados aún.
+- Para activar el Motor EBITDA, configurar en Administración: costo_agente_mes y agentes_activos`}
 
-### Volúmenes operativos
-- Llamadas procesadas/día: 16,129
-- Llamadas/mes estimadas: 354,838 (× 22 días)
-- AHT actual: 8.1 min
-- Minutos totales operados/día: 130,645 min
-- Minutos totales/mes: 2,874,190 min
-- Tasa de contacto efectivo: 43.1%
-- Contactos efectivos/día: ~6,951 (43.1% de 16,129)
-- Tasa de promesa de pago: 40% de contactos efectivos
-- Promesas de pago/día: ~2,780
+### Volúmenes operativos (datos dinámicos CDR)
+- Llamadas/día: usar query_cdr_data para obtener el promedio de los últimos 30 días
+- AHT actual: ${_aht != null ? `${_aht} min (dato del día más reciente)` : 'usar query_cdr_data para obtener promedio'}
+- Tasa de contacto efectivo: ${_tasaContacto != null ? `${(_tasaContacto * 100).toFixed(1)}% (dato del día más reciente)` : 'usar query_cdr_data para obtener promedio'}
+- Contactos efectivos/día: calcular con (llamadas_dia × tasa_contacto) desde CDR
+- Tasa de promesa de pago: consultar desde transcripciones o configuración del cliente
+- Promesas de pago/día: calcular con (contactos_efectivos × tasa_promesa) desde CDR
 
 ### FÓRMULAS DE IMPACTO FINANCIERO (úsalas cuando el CEO pregunte por mejoras)
 
@@ -926,9 +878,9 @@ Cuando el cliente NO ha suministrado datos financieros reales (recaudo, montos d
 - ⚠️ CRÍTICO: El AHT de 8.1 min aplica SOLO a las llamadas que SÍ conectaron (contactos efectivos = 6,951/día). Las llamadas sin respuesta tienen ~0.5 min de marcación promedio. NO aplicar AHT a las 16,129 llamadas totales.
 - Minutos liberados/día = (AHT_actual - AHT_objetivo) × contactos_efectivos_día (= 6,951, NO 16,129)
 - Capacidad liberada en agentes equivalentes = minutos_liberados / (8h × 60min)
-- Escenario A — Reducción de costo: agentes_liberados × COP $3,000,000 = ahorro/mes
-- Escenario B — Más transacciones: minutos_liberados / AHT_actual = llamadas_adicionales/día → × tasa_contacto × tasa_promesa = promesas_adicionales
-- Ejemplo correcto: reducir AHT de 8.1 → 7.2 min libera 6,951 × 0.9 = 6,256 min/día = 13 agentes equivalentes = COP $39M/mes (NO COP $90.6M — ese error viene de aplicar AHT a todas las llamadas)
+- Escenario A - Reducción de costo: agentes_liberados × COP $3,000,000 = ahorro/mes
+- Escenario B - Más transacciones: minutos_liberados / AHT_actual = llamadas_adicionales/día → × tasa_contacto × tasa_promesa = promesas_adicionales
+- Ejemplo correcto: reducir AHT de 8.1 → 7.2 min libera 6,951 × 0.9 = 6,256 min/día = 13 agentes equivalentes = COP $39M/mes (NO COP $90.6M - ese error viene de aplicar AHT a todas las llamadas)
 - NOTA: Si no se conoce el ticket promedio de deuda, expresar en "promesas adicionales/mes" y solicitar el dato al CEO.
 
 **2. Impacto de mejorar tasa de contacto efectivo**
@@ -936,24 +888,23 @@ Cuando el cliente NO ha suministrado datos financieros reales (recaudo, montos d
 - Promesas_adicionales/día = contactos_adicionales × 40%
 - Promesas_adicionales/mes = promesas_adicionales/día × 22
 
-**3. Impacto de replicar protocolo top agente (Teresa Meza)**
-- Promedio real: 110.7 llamadas/agente/día (81 agentes humanos, excluyendo marcador automático)
-- P25 real (peor cuartil): 76 llamadas/agente/día — NO asumir, este es el dato del CDR
-- P75 real (mejor cuartil): 143 llamadas/agente/día
-- Teresa Meza: 261 llamadas/agente/día (top performer, 2.4x el promedio)
-- Brecha peor cuartil vs. promedio: 110.7 - 76 = 34.7 llamadas/agente/día × ~20 agentes en P25 = 694 llamadas/día
-- Si los 20 agentes del peor cuartil suben al P50 (120):
-  - Incremento = (120 - 76) × 20 = 880 llamadas adicionales/día
-  - Contactos efectivos adicionales: 880 × 43.1% = 379/día
-  - Promesas adicionales: 379 × 40% = 152/día = 3,344/mes
+**3. Impacto de replicar protocolo top agente**
+- Promedio real: obtener desde query_cdr_data con query_type="top_agents" para calcular promedio vs peor cuartil
+- Top performer: ${_hasTopAgentes ? _topAgentes[0].agent_name + ' (' + _topAgentes[0].total_llamadas.toLocaleString() + ' llamadas en 30d)' : 'consultar via query_agents_data'}
+- Brecha peor cuartil vs. promedio: calcular desde CDR (bottom 25% de agentes vs promedio del equipo)
+- Si los agentes del peor cuartil suben al nivel del mejor cuartil:
+  - Incremento = (llamadas_p75 - llamadas_p25) × agentes_cuartil_bajo
+  - Contactos efectivos adicionales: incremento × tasa_contacto_real
+  - Promesas adicionales: contactos_adicionales × tasa_promesa_real
+  - Obtener todos los valores del CDR con query_cdr_data
 
 ### DATOS LABORALES POR PAÍS (fuentes oficiales)
-- Colombia: COP $3,000,000/mes empresa/agente (Decreto 2381/2023 + prestaciones completas) — DATO CONFIRMADO
-- Perú: ≈ COP $1,600,000/mes empresa/agente estimado (RMV PEN 1,025 + CTS + gratificaciones + ESSALUD, DS 004-2022-TR) — ESTIMACIÓN, indicar como tal
+- Colombia: COP $3,000,000/mes empresa/agente (Decreto 2381/2023 + prestaciones completas) - DATO CONFIRMADO
+- Perú: ≈ COP $1,600,000/mes empresa/agente estimado (RMV PEN 1,025 + CTS + gratificaciones + ESSALUD, DS 004-2022-TR) - ESTIMACIÓN, indicar como tal
 - Si preguntan por otro país: usar OIT/CEPAL como referencia o indicar que se necesita dato local
 - Si hay ambigüedad entre Colombia y Perú: responder con ambos datos y señalar la diferencia
 
-### LÍMITES DE SANIDAD — VALIDACIÓN OBLIGATORIA
+### LÍMITES DE SANIDAD - VALIDACIÓN OBLIGATORIA
 Antes de presentar cualquier cálculo financiero, valida que el resultado esté dentro de estos rangos:
 
 | Métrica | Mínimo | Máximo lógico | Si excede → ERROR |
@@ -981,7 +932,7 @@ Para CUALQUIER cálculo financiero, Vicky DEBE mostrar:
 \`\`\`
 📐 Cálculo: Impacto de reducir AHT
 - Fórmula: minutos_liberados = (AHT_actual - AHT_objetivo) × contactos_efectivos_día
-- Variables: AHT_actual=8.1 min | AHT_objetivo=7.2 min | contactos_efectivos_día=6,951 (no 16,129 — AHT aplica solo a llamadas que conectaron)
+- Variables: AHT_actual=8.1 min | AHT_objetivo=7.2 min | contactos_efectivos_día=6,951 (no 16,129 - AHT aplica solo a llamadas que conectaron)
 - Operación: (8.1 - 7.2) × 6,951 = 0.9 × 6,951 = 6,256 min/día
 - Agentes equivalentes: 6,256 / 480 = 13.0 agentes
 - Ahorro mensual: 13.0 × COP $3,000,000 = COP $39,000,000/mes
@@ -999,7 +950,7 @@ Para CUALQUIER cálculo financiero, Vicky DEBE mostrar:
 Cuando el CEO pregunte por mejoras operativas:
 1. Calcula el impacto usando las fórmulas anteriores con los datos reales disponibles
 2. Presenta SIEMPRE tres escenarios: (A) reducción de costo, (B) más ingresos con mismo costo, (C) EBITDA combinado
-3. Si no tienes el ticket promedio de deuda (valor promedio de cartera por cliente), pídelo al CEO — es el único dato que falta para cerrar el cálculo de ingresos
+3. Si no tienes el ticket promedio de deuda (valor promedio de cartera por cliente), pídelo al CEO - es el único dato que falta para cerrar el cálculo de ingresos
 4. Usa COP en los cálculos. Si el CEO trabaja en USD, usa TRM de referencia COP $4,100 por USD.
 5. Formato de respuesta financiera:
    - Brecha identificada: [métrica] → [valor actual] vs [benchmark P50] = [diferencia]
@@ -1014,30 +965,30 @@ Vicky es una **asesora estratégica senior** con deep expertise en operaciones d
 
 **Cómo suena Vicky en una conversación real:**
 
-No sigue una plantilla rígida. Responde a la pregunta de manera fluida y natural, usando los datos disponibles y los benchmarks de industria como respaldo — no como protagonistas. El CEO debe sentir que está hablando con alguien que conoce su negocio profundamente, no que está recibiendo un reporte.
+No sigue una plantilla rígida. Responde a la pregunta de manera fluida y natural, usando los datos disponibles y los benchmarks de industria como respaldo - no como protagonistas. El CEO debe sentir que está hablando con alguien que conoce su negocio profundamente, no que está recibiendo un reporte.
 
-**Regla de proactividad — NUNCA solo preguntes, siempre ejecuta primero:**
+**Regla de proactividad - NUNCA solo preguntes, siempre ejecuta primero:**
 Cuando la pregunta sea ambigua (ej: "dame datos mes a mes", "cuéntame de la operación"), NO pidas clarificación antes de responder.
 Elige la métrica más relevante, consulta los datos, presenta el resultado y AL FINAL ofrece alternativas.
-Ejemplo correcto: "Te muestro la tasa de contacto mes a mes para 2025 — es la métrica que más impacta tus resultados. [datos reales]. Si prefieres ver AHT, volumen o conversiones, dímelo."
+Ejemplo correcto: "Te muestro la tasa de contacto mes a mes para 2025 - es la métrica que más impacta tus resultados. [datos reales]. Si prefieres ver AHT, volumen o conversiones, dímelo."
 Ejemplo incorrecto: "Por favor indícame qué métrica te gustaría explorar." ← NUNCA hagas esto si tienes acceso a los datos.
 
 **Protocolo para "dame todos los datos" o preguntas abiertas sin año/métrica:**
-1. Llama query_cdr_data con query_type="annual_summary" — retorna totales por año (2024, 2025, 2026)
-2. Luego llama query_cdr_data con query_type="monthly_summary" year=2025 — el año más completo y reciente
+1. Llama query_cdr_data con query_type="annual_summary" - retorna totales por año (2024, 2025, 2026)
+2. Luego llama query_cdr_data con query_type="monthly_summary" year=2025 - el año más completo y reciente
 3. Presenta: resumen por año primero, luego breakdown mensual de 2025
 4. Ofrece profundizar en 2024 o en un mes específico
-NUNCA respondas sin haber llamado las tools primero cuando hay datos disponibles en el rango ene-2024 a abr-2026.
+NUNCA respondas sin haber llamado las tools primero cuando hay datos disponibles en el rango histórico del cliente.
 
 **Lo que hace que una respuesta sea buena:**
-- Responde directamente a lo que el CEO preguntó — sin intro genérica ni preamble
+- Responde directamente a lo que el CEO preguntó - sin intro genérica ni preamble
 - Usa los datos del CDR y las transcripciones para anclar los insights en la realidad de este negocio
-- Cuando hay un benchmark relevante, lo cita con naturalidad: "Las operaciones de cobranzas que superan el 55% de contacto en Latam —que es donde quieres estar— hacen esto..."
-- Da su opinión con criterio propio: "En mi lectura de los datos, la prioridad no es el AHT — es el 57% de llamadas que nunca conectan."
+- Cuando hay un benchmark relevante, lo cita con naturalidad: "Las operaciones de cobranzas que superan el 55% de contacto en Latam -que es donde quieres estar- hacen esto..."
+- Da su opinión con criterio propio: "En mi lectura de los datos, la prioridad no es el AHT - es el 57% de llamadas que nunca conectan."
 - Si hay un número financiero relevante, lo incluye integrado en el argumento, no como apéndice técnico
-- Cierra con algo concreto y accionable, de manera conversacional — no como bullet final
+- Cierra con algo concreto y accionable, de manera conversacional - no como bullet final
 
-**FORMATO DE RESPUESTA — PROHIBICIÓN ABSOLUTA:**
+**FORMATO DE RESPUESTA - PROHIBICIÓN ABSOLUTA:**
 
 NUNCA uses estos formatos:
 - Listas con viñetas (- item, • item, * item)
@@ -1046,7 +997,7 @@ NUNCA uses estos formatos:
 - Tablas markdown
 - Bullets anidados
 
-SIEMPRE escribe en prosa conversacional — párrafos fluidos como hablaría un advisor senior en una junta directiva.
+SIEMPRE escribe en prosa conversacional - párrafos fluidos como hablaría un advisor senior en una junta directiva.
 
 ❌ NUNCA así:
 "**Diagnóstico:** Tu tasa de contacto es baja.
@@ -1055,44 +1006,44 @@ SIEMPRE escribe en prosa conversacional — párrafos fluidos como hablaría un 
 **Recomendación:** Mejorar el contacto."
 
 ✅ SIEMPRE así:
-"Mirando tus números, el problema más claro es que casi 6 de cada 10 llamadas no conectan con nadie. Eso es lo que más está frenando tu operación. Las empresas que lideran en cobranzas en Latinoamérica conectan en más del 55% de sus llamadas — tú estás en 43%. Cerrar esa brecha generaría casi 17,000 promesas de pago adicionales al mes sin contratar un solo agente más. ¿Qué quieres atacar primero?"
+"Mirando tus números, el problema más claro es que casi 6 de cada 10 llamadas no conectan con nadie. Eso es lo que más está frenando tu operación. Las empresas que lideran en cobranzas en Latinoamérica conectan en más del 55% de sus llamadas - tú estás en 43%. Cerrar esa brecha generaría casi 17,000 promesas de pago adicionales al mes sin contratar un solo agente más. ¿Qué quieres atacar primero?"
 
 Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca para crear headers o introducir secciones.
 
 **Lo que nunca hace (adicional):**
 - No muestra fórmulas internas, variables, ni procesos de cálculo al CEO
 - **Nunca usa jerga estadística con el CEO**: no dice "P25", "P50", "P75", "percentil 75". Dice "el mejor cuartil de la industria", "la mediana del sector", "las operaciones líderes en Latam", "el estándar que separa a los mejores del promedio". El CEO no tiene que conocer estadística para entender el insight.
-- **Evita tecnicismos operativos sin contexto**: no "AHT" a secas — dice "tiempo promedio por llamada". No "FCR" — dice "resolución en el primer contacto". Introduce las siglas solo si las explica de inmediato.
+- **Evita tecnicismos operativos sin contexto**: no "AHT" a secas - dice "tiempo promedio por llamada". No "FCR" - dice "resolución en el primer contacto". Introduce las siglas solo si las explica de inmediato.
 
-## REGLAS DE DATOS — INAMOVIBLES
+## REGLAS DE DATOS - INAMOVIBLES
 - Usa datos del CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) y las 62 grabaciones transcritas
 - Si el dato no existe, dilo: "Para responder esto necesito [dato específico]"
 - Nunca inventar horarios, tendencias históricas, o datos no disponibles
-- Los cálculos financieros los produce el motor determinístico (funciones TypeScript) — NO calcules tú
+- Los cálculos financieros los produce el motor determinístico (funciones TypeScript) - NO calcules tú
 
-## REGLA DE CALIDAD — CÁLCULOS FINANCIEROS
-- El número financiero se presenta LIMPIO en el punto 4 — sin fórmulas técnicas visibles al CEO
+## REGLA DE CALIDAD - CÁLCULOS FINANCIEROS
+- El número financiero se presenta LIMPIO en el punto 4 - sin fórmulas técnicas visibles al CEO
 - La validación interna (formato 📐) existe pero NO se muestra en la respuesta al CEO
 - SIEMPRE validar internamente que el resultado esté dentro de los límites de sanidad antes de presentar
 - Si detectas que el resultado parece muy alto o muy bajo, recalcula antes de mostrar
 - La credibilidad con el CEO depende de la precisión. Un número incorrecto destruye la confianza.
 - Cuando termines un cálculo, pregúntate: "¿Este número tiene sentido operativamente?"
 
-## REGLA CRÍTICA — INTEGRIDAD DE DATOS
+## REGLA CRÍTICA - INTEGRIDAD DE DATOS
 - **NUNCA inventes datos, métricas, horarios, porcentajes ni análisis que no estén explícitamente en el contexto anterior.**
 - Si la pregunta requiere datos que NO tienes (ej: datos financieros reales de recaudo, NPS, datos CRM de clientes individuales), responde así:
   "No tengo ese dato disponible. Lo que sí tengo es [menciona qué sí tienes en el CDR]. Para responder con precisión necesitaría [explica qué dato falta]."
-- DATOS QUE SÍ TIENES: CDR 822 días (ene 2024–abr 2026) de Colombia Y Perú, volumen de llamadas, tasas de contacto, AHT, agentes, campañas, 62 transcripciones Colombia. Usa query_cdr_data para consultar cualquiera de estos.
+- DATOS QUE SÍ TIENES: CDR 822 días (ene 2024-abr 2026) de Colombia Y Perú, volumen de llamadas, tasas de contacto, AHT, agentes, campañas, 62 transcripciones Colombia. Usa query_cdr_data para consultar cualquiera de estos.
 - Es preferible admitir la limitación que fabricar un insight. La credibilidad ejecutiva depende de la precisión, no de parecer omnisciente.
-- Los datos disponibles son: CDR histórico enero 2024 – abril 2026 (822 días, 12 millones de registros), con datos de Colombia Y Perú; 62 grabaciones transcritas de Crediminuto Colombia; benchmarks de industria. Usa siempre query_cdr_data para obtener datos actualizados antes de responder.
-- Crediminuto opera en DOS países: Colombia (65% del volumen) y Perú (35% del volumen — campagna Cobranzas CrediSmart SAS Perú). El CDR incluye ambas operaciones. NUNCA digas que no tienes datos de Perú: tienes 1,955,779 llamadas de Perú en el CDR y puedes consultarlas.
+- Los datos disponibles son: CDR histórico del cliente activo (consultar rango real via query_cdr_data), transcripciones analizadas con IA, benchmarks de industria. Usa siempre query_cdr_data para obtener datos actualizados antes de responder.
+- El cliente activo puede operar en múltiples países y tener múltiples campañas. El CDR incluye TODAS las campañas del cliente. Usa query_cdr_data con query_type="country_comparison" para obtener el desglose real por país/campaña. NUNCA asumas que solo hay un país sin consultar primero.
 
 ## NUEVAS CAPACIDADES DE CONSULTA DINÁMICA
 - Usa query_agents_data cuando pregunten por rendimiento de agentes específicos, top performers, bottom performers, CSAT individual, FCR por agente, o cuántos agentes activos hay.
 - Usa get_client_config cuando pregunten por configuración del cliente, número de agentes contratados, costo por agente, o umbrales configurados.
 - Usa query_benchmarks cuando quieran comparar sus KPIs vs la industria o benchmarks del sector.`;
 
-      // ─── Function Calling — cálculos determinísticos ─────────────────────────────
+      // ─── Function Calling - cálculos determinísticos ─────────────────────────────
       const TOOLS = [
         {
           type: 'function' as const,
@@ -1228,7 +1179,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 },
                 metric: {
                   type: 'string',
-                  description: 'Métrica específica: tasa_contacto | csat | aht | fcr | conversion (opcional — si no se especifica, retorna todos los benchmarks de la industria)',
+                  description: 'Métrica específica: tasa_contacto | csat | aht | fcr | conversion (opcional - si no se especifica, retorna todos los benchmarks de la industria)',
                 },
               },
               required: ['industry'],
@@ -1239,7 +1190,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           type: 'function' as const,
           function: {
             name: 'query_cdr_data',
-            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, comparativos por rango de fechas, Year-over-Year, y comparativas Colombia vs Perú. IMPORTANTE: Crediminuto opera en Colombia Y Perú — para comparar países usa country="colombia" o country="peru" o country="both" (default). Para comparar la operación Colombia vs Perú, llama con country="both" y el sistema retorna ambos desglosados.',
+            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, comparativos por rango de fechas, Year-over-Year, y comparativas Colombia vs Perú. IMPORTANTE: Crediminuto opera en Colombia Y Perú - para comparar países usa country="colombia" o country="peru" o country="both" (default). Para comparar la operación Colombia vs Perú, llama con country="both" y el sistema retorna ambos desglosados.',
             parameters: {
               type: 'object',
               properties: {
@@ -1252,7 +1203,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   type: 'object',
                   description: 'Parámetros según query_type.',
                   properties: {
-                    year: { type: 'number', description: 'Año (ej: 2024, 2025) — para monthly_summary' },
+                    year: { type: 'number', description: 'Año (ej: 2024, 2025) - para monthly_summary' },
                     from_date: { type: 'string', description: 'Fecha inicio YYYY-MM-DD' },
                     to_date: { type: 'string', description: 'Fecha fin YYYY-MM-DD' },
                     limit: { type: 'number', description: 'Cantidad de agentes a retornar (default 10)' },
@@ -1340,7 +1291,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           else if (fnName === 'calcularImpactoAgentes') calcResult = calcularImpactoAgentes(fnArgs.percentilObjetivo);
           else if (fnName === 'getEstadoOperativo') calcResult = getEstadoOperativo();
           else if (fnName === 'buscarDatoOficial') {
-            // Esta función indica que necesita búsqueda web — se resuelve con nota
+            // Esta función indica que necesita búsqueda web - se resuelve con nota
             calcResult = {
               nota: `Búsqueda solicitada: "${fnArgs.consulta}" para ${fnArgs.proposito}`,
               disponible: false,
@@ -1402,7 +1353,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                     tasa_contacto_pct: 14.1,
                     agentes_activos: 91,
                     pct_volumen: 65,
-                    nota: 'CDR ene 2024 – abr 2026',
+                    nota: 'CDR ene 2024 - abr 2026',
                   },
                   {
                     pais: 'Perú',
@@ -1452,7 +1403,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             model: 'gpt-4o',
             messages: [
               { role: 'system', content: CONTEXT },
-              // Feature 1: Include conversation history in tool-calling second pass — use ref to avoid stale closure
+              // Feature 1: Include conversation history in tool-calling second pass - use ref to avoid stale closure
               ...conversationHistoryRef.current.slice(-10),
               { role: 'user', content: text },
               choice.message,
@@ -1479,7 +1430,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         role: 'vicky',
         content: finalContent,
         timestamp: new Date(),
-        sources: ['WeKall CDR · 822 días · ene 2024–abr 2026 · 12M registros · Supabase', '62 grabaciones transcritas con Whisper · Análisis NLP real'],
+        sources: ['WeKall CDR · 822 días · ene 2024-abr 2026 · 12M registros · Supabase', '62 grabaciones transcritas con Whisper · Análisis NLP real'],
         confidence: 'Alta',
         reasoning: `Analicé CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) + 62 transcripciones reales de ${_clientName}. Fuente: Supabase. Modelo: GPT-4o + Function Calling determinístico.`,
         followUps: [
@@ -1545,13 +1496,13 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
     ? [...messages].slice(0, lastVickyIndex).reverse().find(m => m.role === 'user')?.content ?? ''
     : '';
 
-  // Generate WhatsApp message — pregunta del CEO + respuesta de Vicky + CTA
+  // Generate WhatsApp message - pregunta del CEO + respuesta de Vicky + CTA
   const whatsappMessage = lastUserQuestion
     ? (() => {
         const deepLink = `https://wekall-intelligence.pages.dev/vicky?q=${encodeURIComponent(lastUserQuestion.slice(0, 150))}`;
         return `🧠 *Pregunta del CEO a WeKall Intelligence:*\n"${lastUserQuestion.slice(0, 150)}${lastUserQuestion.length > 150 ? '...' : ''}"\n\n💡 *Vicky responde:*\n${lastInsight.slice(0, 280)}${lastInsight.length > 280 ? '...' : ''}\n\n👉 ¿Cómo lo resolvemos? Ver el análisis completo:\n${deepLink}`;
       })()
-    : `📊 *WeKall Intelligence — Insight ejecutivo:*\n\n${lastInsight.slice(0, 300)}${lastInsight.length > 300 ? '...' : ''}\n\n👉 Ver análisis completo:\nhttps://wekall-intelligence.pages.dev/vicky`;
+    : `📊 *WeKall Intelligence - Insight ejecutivo:*\n\n${lastInsight.slice(0, 300)}${lastInsight.length > 300 ? '...' : ''}\n\n👉 Ver análisis completo:\nhttps://wekall-intelligence.pages.dev/vicky`;
 
   const handleConfirmAction = () => {
     if (actionChoice === 'notify') {
@@ -1585,7 +1536,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         responsible: newEntry.responsable,
         status: newEntry.estado,
         date: newEntry.fecha.split('T')[0],
-        impact: '—',
+        impact: '-',
       }]);
       toast.success('✅ Decisión registrada en el log');
       setActionOpen(false);
@@ -1593,7 +1544,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
       return;
     }
     if (actionChoice === 'meeting') {
-      const title = encodeURIComponent('WeKall Intelligence — Acción de seguimiento');
+      const title = encodeURIComponent('WeKall Intelligence - Acción de seguimiento');
       const description = encodeURIComponent(lastInsight.slice(0, 200));
       // Calculate next Monday
       const now = new Date();
@@ -1676,7 +1627,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1">
-              {/* Fix 1: Banner de estado CDR — visible cuando los datos no han cargado */}
+              {/* Fix 1: Banner de estado CDR - visible cuando los datos no han cargado */}
               {cdr.loading && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400 mb-2">
                   <Loader2 size={12} className="animate-spin" />
@@ -1761,7 +1712,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   <span>📅</span>
                   Comparar períodos
                 </button>
-                {/* Feature 1: Nueva conversación button — resets history */}
+                {/* Feature 1: Nueva conversación button - resets history */}
                 {conversationHistory.length > 0 && (
                   <button
                     onClick={() => {
@@ -1801,8 +1752,8 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                     onClick={isRecording ? stopRecording : startRecording}
                     disabled={isTranscribing}
                     className={`p-2 rounded-lg transition-colors ${
-                      isRecording 
-                        ? 'bg-red-500 text-white animate-pulse' 
+                      isRecording
+                        ? 'bg-red-500 text-white animate-pulse'
                         : 'text-slate-400 hover:text-primary hover:bg-primary/10'
                     }`}
                     title={isRecording ? 'Detener grabación' : 'Hablar con Vicky'}
@@ -1852,7 +1803,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                           <span>👤 {d.responsible}</span>
                           <span><Clock size={10} className="inline mr-0.5" />{d.date}</span>
-                          {d.impact !== '—' && <span className="text-emerald-400">{d.impact}</span>}
+                          {d.impact !== '-' && <span className="text-emerald-400">{d.impact}</span>}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -1953,30 +1904,30 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
               const contactos = latest.contactos_efectivos;
               const fechaLatest = latest.fecha;
 
-              // Insight 1 — tasa vs benchmark (siempre presente)
+              // Insight 1 - tasa vs benchmark (siempre presente)
               const diffP50 = +(tasa - benchmarkP50).toFixed(1);
               const diffP75 = +(tasa - benchmarkP75).toFixed(1);
               if (tasa < benchmarkP50) {
                 insights.push({
                   icon: '🔴',
                   label: 'Alerta operativa',
-                  text: `Tasa de contacto al ${tasa}% (${fechaLatest}) — ${Math.abs(diffP50)}pp bajo la mediana COPC Latam (${benchmarkP50}%). Con el volumen actual de ${vol.toLocaleString('es-CO')} llamadas, subir a la mediana representaría ~${Math.round(vol * Math.abs(diffP50) / 100).toLocaleString('es-CO')} contactos adicionales.`,
+                  text: `Tasa de contacto al ${tasa}% (${fechaLatest}) - ${Math.abs(diffP50)}pp bajo la mediana COPC Latam (${benchmarkP50}%). Con el volumen actual de ${vol.toLocaleString('es-CO')} llamadas, subir a la mediana representaría ~${Math.round(vol * Math.abs(diffP50) / 100).toLocaleString('es-CO')} contactos adicionales.`,
                 });
               } else if (tasa >= benchmarkP75) {
                 insights.push({
                   icon: '🟢',
                   label: 'Rendimiento superior',
-                  text: `Tasa de contacto al ${tasa}% — ${Math.abs(diffP75)}pp sobre el cuartil superior COPC Latam (${benchmarkP75}%). La operación está en el top del sector.`,
+                  text: `Tasa de contacto al ${tasa}% - ${Math.abs(diffP75)}pp sobre el cuartil superior COPC Latam (${benchmarkP75}%). La operación está en el top del sector.`,
                 });
               } else {
                 insights.push({
                   icon: '🟡',
                   label: 'Benchmark del período',
-                  text: `Tasa de contacto al ${tasa}% — ${diffP50 > 0 ? '+' : ''}${diffP50}pp vs mediana COPC Latam (${benchmarkP50}%). A ${Math.abs(diffP75)}pp del cuartil superior (${benchmarkP75}%).`,
+                  text: `Tasa de contacto al ${tasa}% - ${diffP50 > 0 ? '+' : ''}${diffP50}pp vs mediana COPC Latam (${benchmarkP50}%). A ${Math.abs(diffP75)}pp del cuartil superior (${benchmarkP75}%).`,
                 });
               }
 
-              // Insight 2 — tendencia 7d vs 30d
+              // Insight 2 - tendencia 7d vs 30d
               if (last7.length >= 3 && last30.length >= 7) {
                 const avg7 = last7.reduce((s, d) => s + d.tasa_contacto_pct, 0) / last7.length;
                 const avg30 = last30.reduce((s, d) => s + d.tasa_contacto_pct, 0) / last30.length;
@@ -1990,7 +1941,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 }
               }
 
-              // Insight 3 — volumen
+              // Insight 3 - volumen
               if (last7.length >= 2) {
                 const avgVol7 = last7.reduce((s, d) => s + d.total_llamadas, 0) / last7.length;
                 const avgVol30 = last30.length > 0 ? last30.reduce((s, d) => s + d.total_llamadas, 0) / last30.length : avgVol7;
@@ -1999,12 +1950,12 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   insights.push({
                     icon: '📊',
                     label: 'Volumen operativo',
-                    text: `Volumen promedio últimos 7 días: ${Math.round(avgVol7).toLocaleString('es-CO')} llamadas/día ${deltaVol > 0 ? '(+' : '('}${deltaVol}% vs promedio 30d). ${deltaVol > 10 ? 'Crecimiento significativo — verificar capacidad de agentes.' : deltaVol < -10 ? 'Reducción importante — posibles días no hábiles o base de datos reducida.' : 'Dentro del rango normal.'}`,
+                    text: `Volumen promedio últimos 7 días: ${Math.round(avgVol7).toLocaleString('es-CO')} llamadas/día ${deltaVol > 0 ? '(+' : '('}${deltaVol}% vs promedio 30d). ${deltaVol > 10 ? 'Crecimiento significativo - verificar capacidad de agentes.' : deltaVol < -10 ? 'Reducción importante - posibles días no hábiles o base de datos reducida.' : 'Dentro del rango normal.'}`,
                   });
                 }
               }
 
-              // Insight 4 — oportunidad de impacto
+              // Insight 4 - oportunidad de impacto
               const impactoSubirP50 = vol > 0 && tasa < benchmarkP50
                 ? Math.round(vol * (benchmarkP50 - tasa) / 100)
                 : 0;
@@ -2033,7 +1984,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           ))}
         </div>
         <div className="p-3 border-t border-border">
-          <p className="text-[10px] text-muted-foreground text-center">Datos: CDR histórico ene 2024–abr 2026 · Supabase · COPC 2024</p>
+          <p className="text-[10px] text-muted-foreground text-center">Datos: CDR histórico ene 2024-abr 2026 · Supabase · COPC 2024</p>
         </div>
       </div>
 
@@ -2054,7 +2005,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 </div>
               </DialogHeader>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
-                {/* CRM — Próximamente */}
+                {/* CRM - Próximamente */}
                 <div className="relative border rounded-xl p-4 flex flex-col items-center gap-2 text-center opacity-60 cursor-not-allowed pointer-events-none border-border">
                   <Database className="w-10 h-10 text-muted-foreground" />
                   <span className="text-sm font-semibold">Registrar en CRM</span>
