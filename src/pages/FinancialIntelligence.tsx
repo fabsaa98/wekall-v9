@@ -110,9 +110,11 @@ const CAMPANAS_DIST = [
 // Porcentaje de campañas de cobranza (0.55 + 0.25)
 const COBRANZA_PCT = 0.80;
 
-// Scale-G Fix #2 (21 abr 2026) — Normalización a USD
-const USD_COP = 4200;   // Tasa referencia aprox. — actualizar mensualmente
-const USD_PEN = 3.70;   // Tasa referencia aprox. — actualizar mensualmente
+// Scale-G Fix #2v2 (21 abr 2026) — Normalización a USD con tasas vigentes Banco Central
+// Colombia: TRM promedio abril 2026 = 3,634 COP/USD (Banco de la República, fuente: dolar.wilkinsonpc.com.co)
+// Perú: TC promedio abril 2026 = 3.42 PEN/USD (BCRP interbancario, promedio 1-20 abr)
+const USD_COP = 3634;   // TRM promedio abr 2026 — Banco de la República Colombia
+const USD_PEN = 3.42;   // TC promedio abr 2026 — BCRP Perú (interbancario)
 const TICKET_PEN = 450; // Ticket promedio Perú en soles (cobranzas)
 
 function toUSD(amount: number, moneda: 'COP' | 'PEN'): number {
@@ -653,14 +655,13 @@ export default function FinancialIntelligence() {
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              {/* Scale-G Fix #1+2 — tipo cobranza/servicio + columna USD */}
+              {/* Scale-G Fix #1+2+crossselling — tipo cobranza/servicio, solo USD, nota upselling */}
               <thead>
                 <tr className="border-b border-border text-left">
                   <th className="pb-2 font-medium text-muted-foreground">Campaña</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">Llamadas</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">Contactos (ef.)</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Recaudo est.</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">USD est.</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Recaudo est. (USD)</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">%</th>
                 </tr>
               </thead>
@@ -681,14 +682,12 @@ export default function FinancialIntelligence() {
                     <td className="py-2.5 text-right text-muted-foreground">{c.contactos.toLocaleString('es-CO')}</td>
                     <td className="py-2.5 text-right font-semibold">
                       {c.tipo === 'servicio'
-                        ? <span className="text-muted-foreground/50 text-[11px]">N/A</span>
-                        : <span className="text-emerald-400">{fmtCOP(c.recaudoEst)}</span>
-                      }
-                    </td>
-                    <td className="py-2.5 text-right text-muted-foreground">
-                      {c.tipo === 'servicio'
-                        ? <span className="text-muted-foreground/50 text-[11px]">N/A</span>
-                        : <span className="text-primary/80">{fmtUSD(toUSD(c.recaudoEst, c.moneda))}</span>
+                        ? (
+                          <span className="text-muted-foreground/50 text-[11px]" title="Servicio no genera recaudo directo. Si hay upselling/crossselling, conectar datos reales.">
+                            N/A †
+                          </span>
+                        )
+                        : <span className="text-emerald-400">{fmtUSD(toUSD(c.recaudoEst, c.moneda))}</span>
                       }
                     </td>
                     <td className="py-2.5 text-right">
@@ -700,11 +699,10 @@ export default function FinancialIntelligence() {
                 ))}
                 {campaigns.length > 0 && (
                   <tr className="border-t-2 border-border font-bold">
-                    <td className="py-2.5 text-foreground" colSpan={1}>TOTAL cobranza</td>
+                    <td className="py-2.5 text-foreground">TOTAL cobranza</td>
                     <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.llamadas,0).toLocaleString('es-CO')}</td>
                     <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.contactos,0).toLocaleString('es-CO')}</td>
-                    <td className="py-2.5 text-right text-emerald-400">{fmtCOP(campaigns.filter(c=>c.tipo==='cobranza').reduce((s,c)=>s+c.recaudoEst,0))}</td>
-                    <td className="py-2.5 text-right text-primary/80">{fmtUSD(campaigns.filter(c=>c.tipo==='cobranza').reduce((s,c)=>s+toUSD(c.recaudoEst,c.moneda),0))}</td>
+                    <td className="py-2.5 text-right text-emerald-400">{fmtUSD(campaigns.filter(c=>c.tipo==='cobranza').reduce((s,c)=>s+toUSD(c.recaudoEst,c.moneda),0))}</td>
                     <td className="py-2.5 text-right text-foreground">100%</td>
                   </tr>
                 )}
@@ -798,8 +796,8 @@ export default function FinancialIntelligence() {
             { label: 'Tasa cumplimiento',  value: `${(TASA_CUMPLIMIENTO*100).toFixed(0)}%`, note: `Bm: ${BM_TASA_CUMPLIM_PCT}%` },
             { label: 'Agentes activos',    value: String(AGENTES_ACTIVOS),          note: 'Estimado — contactos ef. CDR' },
             { label: 'Costo/agente/mes',   value: fmtCOPFull(COSTO_AGENTE_MES),    note: 'Nómina + carga social' },
-            { label: 'Tasa COP/USD',       value: `1 USD = $${USD_COP.toLocaleString()}`, note: 'Referencia — actualizar mensualmente' },
-            { label: 'Tasa PEN/USD',       value: `1 USD = S/${USD_PEN}`,           note: 'Referencia — actualizar mensualmente' },
+            { label: 'Tasa COP/USD',       value: `1 USD = $${USD_COP.toLocaleString()} COP`, note: 'TRM promedio abr 2026 — Banco de la República' },
+            { label: 'Tasa PEN/USD',       value: `1 USD = S/${USD_PEN} PEN`,       note: 'TC promedio abr 2026 — BCRP interbancario' },
           ].map((p, i) => (
             <div key={i} className="rounded-lg border border-border bg-secondary/20 p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{p.label}</p>
@@ -808,6 +806,10 @@ export default function FinancialIntelligence() {
             </div>
           ))}
         </div>
+        {/* Nota crossselling + fuente tasas */}
+        <p className="mt-3 text-[11px] text-muted-foreground/50 leading-relaxed border-t border-border/50 pt-3">
+          † Campañas de servicio no generan recaudo por cobranza directa. Si existen ingresos por upselling o crossselling en estas campañas, deben cargarse vía datos reales (CSV). Las tasas de cambio corresponden al promedio mensual publicado por el Banco de la República (Colombia) y el BCRP (Perú). Se actualizan al inicio de cada mes.
+        </p>
       </div>
 
     </div>
