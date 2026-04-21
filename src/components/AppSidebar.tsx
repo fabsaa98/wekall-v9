@@ -126,7 +126,8 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         </div>
 
         {/* Nav agrupado — Scale-G UX Refactor */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+        {/* pb-32 en móvil para que el último ítem quede visible sobre el footer */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4 pb-32 lg:pb-3">
           {navGroups.map(group => (
             <div key={group.label}>
               {!collapsed && (
@@ -221,6 +222,17 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               </div>
             );
           })()}
+
+          {/* Cerrar sesión — visible en el scroll del nav en móvil (lg: solo en footer) */}
+          <div className="border-t border-border/50 pt-1 lg:hidden">
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20 transition-all"
+            >
+              <LogOut size={18} className="shrink-0" />
+              <span>Cerrar sesión</span>
+            </button>
+          </div>
         </nav>
 
         {/* Footer — Logo cliente + rol */}
