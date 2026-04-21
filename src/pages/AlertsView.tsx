@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 
 const severityConfig = {
   critical: { label: 'Crítica', classes: 'bg-wk-red/10 text-wk-red', icon: Lightning },
-  warning: { label: 'Advertencia', classes: 'bg-wk-yellow/10 text-wk-yellow-dark', icon: Warning },
+  warning: { label: 'Advertencia', classes: 'bg-orange-500/10 text-orange-400', icon: Warning },
   info: { label: 'Informativa', classes: 'bg-wk-blue/10 text-wk-blue', icon: Info },
 };
 

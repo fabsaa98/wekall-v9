@@ -161,7 +161,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                         <span className="flex-1 truncate">{item.label}</span>
                       )}
                       {!collapsed && 'badge' in item && item.badge && (
-                        <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                        <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">
                           {item.badge}
                         </span>
                       )}

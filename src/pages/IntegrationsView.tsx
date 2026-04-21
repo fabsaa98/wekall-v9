@@ -13,7 +13,7 @@ const statusConfig = {
   connected: { label: 'Conectado', classes: 'bg-wk-green/10 text-wk-green-dark' },
   disconnected: { label: 'Desconectado', classes: 'bg-wk-gray/10 text-muted-foreground' },
   error: { label: 'Error', classes: 'bg-wk-red/10 text-wk-red' },
-  coming_soon: { label: 'Próximamente', classes: 'bg-wk-yellow/10 text-wk-yellow-dark' },
+  coming_soon: { label: 'Próximamente', classes: 'bg-blue-500/10 text-blue-400' },
 };
 
 export default function IntegrationsView() {

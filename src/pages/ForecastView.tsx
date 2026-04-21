@@ -45,19 +45,19 @@ interface DimensionamientoRow extends ErlangResult {
 
 function badgeConfianza(c: ForecastResult['confianza']) {
   if (c === 'alta') return <Badge className="bg-green-100 text-green-800 border-green-200">Alta</Badge>;
-  if (c === 'media') return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Media</Badge>;
+  if (c === 'media') return <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20">Media</Badge>;
   return <Badge className="bg-red-100 text-red-800 border-red-200">Baja</Badge>;
 }
 
 function slaColor(sla: number) {
   if (sla >= 80) return 'text-green-600 font-semibold';
-  if (sla >= 60) return 'text-yellow-600 font-semibold';
+  if (sla >= 60) return 'text-orange-400 font-semibold';
   return 'text-red-600 font-semibold';
 }
 
 function ocupacionColor(ocu: number) {
   if (ocu <= 75) return 'text-green-600';
-  if (ocu <= 85) return 'text-yellow-600';
+  if (ocu <= 85) return 'text-orange-400';
   return 'text-red-600 font-semibold';
 }
 

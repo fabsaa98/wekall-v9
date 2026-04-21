@@ -17,7 +17,7 @@ const callTypeLabels: Record<string, string> = {
 
 const statusConfig: Record<string, { label: string; classes: string }> = {
   completed: { label: 'Completado', classes: 'bg-wk-green/10 text-wk-green-dark' },
-  processing: { label: 'Procesando', classes: 'bg-wk-yellow/10 text-wk-yellow-dark animate-pulse' },
+  processing: { label: 'Procesando', classes: 'bg-blue-500/10 text-blue-400 animate-pulse' },
   failed: { label: 'Error', classes: 'bg-wk-red/10 text-wk-red' },
 };
 

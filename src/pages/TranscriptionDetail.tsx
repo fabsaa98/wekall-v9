@@ -17,7 +17,7 @@ const callTypeLabels: Record<string, string> = {
 
 const resultLabels: Record<string, { label: string; classes: string }> = {
   resolved: { label: 'Resuelta', classes: 'bg-wk-green/10 text-wk-green-dark' },
-  pending: { label: 'Pendiente', classes: 'bg-wk-yellow/10 text-wk-yellow-dark' },
+  pending: { label: 'Pendiente', classes: 'bg-blue-500/10 text-blue-400' },
   escalated: { label: 'Escalada', classes: 'bg-wk-red/10 text-wk-red' },
   no_contact: { label: 'Sin contacto', classes: 'bg-secondary text-muted-foreground' },
 };
