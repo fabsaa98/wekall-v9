@@ -345,12 +345,22 @@ export default function FinancialIntelligence() {
       setMonthlyData(financial);
 
       // 6. Current / previous month
+      // Scale-G Fix #data (21 abr 2026): usar último mes con datos suficientes.
+      // curYM puede tener datos parciales (mes en curso) → usar lastM como mes principal.
       const now       = new Date();
       const curYM     = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const prevDate  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const prevYM    = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-      const curMonth  = financial.find(m => m.mes === curYM);
-      const prevMonth = financial.find(m => m.mes === prevYM);
+      // El "mes actual" para KPIs = último mes en financial con datos razonables
+      // Si el último mes ES el mes en curso (datos parciales), preferir el anterior
+      const lastFinancialMonth = financial[financial.length - 1];
+      const secondLastMonth    = financial[financial.length - 2];
+      // Si el último mes tiene recaudo < 10% del penúltimo → es parcial, usar penúltimo
+      const usarMesAnterior =
+        lastFinancialMonth && secondLastMonth &&
+        lastFinancialMonth.mes === curYM &&
+        secondLastMonth.recaudo > 0 &&
+        lastFinancialMonth.recaudo < secondLastMonth.recaudo * 0.30;
+      const curMonth  = usarMesAnterior ? secondLastMonth : lastFinancialMonth;
+      const prevMonth = usarMesAnterior ? financial[financial.length - 3] : secondLastMonth;
       setMesActualRecaudo(curMonth?.recaudo ?? 0);
       setMesAnteriorRecaudo(prevMonth?.recaudo ?? 0);
 
