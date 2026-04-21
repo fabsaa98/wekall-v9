@@ -1,27 +1,38 @@
 {
   "name": "WeKall Intelligence",
-  "short_name": "WeKall",
-  "description": "Business Intelligence for CEOs & C-Suite — Crediminuto / CrediSmart",
-  "start_url": "/wekall-v9/",
-  "scope": "/wekall-v9/",
+  "short_name": "WeIntelligence",
+  "description": "El cerebro que le dice al CEO cuánto vale su operación — no solo cómo opera.",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F4F6FB",
-  "theme_color": "#6334C0",
+  "background_color": "#0D0D1A",
+  "theme_color": "#818cf8",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "WeKall Intelligence — Dashboard CEO"
+    }
+  ],
   "categories": ["business", "productivity"],
-  "lang": "es"
+  "lang": "es",
+  "dir": "ltr",
+  "id": "wekall-intelligence-v23"
 }
