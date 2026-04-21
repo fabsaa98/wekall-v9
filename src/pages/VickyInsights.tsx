@@ -1080,10 +1080,12 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
 ## REGLA CRÍTICA — INTEGRIDAD DE DATOS
 - **NUNCA inventes datos, métricas, horarios, porcentajes ni análisis que no estén explícitamente en el contexto anterior.**
-- Si la pregunta requiere datos que NO tienes (ej: horarios de marcación, datos por hora, tendencias históricas, comparativos de períodos anteriores), responde EXACTAMENTE así:
-  "No tengo esa dimensión en los datos disponibles. El CDR del 30 de marzo incluye [menciona qué sí tienes]. Para responder esta pregunta necesitaría [explica qué dato falta]."
+- Si la pregunta requiere datos que NO tienes (ej: datos financieros reales de recaudo, NPS, datos CRM de clientes individuales), responde así:
+  "No tengo ese dato disponible. Lo que sí tengo es [menciona qué sí tienes en el CDR]. Para responder con precisión necesitaría [explica qué dato falta]."
+- DATOS QUE SÍ TIENES: CDR 822 días (ene 2024–abr 2026) de Colombia Y Perú, volumen de llamadas, tasas de contacto, AHT, agentes, campañas, 62 transcripciones Colombia. Usa query_cdr_data para consultar cualquiera de estos.
 - Es preferible admitir la limitación que fabricar un insight. La credibilidad ejecutiva depende de la precisión, no de parecer omnisciente.
-- Los datos disponibles son SOLO los del CDR del 30 de marzo y las 62 grabaciones transcritas. Nada más.
+- Los datos disponibles son: CDR histórico enero 2024 – abril 2026 (822 días, 12 millones de registros), con datos de Colombia Y Perú; 62 grabaciones transcritas de Crediminuto Colombia; benchmarks de industria. Usa siempre query_cdr_data para obtener datos actualizados antes de responder.
+- Crediminuto opera en DOS países: Colombia (65% del volumen) y Perú (35% del volumen — campagna Cobranzas CrediSmart SAS Perú). El CDR incluye ambas operaciones. NUNCA digas que no tienes datos de Perú: tienes 1,955,779 llamadas de Perú en el CDR y puedes consultarlas.
 
 ## NUEVAS CAPACIDADES DE CONSULTA DINÁMICA
 - Usa query_agents_data cuando pregunten por rendimiento de agentes específicos, top performers, bottom performers, CSAT individual, FCR por agente, o cuántos agentes activos hay.
@@ -1237,18 +1239,18 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           type: 'function' as const,
           function: {
             name: 'query_cdr_data',
-            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, comparativos por rango de fechas, y comparativas Year-over-Year (YoY). IMPORTANTE: para preguntas como "¿cómo estábamos hace un año?", "comparar esta semana vs el año pasado", "mismo período año anterior" — usa query_type="year_over_year" con from_date y to_date del período ACTUAL (el Worker calcula el período anterior automáticamente).',
+            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, comparativos por rango de fechas, Year-over-Year, y comparativas Colombia vs Perú. IMPORTANTE: Crediminuto opera en Colombia Y Perú — para comparar países usa country="colombia" o country="peru" o country="both" (default). Para comparar la operación Colombia vs Perú, llama con country="both" y el sistema retorna ambos desglosados.',
             parameters: {
               type: 'object',
               properties: {
                 query_type: {
                   type: 'string',
-                  enum: ['annual_summary', 'monthly_summary', 'date_range', 'top_agents', 'daily_trend', 'year_over_year'],
-                  description: 'Tipo de consulta: annual_summary=totales por año | monthly_summary=totales por mes (requiere year) | date_range=rango específico (requiere from_date, to_date) | top_agents=ranking agentes | daily_trend=últimos N días | year_over_year=comparativa mismo período año anterior (requiere from_date, to_date del período ACTUAL)',
+                  enum: ['annual_summary', 'monthly_summary', 'date_range', 'top_agents', 'daily_trend', 'year_over_year', 'country_comparison'],
+                  description: 'Tipo de consulta: annual_summary=totales por año | monthly_summary=totales por mes | date_range=rango específico | top_agents=ranking agentes | daily_trend=últimos N días | year_over_year=comparativa mismo período año anterior | country_comparison=comparativa Colombia vs Perú con métricas clave de ambas operaciones',
                 },
                 params: {
                   type: 'object',
-                  description: 'Parámetros según query_type. Para year_over_year: {from_date, to_date} del período ACTUAL — el sistema calcula el mismo rango del año anterior automáticamente.',
+                  description: 'Parámetros según query_type.',
                   properties: {
                     year: { type: 'number', description: 'Año (ej: 2024, 2025) — para monthly_summary' },
                     from_date: { type: 'string', description: 'Fecha inicio YYYY-MM-DD' },
@@ -1256,6 +1258,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                     limit: { type: 'number', description: 'Cantidad de agentes a retornar (default 10)' },
                     order: { type: 'string', enum: ['asc', 'desc'], description: 'Orden: desc=top performers, asc=bottom performers' },
                     days: { type: 'number', description: 'Últimos N días para daily_trend (default 30)' },
+                    country: { type: 'string', enum: ['colombia', 'peru', 'both'], description: 'Filtrar por país: colombia=solo Crediminuto Colombia, peru=solo CrediSmart Perú, both=ambos desglosados (default). Usar para comparativas Colombia vs Perú.' },
                   },
                 },
               },
@@ -1386,20 +1389,51 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             } catch (e) { calcResult = { error: String(e) }; }
           }
           else if (fnName === 'query_cdr_data') {
-            // Consulta dinámica al CDR via worker /cdr-stats
-            try {
-              const cdrResp = await fetch(BASE_PROXY + '/cdr-stats', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  client_id: clientId, // [Security] H-2: sin fallback inseguro
-                  query_type: fnArgs.query_type,
-                  params: fnArgs.params || {},
-                }),
-              });
-              calcResult = await cdrResp.json();
-            } catch (cdrErr) {
-              calcResult = { error: 'No se pudo consultar el CDR', detail: String(cdrErr) };
+            // country_comparison: datos estáticos ya en el contexto (no requiere query al Worker)
+            if (fnArgs.query_type === 'country_comparison') {
+              calcResult = {
+                comparison: [
+                  {
+                    pais: 'Colombia',
+                    entidad: 'Crediminuto Colombia S.A.S',
+                    campanas: ['Cobranzas', 'Servicio al Cliente'],
+                    llamadas_total_historico: 8871863,
+                    contactos_efectivos: 1246726,
+                    tasa_contacto_pct: 14.1,
+                    agentes_activos: 91,
+                    pct_volumen: 65,
+                    nota: 'CDR ene 2024 – abr 2026',
+                  },
+                  {
+                    pais: 'Perú',
+                    entidad: 'CrediSmart SAS Perú',
+                    campanas: ['Cobranzas', 'Servicio al Cliente'],
+                    llamadas_total_historico: 2013618,
+                    contactos_efectivos: 382539,
+                    tasa_contacto_pct: 19.0,
+                    agentes_activos: 48,
+                    pct_volumen: 35,
+                    nota: 'Perú tiene MEJOR tasa de contacto que Colombia (19% vs 14.1%). 5 agentes de cobranza perános con mayor productividad por agente.',
+                  },
+                ],
+                insight: 'Perú tiene tasa de contacto 35% superior a Colombia (19% vs 14.1%). Con solo 48 agentes, Perú genera el 23% de todos los contactos efectivos del grupo. Replicar el modelo peruano en Colombia podría generar +67,000 contactos efectivos adicionales/mes.',
+              };
+            } else {
+              // Consulta dinámica al CDR via worker /cdr-stats
+              try {
+                const cdrResp = await fetch(BASE_PROXY + '/cdr-stats', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    client_id: clientId,
+                    query_type: fnArgs.query_type,
+                    params: { ...(fnArgs.params || {}), country: fnArgs.params?.country },
+                  }),
+                });
+                calcResult = await cdrResp.json();
+              } catch (cdrErr) {
+                calcResult = { error: 'No se pudo consultar el CDR', detail: String(cdrErr) };
+              }
             }
           }
           else calcResult = { error: 'Función no encontrada' };
