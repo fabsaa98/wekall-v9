@@ -115,7 +115,8 @@ const COBRANZA_PCT = 0.80;
 // Perú: TC promedio abril 2026 = 3.42 PEN/USD (BCRP interbancario, promedio 1-20 abr)
 const USD_COP = 3634;   // TRM promedio abr 2026 — Banco de la República Colombia
 const USD_PEN = 3.42;   // TC promedio abr 2026 — BCRP Perú (interbancario)
-const TICKET_PEN = 450; // Ticket promedio Perú en soles (cobranzas)
+const TICKET_PEN = 150; // Ticket promedio Perú en soles — estimado conservador (equiv. ~USD $44, similar CO)
+                         // Pendiente validar con transcripciones reales de Perú (21 abr 2026)
 
 function toUSD(amount: number, moneda: 'COP' | 'PEN'): number {
   return moneda === 'COP' ? amount / USD_COP : amount / USD_PEN;
