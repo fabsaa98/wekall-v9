@@ -907,16 +907,17 @@ ${_hasFinancialConfig ? `### Estructura de costos operativos (datos reales confi
 ### FÓRMULAS DE IMPACTO FINANCIERO (úsalas cuando el CEO pregunte por mejoras)
 
 **1. Impacto de reducir AHT (liberación de capacidad)**
-- ⚠️ CRÍTICO: El AHT de 8.1 min aplica SOLO a las llamadas que SÍ conectaron (contactos efectivos = 6,951/día). Las llamadas sin respuesta tienen ~0.5 min de marcación promedio. NO aplicar AHT a las 16,129 llamadas totales.
-- Minutos liberados/día = (AHT_actual - AHT_objetivo) × contactos_efectivos_día (= 6,951, NO 16,129)
+- ⚠️ CRÍTICO: El AHT aplica SOLO a las llamadas que SÍ conectaron (contactos efectivos del día). Las llamadas sin respuesta tienen ~0.5 min de marcación promedio. NO aplicar AHT al total de llamadas.
+- AHT actual del cliente: ${_aht != null ? `${_aht} min` : 'consultar via query_cdr_data'}
+- Contactos efectivos del día: ${_llamadasHoy != null ? Math.round((_tasaContacto ?? 0) * _llamadasHoy) : 'consultar via query_cdr_data'}
+- Minutos liberados/día = (AHT_actual - AHT_objetivo) × contactos_efectivos_día
 - Capacidad liberada en agentes equivalentes = minutos_liberados / (8h × 60min)
-- Escenario A - Reducción de costo: agentes_liberados × COP $3,000,000 = ahorro/mes
+- Escenario A - Reducción de costo: agentes_liberados × costo_agente_mes = ahorro/mes
 - Escenario B - Más transacciones: minutos_liberados / AHT_actual = llamadas_adicionales/día → × tasa_contacto × tasa_promesa = promesas_adicionales
-- Ejemplo correcto: reducir AHT de 8.1 → 7.2 min libera 6,951 × 0.9 = 6,256 min/día = 13 agentes equivalentes = COP $39M/mes (NO COP $90.6M - ese error viene de aplicar AHT a todas las llamadas)
-- NOTA: Si no se conoce el ticket promedio de deuda, expresar en "promesas adicionales/mes" y solicitar el dato al CEO.
+- NOTA: Usar siempre datos reales del cliente (AHT, contactos, costo agente). No usar números de otros clientes como ejemplo.
 
 **2. Impacto de mejorar tasa de contacto efectivo**
-- Contactos_adicionales/día = (tasa_objetivo% - 43.1%) × 16,129
+- Contactos_adicionales/día = (tasa_objetivo% - tasa_actual%) × total_llamadas_día
 - Promesas_adicionales/día = contactos_adicionales × 40%
 - Promesas_adicionales/mes = promesas_adicionales/día × 22
 
@@ -964,8 +965,8 @@ Para CUALQUIER cálculo financiero, Vicky DEBE mostrar:
 \`\`\`
 📐 Cálculo: Impacto de reducir AHT
 - Fórmula: minutos_liberados = (AHT_actual - AHT_objetivo) × contactos_efectivos_día
-- Variables: AHT_actual=8.1 min | AHT_objetivo=7.2 min | contactos_efectivos_día=6,951 (no 16,129 - AHT aplica solo a llamadas que conectaron)
-- Operación: (8.1 - 7.2) × 6,951 = 0.9 × 6,951 = 6,256 min/día
+- Variables: AHT_actual=[usar dato real del cliente] | AHT_objetivo=[definir con CEO] | contactos_efectivos_día=[dato CDR]
+- Operación: (AHT_actual - AHT_objetivo) × contactos_efectivos_día = minutos_liberados/día
 - Agentes equivalentes: 6,256 / 480 = 13.0 agentes
 - Ahorro mensual: 13.0 × COP $3,000,000 = COP $39,000,000/mes
 - ✅ Validación: 13 agentes < 81 activos ✓ | COP $39M < COP $243M nómina total ✓
