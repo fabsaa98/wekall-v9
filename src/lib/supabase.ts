@@ -4,7 +4,16 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string || 'https://iszodrpublcnsyvtgjcg.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string || 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Usar sessionStorage para el JWT — la sesión muere al cerrar el browser.
+// Esto obliga al login cada vez que se abre la app de nuevo.
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storage: window.sessionStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
