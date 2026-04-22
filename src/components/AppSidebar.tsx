@@ -60,19 +60,16 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
 
   async function handleLogout() {
-    // Cerrar sidebar móvil primero
     onMobileClose();
-    // Limpiar estado local SIEMPRE (antes del signOut para no quedar atrapado)
-    setCurrentUser(null);
+    // 1. Limpiar TODO el storage local antes de signOut
     localStorage.removeItem('wki_current_user');
     localStorage.removeItem('wki_remember_session');
     localStorage.removeItem('wki_client_id');
-    sessionStorage.removeItem('wki_remember_session');
-    sessionStorage.removeItem('wki_current_user');
-    // Intentar signOut de Supabase (ignorar error — la limpieza ya se hizo)
+    sessionStorage.clear();
+    // 2. Cerrar sesión en Supabase
     try { await signOut(); } catch { /* ignorar */ }
-    // Forzar navegación a login siempre
-    navigate('/login', { replace: true });
+    // 3. Hard reload — borra todo el estado React y fuerza login limpio
+    window.location.replace((import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/login');
   }
 
   return (
