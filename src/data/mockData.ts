@@ -67,7 +67,7 @@ export interface ChatMessage {
 export const kpiData: KPIData[] = []; // Array vacío: compatibilidad con imports existentes
 
 export function buildKPIsFromCDR(
-  latestDay: { fecha: string; total_llamadas: number; contactos_efectivos: number; tasa_contacto_pct: number; aht_segundos_promedio?: number | null } | null,
+  latestDay: { fecha: string; total_llamadas: number; contactos_efectivos: number; tasa_contacto_pct: number; aht_minutos?: number | null } | null,
   sparklineTasa: number[],
   sparklineVolumen: number[],
   promedio7dTasa: number,
@@ -126,23 +126,22 @@ export function buildKPIsFromCDR(
       id: 'aht_real',
       title: 'AHT Real',
       // AHT dinámico desde CDR real; si no hay dato, muestra N/D (no hardcodear 8.1)
-      value: latestDay.aht_segundos_promedio && latestDay.aht_segundos_promedio > 0
-        ? `${Math.floor(latestDay.aht_segundos_promedio / 60)}m${Math.round(latestDay.aht_segundos_promedio % 60).toString().padStart(2,'0')}s`
+      // aht_minutos viene de cdr_daily_metrics (calculado desde CDR real)
+      value: latestDay.aht_minutos && latestDay.aht_minutos > 0
+        ? `${Math.floor(latestDay.aht_minutos)}m${Math.round((latestDay.aht_minutos % 1) * 60).toString().padStart(2,'0')}s`
         : 'N/D',
-      numericValue: latestDay.aht_segundos_promedio
-        ? Math.round(latestDay.aht_segundos_promedio / 60 * 10) / 10
-        : 0,
+      numericValue: latestDay.aht_minutos ?? 0,
       change: 0,
-      changeLabel: latestDay.aht_segundos_promedio ? fecha : 'Sin datos CDR',
-      vsIndustry: latestDay.aht_segundos_promedio
-        ? Math.round((latestDay.aht_segundos_promedio / 60 - 7.8) * 10) / 10
+      changeLabel: latestDay.aht_minutos ? fecha : 'Sin datos CDR',
+      vsIndustry: latestDay.aht_minutos
+        ? Math.round((latestDay.aht_minutos - 7.8) * 10) / 10
         : 0,
-      sparkline: [0, 0, 0, 0, 0, 0, 0], // pendiente: agregar columna aht_segundos_promedio a cdr_daily_metrics
+      sparkline: [0, 0, 0, 0, 0, 0, 0],
       invertColor: true,
       roles: ['COO', 'VP CX'],
       unit: 'min',
       bsc: 'Procesos',
-      description: 'Tiempo promedio por llamada. Mediana Colombia: 7.8 min (CCContact 2024). Requiere columna aht_segundos_promedio en cdr_daily_metrics.',
+      description: 'Tiempo promedio por llamada (llamadas > 30s). Mediana Colombia: 7.8 min (CCContact 2024).',
     },
   ];
 }
