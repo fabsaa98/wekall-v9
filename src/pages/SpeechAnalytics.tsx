@@ -201,23 +201,43 @@ function estimarCSAT(tono: ParsedCall['tono'], resultado: ParsedCall['resultado'
 
 // ─── Patrones conversacionales ──────────────────────────────────────────────────
 
-const PATRONES_EXITOSOS = [
+// ─── Patrones cobranza ───────────────────────────────────────────────────────
+const PATRONES_EXITOSOS_COBRANZA = [
   { id: 'cuota', label: 'Ofreció cuota específica', keywords: ['cuota', 'mensual', 'pago mensual', 'cuotas', 'abono mensual'] },
   { id: 'alternativa', label: 'Propuso alternativas de pago', keywords: ['alternativa', 'opción de pago', 'facilidad', 'plan de pago', 'forma de pago'] },
   { id: 'descuento', label: 'Mencionó descuento o quita', keywords: ['descuento', 'quita', 'condonación', 'reducción', 'rebaja'] },
   { id: 'fecha', label: 'Acordó fecha específica', keywords: ['fecha', 'día', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'próxima semana', 'esta semana'] },
   { id: 'empathy', label: 'Demostró empatía con la situación', keywords: ['entiendo', 'comprendo', 'me pongo en su lugar', 'es difícil', 'le entiendo'] },
 ];
-
-const PATRONES_FALLIDOS = [
+const PATRONES_FALLIDOS_COBRANZA = [
   { id: 'amenaza', label: 'Escaló a amenazas legales', keywords: ['demanda', 'jurídico', 'abogado', 'legal', 'proceso judicial', 'embargo'] },
   { id: 'repeticion', label: 'Repitió el mismo argumento', keywords: ['como le dije', 'ya le expliqué', 'le repito', 'nuevamente'] },
   { id: 'no_escucha', label: 'No respondió a la objeción', keywords: ['de todas formas', 'de todas maneras', 'independientemente', 'sin embargo'] },
   { id: 'presion', label: 'Usó presión excesiva', keywords: ['tiene que pagar', 'debe pagar', 'obligado', 'es obligatorio'] },
-  { id: 'sin_alternativa', label: 'No ofreció alternativas', keywords: [] }, // se calcula por ausencia
+  { id: 'sin_alternativa', label: 'No ofreció alternativas', keywords: [] },
 ];
 
-const OBJECIONES = [
+// ─── Patrones ventas SDR (fintech/servicios) ──────────────────────────────────
+const PATRONES_EXITOSOS_VENTAS = [
+  { id: 'beneficio', label: 'Destacó beneficio concreto', keywords: ['beneficio', 'ventaja', 'ahorra', 'gana', 'mejora', 'crece', 'rentable', 'retorno'] },
+  { id: 'demo', label: 'Agendó demo o visita', keywords: ['demo', 'visita', 'reunión', 'presentación', 'mostrarte', 'enseñarte', 'agendar'] },
+  { id: 'fecha', label: 'Acordó fecha de seguimiento', keywords: ['fecha', 'día', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'próxima semana', 'esta semana', 'llamo'] },
+  { id: 'empathy', label: 'Conectó con necesidad del cliente', keywords: ['entiendo', 'comprendo', 'exactamente lo que', 'eso es justo', 'tiene razón', 'su caso'] },
+  { id: 'prueba', label: 'Ofreció prueba o piloto', keywords: ['prueba', 'piloto', 'gratis', 'sin costo', 'probar', 'muestra', 'trial'] },
+];
+const PATRONES_FALLIDOS_VENTAS = [
+  { id: 'sin_beneficio', label: 'No articuló el valor', keywords: ['no sé', 'no le sé decir', 'tendría que consultar', 'no tengo esa información'] },
+  { id: 'presion', label: 'Presionó sin escuchar', keywords: ['tiene que decidir', 'es ahora o nunca', 'oferta limitada', 'último día'] },
+  { id: 'repeticion', label: 'Repitió el mismo argumento', keywords: ['como le dije', 'ya le expliqué', 'le repito', 'nuevamente'] },
+  { id: 'no_escucha', label: 'No respondió a la objeción', keywords: ['de todas formas', 'de todas maneras', 'independientemente', 'sin embargo'] },
+  { id: 'sin_seguimiento', label: 'Terminó sin próximo paso', keywords: [] },
+];
+
+// ─── Selector dinámico (se asigna en el componente según industria) ───────────
+const PATRONES_EXITOSOS = PATRONES_EXITOSOS_COBRANZA; // default — se sobreescribe
+const PATRONES_FALLIDOS = PATRONES_FALLIDOS_COBRANZA; // default — se sobreescribe
+
+const OBJECIONES_COBRANZA = [
   {
     id: 'capacidad',
     label: 'Capacidad de pago',
@@ -250,6 +270,45 @@ const OBJECIONES = [
   },
 ];
 
+const OBJECIONES_VENTAS = [
+  {
+    id: 'precio',
+    label: 'Precio / Presupuesto',
+    keywords: ['muy caro', 'precio alto', 'no tengo presupuesto', 'cuesta mucho', 'no nos alcanza', 'fuera de presupuesto'],
+    recomendacion: 'Práctica recomendada: anclar el valor antes del precio. Mostrar ROI concreto o comparar costo vs beneficio cuantificado.',
+  },
+  {
+    id: 'timing',
+    label: 'Timing / Momento',
+    keywords: ['no es el momento', 'ahora no', 'el próximo mes', 'después lo vemos', 'más adelante', 'no es buen momento', 'espere', 'dame tiempo'],
+    recomendacion: 'Práctica recomendada: identificar el momento ideal y agendar seguimiento con fecha específica. Confirmar qué cambiaría en ese futuro momento.',
+  },
+  {
+    id: 'competencia',
+    label: 'Competencia / Proveedor actual',
+    keywords: ['ya tengo', 'uso otro', 'estoy con', 'tengo proveedor', 'trabajo con otro', 'ya tenemos solución'],
+    recomendacion: 'Práctica recomendada: preguntar por puntos de dolor con el proveedor actual. No atacar a la competencia — mostrar diferenciación.',
+  },
+  {
+    id: 'necesidad',
+    label: 'Necesidad / Fit',
+    keywords: ['no lo necesito', 'no me sirve', 'no aplica', 'no es lo que busco', 'no es para nosotros'],
+    recomendacion: 'Práctica recomendada: profundizar en el diagnóstico antes de presentar solución. La objeción de necesidad indica que el pitch fue prematuro.',
+  },
+  {
+    id: 'decisor',
+    label: 'Decisor / Aprobación',
+    keywords: ['tengo que consultarlo', 'hablar con', 'mi jefe', 'decidir con', 'no soy quien decide', 'comité'],
+    recomendacion: 'Práctica recomendada: identificar al decisor real e involucrar al champion. Preparar material ejecutivo para presentar internamente.',
+  },
+  {
+    id: 'confianza',
+    label: 'Confianza / Marca',
+    keywords: ['no conozco', 'no sé quiénes son', 'no confío', 'quién es WeKall', 'no los conozco', 'no tengo referencias'],
+    recomendacion: 'Práctica recomendada: compartir casos de éxito y referencias del sector. La confianza se construye con prueba social relevante.',
+  },
+];
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function SpeechAnalytics() {
@@ -261,6 +320,12 @@ export default function SpeechAnalytics() {
   const labelExitoPlur  = isFintech ? 'ventas cerradas'   : 'promesas de pago';
   const labelTasa       = isFintech ? 'tasa de conversión': 'tasa de conversión';
   const labelCierre     = isFintech ? 'cierre de venta'   : 'acuerdo de pago';
+  // Patrones y objeciones dinámicos por industria
+  const patronesExitososDef = isFintech ? PATRONES_EXITOSOS_VENTAS : PATRONES_EXITOSOS_COBRANZA;
+  const patronesFallidosDef = isFintech ? PATRONES_FALLIDOS_VENTAS : PATRONES_FALLIDOS_COBRANZA;
+  const objecionesDef       = isFintech ? OBJECIONES_VENTAS        : OBJECIONES_COBRANZA;
+  // Señales de churn — solo aplica a clientes con servicio activo (inbound/CX), no a outbound SDR
+  const churnEnabled = !isFintech;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
@@ -319,7 +384,7 @@ export default function SpeechAnalytics() {
       }).length;
     }
 
-    const patronesExitosos = PATRONES_EXITOSOS.map(p => {
+    const patronesExitosos = patronesExitososDef.map(p => {
       const enExitosas = contarPatron(exitosas, p.keywords);
       const enFallidas = contarPatron(fallidas, p.keywords);
       const totalCon = enExitosas + enFallidas;
@@ -376,7 +441,7 @@ export default function SpeechAnalytics() {
     const bottom3 = agentes.slice(-3).filter(a => a.total >= 2);
 
     // ── Mapa de objeciones ────────────────────────────────────────────────────
-    const mapaObjeciones = OBJECIONES.map(obj => {
+    const mapaObjeciones = objecionesDef.map(obj => {
       const conObjecion = calls.filter(c => {
         const text = (c.raw.transcript || '').toLowerCase();
         return obj.keywords.some(kw => text.includes(kw));
@@ -521,7 +586,7 @@ export default function SpeechAnalytics() {
     : 0;
 
   // Fix CX1 — contador de churn
-  const llamadasChurnAlto = calls.filter(c => c.churnRisk === 'alto').length;
+  const llamadasChurnAlto = churnEnabled ? calls.filter(c => c.churnRisk === 'alto').length : 0;
 
   // Arrays completos (no solo counts) para análisis diferencial
   const exitosasArr = calls.filter(c => c.resultado === 'exitoso');
