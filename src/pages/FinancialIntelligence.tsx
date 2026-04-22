@@ -635,7 +635,7 @@ export default function FinancialIntelligence() {
         </div>
       </div>
 
-      {/* ── Gráfico principal: Recaudo + Costo ──────────────────────────────── */}
+      {clientConfig?.industry !== 'fintech_pagos' && <>{/* ── Gráfico principal: Recaudo + Costo ──────────────────────────────── */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -668,9 +668,9 @@ export default function FinancialIntelligence() {
             <Line type="monotone" dataKey="costoOp" name="Costo op." stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 3" />
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
+      </div></> }
 
-      {/* ── Margen mensual + Tabla campañas ─────────────────────────────────── */}
+      {clientConfig?.industry !== 'fintech_pagos' && <>{/* ── Margen mensual + Tabla campañas ─────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Scale-G Fix #4 — Costo CC como % Recaudo (menor = mejor = verde) */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 shadow-wk-sm">
@@ -755,9 +755,9 @@ export default function FinancialIntelligence() {
             </table>
           </div>
         </div>
-      </div>
+      </div></> }
 
-      {/* ── Conectar datos reales — compacto ─────────────────────────────────── */}
+      {clientConfig?.industry !== 'fintech_pagos' && <>{/* ── Conectar datos reales — compacto ─────────────────────────────────── */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
@@ -825,13 +825,15 @@ export default function FinancialIntelligence() {
             </div>
           </div>
         )}
-      </div>
+      </div></> }
 
       {/* ── Parámetros del modelo ─────────────────────────────────────────────── */}
+      {clientConfig?.industry !== 'fintech_pagos' && (
       <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
         <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
           <Info className="h-4 w-4 text-primary" />
           Parámetros del modelo estimativo
+          <span className="text-[10px] font-normal text-muted-foreground/60">(cobranzas)</span>
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
@@ -856,6 +858,7 @@ export default function FinancialIntelligence() {
           † Campañas de servicio no generan recaudo por cobranza directa. Si existen ingresos por upselling o crossselling en estas campañas, deben cargarse vía datos reales (CSV). Las tasas de cambio corresponden al promedio mensual publicado por el Banco de la República (Colombia) y el BCRP (Perú). Se actualizan al inicio de cada mes.
         </p>
       </div>
+      )}
 
     </div>
   );
