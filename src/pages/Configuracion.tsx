@@ -227,8 +227,10 @@ export default function Configuracion() {
     }
   }
 
-  function handleChangeCompany() {
-    // Limpiar sesión y redirigir a login
+  async function handleChangeCompany() {
+    // Fix logout: cerrar sesión de Supabase primero — sin esto el AuthGuard
+    // detecta el JWT activo y redirige de vuelta a '/', cancelando el logout.
+    await supabase.auth.signOut();
     setCurrentUser(null);
     setClientId(''); // Fix 1G: limpiar sin resetear a 'credismart' hardcodeado
     localStorage.removeItem('wki_client_id');

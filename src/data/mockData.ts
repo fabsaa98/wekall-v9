@@ -61,7 +61,7 @@ export interface ChatMessage {
 }
 
 // ─── KPIs — Se construyen dinámicamente desde Supabase via useCDRData hook ───
-// Los datos ahora vienen de cdr_daily_metrics (CDR histórico del cliente
+// Los datos ahora vienen de cdr_daily_metrics (CDR histórico del cliente)
 
 // REAL: estructura construida dinámicamente desde Supabase via buildKPIsFromCDR()
 export const kpiData: KPIData[] = []; // Array vacío: compatibilidad con imports existentes
@@ -91,7 +91,7 @@ export function buildKPIsFromCDR(
       roles: ['CEO', 'COO'],
       unit: '',
       bsc: 'Procesos',
-      description: 'Volumen total de conversaciones. Histórico: CDR histórico del cliente
+      description: 'Volumen total de conversaciones. Histórico: CDR histórico del cliente.',
     },
     {
       id: 'costo_contacto',
@@ -172,7 +172,7 @@ export const proactiveInsights = [
     id: '1',
     type: 'warning' as const,
     title: 'Análisis de tasa de contacto — datos históricos Supabase',
-    description: 'CDR histórico enero 2024 - abril 2026 (CDR histórico del cliente
+    description: 'CDR histórico enero 2024 - abril 2026 (CDR histórico del cliente).',
     action: 'Ver análisis en Vicky →',
     question: '¿Cuál ha sido la tendencia de la tasa de contacto efectivo en los últimos 30 días y qué factores la explican?',
   },
@@ -180,7 +180,7 @@ export const proactiveInsights = [
     id: '2',
     type: 'success' as const,
     title: 'Crecimiento operacional: 7x desde enero 2024',
-    description: 'La operación creció de ~4,000 llamadas/día (enero 2024) a más de 30,000 llamadas/día (abril 2026). datos en tiempo real
+    description: 'La operación creció de ~4,000 llamadas/día (enero 2024) a más de 30,000 llamadas/día (abril 2026). Datos en tiempo real desde Supabase.',
     action: 'Ver detalle →',
     question: '¿Cómo ha evolucionado el volumen de llamadas y la tasa de contacto desde enero 2024 hasta hoy?',
   },
@@ -188,7 +188,7 @@ export const proactiveInsights = [
     id: '3',
     type: 'info' as const,
     title: 'Oportunidad: optimizar franja horaria de marcación',
-    description: 'El análisis de CDR histórico del cliente
+    description: 'El análisis de CDR histórico del cliente muestra oportunidades de optimización en franja horaria de marcación.',
     action: 'Explorar →',
     question: '¿Cuál es la distribución horaria de contactos efectivos y cuál es la franja óptima para marcar?',
   },
@@ -216,7 +216,7 @@ export function buildAlertsFromCDR(
     id: 'a-contacto-live',
     severity: deltaTasa < -3 ? 'critical' : deltaTasa < -1.5 ? 'warning' : 'info',
     title: `Tasa de contacto: ${latestDay.tasa_contacto_pct}% (${deltaTasa > 0 ? '+' : ''}${deltaTasa}pp vs promedio 7d)`,
-    description: `Último día: ${latestDay.fecha} — ${latestDay.total_llamadas.toLocaleString()} llamadas. Promedio 7d: ${promedio7dTasa}% | Promedio 30d: ${promedio30dTasa}%. Fuente: Supabase — CDR histórico CDR histórico del cliente
+    description: `Último día: ${latestDay.fecha} — ${latestDay.total_llamadas.toLocaleString()} llamadas. Promedio 7d: ${promedio7dTasa}% | Promedio 30d: ${promedio30dTasa}%. Fuente: Supabase — CDR histórico del cliente.`,
     time: latestDay.fecha,
     active: true,
     metric: 'Contacto Efectivo %',
@@ -229,7 +229,7 @@ export function buildAlertsFromCDR(
     id: 'a-volumen-live',
     severity: 'info',
     title: `Volumen: ${latestDay.total_llamadas.toLocaleString()} llamadas el ${latestDay.fecha}`,
-    description: `Histórico: CDR histórico del cliente
+    description: `Histórico: CDR histórico del cliente.`,
     time: latestDay.fecha,
     active: true,
     metric: 'Volumen diario',
@@ -252,7 +252,7 @@ export const initialVickyMessages: ChatMessage[] = [
   {
     id: 'init-1',
     role: 'vicky',
-    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR histórico enero 2024 - abril 2026**: CDR histórico del cliente
+    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR histórico enero 2024 - abril 2026**: CDR histórico del cliente.',
     timestamp: new Date(Date.now() - 60000),
     sources: ['WeKall CDR · Supabase en tiempo real'],
     confidence: 'Alta',
