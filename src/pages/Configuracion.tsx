@@ -226,13 +226,7 @@ export default function Configuracion() {
   }
 
   function handleChangeCompany() {
-    // Limpiar todo el storage
-    localStorage.clear();
-    sessionStorage.clear();
-    // Cerrar sesión Supabase en background (no await — no bloquear el redirect)
-    supabase.auth.signOut().catch(() => {});
-    // Hard reload a /login — destruye todo el estado de React
-    window.location.href = '/login';
+    window.location.href = '/logout';
   }
 
   return (

@@ -2,7 +2,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
-import { signOut } from '@/lib/supabase';
 
 // ─── Navegación agrupada — Scale-G UX Refactor (21 abr 2026) ───────────────
 // Reducido de 12 ítems planos → 3 grupos con jerarquía clara.
@@ -53,20 +52,10 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
   const { role } = useRole();
-  const { clientConfig, clientBranding, currentUser, setCurrentUser } = useClient();
+  const { clientConfig, clientBranding, currentUser } = useClient();
   const clientDisplayName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
 
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
-
-  function handleLogout() {
-    // Limpiar todo el storage
-    localStorage.clear();
-    sessionStorage.clear();
-    // Cerrar sesión Supabase en background (no await — no bloquear el redirect)
-    signOut().catch(() => {});
-    // Hard reload a /login — destruye todo el estado de React
-    window.location.href = '/login';
-  }
 
   return (
     <>
@@ -219,15 +208,15 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             );
           })()}
 
-          {/* Cerrar sesión — visible en el scroll del nav en móvil (lg: solo en footer) */}
+          {/* Cerrar sesión — visible en el scroll del nav en móvil */}
           <div className="border-t border-border/50 pt-1 lg:hidden">
-            <button
-              onClick={handleLogout}
+            <a
+              href="/logout"
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20 transition-all"
             >
               <LogOut size={18} className="shrink-0" />
               <span>Cerrar sesión</span>
-            </button>
+            </a>
           </div>
         </nav>
 
@@ -261,14 +250,14 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             )}
           </div>
           {/* Botón Cerrar sesión */}
-          <button
-            onClick={handleLogout}
+          <a
+            href="/logout"
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20 transition-all"
             title={collapsed ? 'Cerrar sesión' : undefined}
           >
             <LogOut size={16} className="shrink-0" />
             {!collapsed && <span>Cerrar sesión</span>}
-          </button>
+          </a>
         </div>
       </aside>
     </>

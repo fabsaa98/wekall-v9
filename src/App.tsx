@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import Logout from '@/pages/Logout';
 // Fix 2A, 2B, 2C — Páginas activas: Transcripciones, Subir Grabación, Búsqueda
 import TranscriptionList from '@/pages/TranscriptionList';
 import TranscriptionDetail from '@/pages/TranscriptionDetail';
@@ -102,6 +103,7 @@ export default function App() {
             <Routes>
               {/* Rutas públicas */}
               <Route path="/login" element={<Login />} />
+              <Route path="/logout" element={<Logout />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
 
