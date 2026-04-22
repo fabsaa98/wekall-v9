@@ -39,7 +39,7 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
     confidence: 'Baja' as const,
     rootCauses: [],
     projection: '',
-    followUps: ['Intenta de nuevo', '¿Por qué no recuperamos cartera?', '¿Cuál es el estado de la operación?'],
+    followUps: ['Intenta de nuevo', '¿Cuál es el estado de la operación?'],
   };
 }
 
@@ -1470,14 +1470,23 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         role: 'vicky',
         content: finalContent,
         timestamp: new Date(),
-        sources: ['WeKall CDR · 822 días · ene 2024-abr 2026 · 12M registros · Supabase', '62 grabaciones transcritas con Whisper · Análisis NLP real'],
-        confidence: 'Alta',
-        reasoning: `Analicé CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) + 62 transcripciones reales de ${_clientName}. Fuente: Supabase. Modelo: GPT-4o + Function Calling determinístico.`,
-        followUps: [
-          '¿Por qué no estamos recuperando cartera?',
-          '¿Cuáles son los agentes top performers?',
-          '¿Cómo mejorar la tasa de contacto efectivo?',
+        sources: [
+          `${_clientName} · CDR histórico en tiempo real · Supabase`,
+          `Transcripciones analizadas con Whisper · Análisis NLP real`,
         ],
+        confidence: 'Alta',
+        reasoning: `Analicé datos CDR reales de ${_clientName} en Supabase + transcripciones. Modelo: GPT-4o.`,
+        followUps: clientConfig?.industry === 'fintech_pagos'
+          ? [
+              '¿Cuál es la tasa de abandono esta semana?',
+              '¿Cuáles son los agentes top performers?',
+              '¿Cómo mejorar la resolución en primera llamada?',
+            ]
+          : [
+              '¿Por qué no estamos recuperando cartera?',
+              '¿Cuáles son los agentes top performers?',
+              '¿Cómo mejorar la tasa de contacto efectivo?',
+            ],
       };
     } catch {
       // Fallback to local engine

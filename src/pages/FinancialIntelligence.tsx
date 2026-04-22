@@ -101,13 +101,20 @@ function mesLabel(ym: string): string {
 }
 
 // Scale-G Fix #1 (21 abr 2026) — tipo cobranza/servicio; servicio NO suma recaudo
-const CAMPANAS_DIST = [
+// CAMPANAS_DIST es dinámico según el cliente — se define por industria en el componente
+// Para cobranza (credismart): Colombia 55% + Perú 25% + Servicio 20%
+// Para fintech_pagos (bold): Servicio inbound 100%
+const CAMPANAS_COBRANZA = [
   { name: 'Cobranzas Colombia', pct: 0.55, tipo: 'cobranza' as const, moneda: 'COP' as const },
   { name: 'Cobranzas Perú',     pct: 0.25, tipo: 'cobranza' as const, moneda: 'PEN' as const },
   { name: 'Servicio CO',        pct: 0.12, tipo: 'servicio' as const, moneda: 'COP' as const },
   { name: 'Servicio PE',        pct: 0.08, tipo: 'servicio' as const, moneda: 'COP' as const },
 ];
-// Porcentaje de campañas de cobranza (0.55 + 0.25)
+const CAMPANAS_FINTECH = [
+  { name: 'Soporte y Servicio', pct: 0.70, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'Ventas / Activación', pct: 0.20, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'Retención',          pct: 0.10, tipo: 'servicio' as const, moneda: 'COP' as const },
+];
 const COBRANZA_PCT = 0.80;
 
 // Scale-G Fix #2v2 (21 abr 2026) — Normalización a USD con tasas vigentes Banco Central
@@ -227,7 +234,9 @@ function ExecutiveBrief({
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function FinancialIntelligence() {
-  const { clientId } = useClient();
+  const { clientId, clientConfig } = useClient();
+  // Campañas dinámicas según industria del cliente
+  const CAMPANAS_DIST = clientConfig?.industry === 'fintech_pagos' ? CAMPANAS_FINTECH : CAMPANAS_COBRANZA;
 
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState<string | null>(null);
