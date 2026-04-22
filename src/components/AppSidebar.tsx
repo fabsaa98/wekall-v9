@@ -1,7 +1,9 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign, ChevronDown, Building2 } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 // ─── Navegación agrupada — Scale-G UX Refactor (21 abr 2026) ───────────────
 // Reducido de 12 ítems planos → 3 grupos con jerarquía clara.
@@ -52,10 +54,67 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
   const { role } = useRole();
-  const { clientConfig, clientBranding, currentUser } = useClient();
+  const { clientConfig, clientBranding, currentUser, clientId, setClientId } = useClient();
   const clientDisplayName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
 
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
+
+  // ─── CC Switcher ────────────────────────────────────────────────────────────
+  const [ccOptions, setCcOptions] = useState<Array<{ client_id: string; name: string }>>([]);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  useEffect(() => {
+    async function loadCCOptions() {
+      if (!currentUser?.email) return;
+      try {
+        const PROXY = (import.meta.env.VITE_PROXY_URL || '').replace(/\/$/, '');
+        const resp = await fetch(`${PROXY}/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'app_users',
+            select: 'client_id',
+            filters: { email: `eq.${currentUser.email}` },
+            limit: 10,
+          }),
+        });
+        if (!resp.ok) return;
+        const rows = await resp.json() as Array<{ client_id: string }>;
+        if (rows.length > 1) {
+          // Cargar nombres de client_config
+          const names: Array<{ client_id: string; name: string }> = [];
+          for (const row of rows) {
+            const r2 = await fetch(`${PROXY}/query`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                table: 'client_branding',
+                select: 'client_id,company_name',
+                filters: { client_id: `eq.${row.client_id}` },
+                limit: 1,
+              }),
+            });
+            const d = await r2.json() as Array<{ client_id: string; company_name?: string }>;
+            names.push({ client_id: row.client_id, name: d[0]?.company_name || row.client_id });
+          }
+          setCcOptions(names);
+        }
+      } catch { /* silencioso */ }
+    }
+    loadCCOptions();
+  }, [currentUser?.email]);
+
+  async function handleSwitchCC(targetClientId: string) {
+    if (targetClientId === clientId || switching) return;
+    setSwitching(true);
+    setSwitcherOpen(false);
+    // Actualizar client_id en estado local y localStorage
+    setClientId(targetClientId);
+    localStorage.setItem('wki_client_id', targetClientId);
+    // Hard reload para que todo el contexto cargue limpio
+    window.location.href = '/';
+  }
 
   return (
     <>
@@ -237,15 +296,48 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               )}
             </div>
           )}
-          {/* Usuario y rol */}
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary border border-primary/20">
-              {initials}
+          {/* Usuario + CC Switcher */}
+          <div className="relative">
+            <div
+              className={`flex items-center gap-2.5 ${ccOptions.length > 1 ? 'cursor-pointer hover:bg-secondary/60 rounded-lg px-1 py-1 -mx-1 transition-colors' : ''}`}
+              onClick={() => ccOptions.length > 1 && setSwitcherOpen(v => !v)}
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary border border-primary/20">
+                {initials}
+              </div>
+              {!collapsed && (
+                <div className="overflow-hidden flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{role}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{clientDisplayName}</p>
+                </div>
+              )}
+              {!collapsed && ccOptions.length > 1 && (
+                <ChevronDown size={13} className={`text-muted-foreground shrink-0 transition-transform ${switcherOpen ? 'rotate-180' : ''}`} />
+              )}
             </div>
-            {!collapsed && (
-              <div className="overflow-hidden flex-1">
-                <p className="text-sm font-medium text-foreground truncate">{role}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{clientDisplayName}</p>
+
+            {/* Dropdown switcher */}
+            {switcherOpen && ccOptions.length > 1 && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50">
+                <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-b border-border">
+                  <Building2 size={10} className="inline mr-1" />Cambiar contact center
+                </p>
+                {ccOptions.map(opt => (
+                  <button
+                    key={opt.client_id}
+                    onClick={() => handleSwitchCC(opt.client_id)}
+                    disabled={switching}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors ${
+                      opt.client_id === clientId
+                        ? 'bg-primary/10 text-primary font-semibold'
+                        : 'text-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${opt.client_id === clientId ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                    <span className="truncate">{opt.name}</span>
+                    {opt.client_id === clientId && <span className="ml-auto text-[10px] text-primary/60">activo</span>}
+                  </button>
+                ))}
               </div>
             )}
           </div>
