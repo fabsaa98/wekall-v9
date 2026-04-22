@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
@@ -52,24 +52,20 @@ interface AppSidebarProps {
 
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const { role } = useRole();
   const { clientConfig, clientBranding, currentUser, setCurrentUser } = useClient();
   const clientDisplayName = clientBranding?.company_name || clientConfig?.client_name || 'WeKall Intelligence';
 
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
 
-  async function handleLogout() {
-    onMobileClose();
-    // 1. Limpiar TODO el storage local antes de signOut
-    localStorage.removeItem('wki_current_user');
-    localStorage.removeItem('wki_remember_session');
-    localStorage.removeItem('wki_client_id');
+  function handleLogout() {
+    // Limpiar todo el storage
+    localStorage.clear();
     sessionStorage.clear();
-    // 2. Cerrar sesión en Supabase
-    try { await signOut(); } catch { /* ignorar */ }
-    // 3. Hard reload — borra todo el estado React y fuerza login limpio
-    window.location.replace((import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/login');
+    // Cerrar sesión Supabase en background (no await — no bloquear el redirect)
+    signOut().catch(() => {});
+    // Hard reload a /login — destruye todo el estado de React
+    window.location.href = '/login';
   }
 
   return (

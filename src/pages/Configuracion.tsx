@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useClient } from '@/contexts/ClientContext';
 import { supabase } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
 
 interface DataSource {
   id: string;
@@ -59,7 +58,6 @@ export default function Configuracion() {
   const [slackAlerts, setSlackAlerts] = useState(true);
 
   const { clientConfig, clientBranding, currentUser, setClientId, setCurrentUser, clientId } = useClient();
-  const navigate = useNavigate();
 
   // ─── Counts dinámicos desde Supabase ──────────────────────────────────
   const [dataCounts, setDataCounts] = useState<Record<string, number | null>>({});
@@ -227,16 +225,14 @@ export default function Configuracion() {
     }
   }
 
-  async function handleChangeCompany() {
-    // 1. Limpiar TODO el storage local antes de signOut
-    localStorage.removeItem('wki_client_id');
-    localStorage.removeItem('wki_current_user');
-    localStorage.removeItem('wki_remember_session');
+  function handleChangeCompany() {
+    // Limpiar todo el storage
+    localStorage.clear();
     sessionStorage.clear();
-    // 2. Cerrar sesión en Supabase
-    try { await supabase.auth.signOut(); } catch { /* ignorar */ }
-    // 3. Hard reload — borra todo el estado React, evita race condition con AuthGuard
-    window.location.replace((import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/login');
+    // Cerrar sesión Supabase en background (no await — no bloquear el redirect)
+    supabase.auth.signOut().catch(() => {});
+    // Hard reload a /login — destruye todo el estado de React
+    window.location.href = '/login';
   }
 
   return (
