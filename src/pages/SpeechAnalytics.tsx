@@ -253,7 +253,14 @@ const OBJECIONES = [
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function SpeechAnalytics() {
-  const { clientId } = useClient();
+  const { clientId, clientConfig } = useClient();
+  // Lenguaje dinámico por industria
+  const isFintech = clientConfig?.industry === 'fintech_pagos';
+  const labelExito      = isFintech ? 'Ventas cerradas'   : 'Promesas de pago';
+  const labelExitoSing  = isFintech ? 'venta cerrada'     : 'promesa de pago';
+  const labelExitoPlur  = isFintech ? 'ventas cerradas'   : 'promesas de pago';
+  const labelTasa       = isFintech ? 'tasa de conversión': 'tasa de conversión';
+  const labelCierre     = isFintech ? 'cierre de venta'   : 'acuerdo de pago';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
@@ -580,7 +587,7 @@ export default function SpeechAnalytics() {
 
         <p className="text-sm text-foreground leading-relaxed">
           De <span className="font-bold text-primary">{total} llamadas analizadas</span>, el{' '}
-          <span className="font-bold text-primary">{tasaExito}%</span> resultó en promesa de pago ({nExitosas} contactos),{' '}
+          <span className="font-bold text-primary">{tasaExito}%</span> resultó en {labelExitoSing} ({nExitosas} contactos),{' '}
           {nFallidas > 0 && <><span className="font-bold text-red-400">{Math.round((nFallidas / total) * 100)}%</span> no llegó a acuerdo ({nFallidas}), </>}
           {noContacto > 0 && <>y <span className="font-bold text-slate-400">{Math.round((noContacto / total) * 100)}%</span> no pudo contactarse ({noContacto}).</>}
         </p>
@@ -608,7 +615,7 @@ export default function SpeechAnalytics() {
         {/* KPIs inline */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-border/50">
           {[
-            { label: 'Promesas de pago', value: nExitosas, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+            { label: labelExito, value: nExitosas, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
             { label: 'Sin acuerdo', value: nFallidas, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
             { label: 'No contactados', value: noContacto, icon: AlertCircle, color: 'text-slate-400', bg: 'bg-slate-500/10' },
             { label: 'Agentes activos', value: agentes.length, icon: Users, color: 'text-muted-foreground', bg: 'bg-muted/30' },
@@ -691,7 +698,7 @@ export default function SpeechAnalytics() {
                 {/* P1: apertura */}
                 <p>
                   De las <span className="font-semibold text-foreground">{total}</span> llamadas analizadas,{' '}
-                  <span className="font-semibold text-emerald-400">{nExitosas} ({tasaExito}%)</span> cerraron con promesa de pago
+                  <span className="font-semibold text-emerald-400">{nExitosas} ({tasaExito}%)</span> cerraron con {labelExitoSing}
                   {nFallidas > 0 && <> y <span className="font-semibold text-red-400">{nFallidas}</span> no lograron compromiso</>}.
                 </p>
 
@@ -770,7 +777,7 @@ export default function SpeechAnalytics() {
                   <div className="rounded-lg border border-border bg-muted/30 p-3">
                     <p className="text-xs text-muted-foreground">
                       Se necesitan más transcripciones para identificar patrones estadísticamente significativos.
-                      Actualmente: <span className="font-semibold text-foreground">{nExitosas} llamadas con promesa de pago.</span>
+                      Actualmente: <span className="font-semibold text-foreground">{nExitosas} llamadas con {labelExitoSing}.</span>
                     </p>
                   </div>
                 );
@@ -832,7 +839,7 @@ export default function SpeechAnalytics() {
                     <TrendingUp size={10} /> Conclusión ejecutiva — {totalAnalizadas} llamadas analizadas
                   </p>
                   <p className="text-xs text-foreground leading-relaxed">
-                    El <span className="font-semibold text-emerald-700 dark:text-emerald-400">{pctExito}% de las {totalAnalizadas} llamadas</span> resultó en promesa de pago.
+                    El <span className="font-semibold text-emerald-700 dark:text-emerald-400">{pctExito}% de las {totalAnalizadas} llamadas</span> resultó en {labelExitoSing}.
                     {patronTop && patronTop.tasaEnExitosas > 0 && (
                       <> El patrón más consistente en los cierres exitosos es <span className="font-semibold">"{patronTop.label}"</span> — presente en el <span className="font-semibold text-emerald-700 dark:text-emerald-400">{patronTop.tasaEnExitosas}%</span> de las llamadas que cierran, {patronTop.ventaja > 0 ? <>{patronTop.ventaja}pp por encima de las que no cierran.</> : <>con baja diferenciación respecto a las fallidas — indica que el patrón es necesario pero no suficiente.</>}</>
                     )}
@@ -1241,8 +1248,8 @@ export default function SpeechAnalytics() {
                   </span>
                 </div>
                 <p className="text-xs text-foreground/70 leading-relaxed">
-                  Las llamadas que mencionan cuotas o alternativas de pago concretas muestran mayor tasa de cierre en los datos analizados.
-                  Estandarizar esta práctica en todos los agentes es una práctica recomendada en operaciones de cobranza de alto rendimiento.
+                  Las llamadas que mencionan {isFintech ? "beneficios concretos o condiciones específicas" : "cuotas o alternativas de pago concretas"} muestran mayor tasa de cierre en los datos analizados.
+                  Estandarizar esta práctica en todos los agentes es una práctica recomendada en {isFintech ? "operaciones de ventas de alto rendimiento." : "operaciones de cobranza de alto rendimiento."}
                 </p>
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
                   <span className="flex items-center gap-1">
