@@ -158,14 +158,14 @@ function FinancialTooltip({ active, payload, label }: {
 // ─── Executive Brief ──────────────────────────────────────────────────────────
 function ExecutiveBrief({
   recaudoHoy, recaudoMes, margenMes, tendenciaPct, hasRealData,
-  tasaContacto, mesLabel, industry,
+  tasaContacto, mesLabel, industry, costoOpMes,
 }: {
   recaudoHoy: number; recaudoMes: number; margenMes: number;
-  tendenciaPct: number; hasRealData: boolean; tasaContacto: number; mesLabel: string; industry?: string;
+  tendenciaPct: number; hasRealData: boolean; tasaContacto: number; mesLabel: string; industry?: string; costoOpMes: number;
 }) {
   const isFintech = industry === 'fintech_pagos';
-  // Scale-G Fix #4 (21 abr 2026) — costoPct = costo CC como % del recaudo
-  const costoPct   = recaudoMes > 0 ? (costoOpMes / recaudoMes) * 100 : 0;
+  // costoPct = costo CC como % del recaudo
+  const costoPct   = recaudoMes > 0 && costoOpMes > 0 ? (costoOpMes / recaudoMes) * 100 : 0;
   const margenOk   = costoPct <= BM_COSTO_CC_PCT; // ≤15% = eficiente
   const tcVsBm     = tasaContacto - BM_TASA_CONTACTO_PCT;
   const tendOk     = tendenciaPct >= 0;
@@ -643,6 +643,7 @@ export default function FinancialIntelligence() {
         tasaContacto={avgTasaContacto}
         mesLabel={currentMesLabel}
         industry={clientConfig?.industry}
+        costoOpMes={costoOpMes}
       />
 
       {/* ── KPI Cards con sparklines ─────────────────────────────────────── */}
