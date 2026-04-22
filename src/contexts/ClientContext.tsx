@@ -60,7 +60,7 @@ interface ClientContextValue {
 }
 
 const ClientContext = createContext<ClientContextValue>({
-  clientId: 'credismart',
+  clientId: '',
   setClientId: () => {},
   clientConfig: null,
   clientBranding: null,
@@ -76,7 +76,7 @@ const LS_CURRENT_USER = 'wki_current_user';
 
 export function ClientProvider({ children }: { children: ReactNode }) {
   const [clientId, setClientIdState] = useState<string>(() => {
-    return localStorage.getItem(LS_CLIENT_ID) || 'credismart';
+    return localStorage.getItem(LS_CLIENT_ID) || '';
   });
 
   const [currentUser, setCurrentUserState] = useState<AppUser | null>(() => {
@@ -152,7 +152,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
           // Si no hay usuario guardado que coincida, consultar app_users
           if (!resolvedClientId) {
-            const storedClientId = localStorage.getItem(LS_CLIENT_ID) || 'credismart';
+            const storedClientId = localStorage.getItem(LS_CLIENT_ID) || '';
             try {
               const appUser = await Promise.race([
                 getAppUser(session.user.email, storedClientId),
@@ -193,7 +193,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_IN' && session?.user?.email) {
         // Nueva sesión iniciada — cargar app_user
         // PRIORIDAD: localStorage (cliente activo) nunca se sobrescribe con el del JWT
-        const storedClientId = localStorage.getItem(LS_CLIENT_ID) || 'credismart';
+        const storedClientId = localStorage.getItem(LS_CLIENT_ID) || '';
         try {
           const appUser = await getAppUser(
             session.user.email,

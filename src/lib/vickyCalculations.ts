@@ -60,7 +60,7 @@ export let OPS = {
 
 // ─── Función para cargar configuración desde Supabase ─────────────────────────
 // Llamar al iniciar la app o al cambiar de cliente.
-export async function loadClientConfig(clientId = 'credismart'): Promise<boolean> {
+export async function loadClientConfig(clientId = ''): Promise<boolean> {
   try {
     const config = await getActiveClientConfig();
     if (!config) return false;

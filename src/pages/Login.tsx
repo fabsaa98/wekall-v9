@@ -93,7 +93,7 @@ export default function Login() {
     signInProxy(pEmail, pPwd, pClientId)
       .then((authResult) => {
         // Prioridad: preset clientId > worker response > fallback
-        const clientId = pClientId || authResult.client_id || 'credismart';
+        const clientId = pClientId || authResult.client_id || '';
         const userEmail = authResult.user?.email || pEmail;
         const userMeta = authResult.user?.user_metadata as Record<string, string> | undefined;
         const role = userMeta?.role || 'user';
@@ -135,7 +135,7 @@ export default function Login() {
       // === AUTENTICACIÓN VIA WORKER PROXY ===
       try {
         const authResult = await signInProxy(email.trim().toLowerCase(), password);
-        const clientId = authResult.client_id || 'credismart';
+        const clientId = authResult.client_id || '';
         const userEmail = authResult.user?.email || email.trim().toLowerCase();
         const userMeta = authResult.user?.user_metadata as Record<string, string> | undefined;
         const role = userMeta?.role || 'user';
