@@ -716,7 +716,9 @@ export default function VickyInsights() {
     const detectedAgent = agentInCurrent || agentInHistory;
 
     // Activar RAG si hay agente detectado (actual o en hilo) + contexto de desempeño/estrategia
-    const isAgentQuery = !!(detectedAgent && (agentContextPattern.test(text) || agentContextPattern.test(recentText) || agentNamePattern.test(text)));
+    // isAgentQuery SOLO cuando hay nombre específico de agente en la pregunta ACTUAL
+    // (no en el historial) — evita que preguntas generales vayan al /rag-query
+    const isAgentQuery = !!(agentInCurrent && agentContextPattern.test(text));
 
     // Usar el endpoint RAG /vicky para todas las preguntas conversacionales
     // RAG clasifica la intención, consulta solo los datos relevantes y responde con contexto mínimo
