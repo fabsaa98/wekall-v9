@@ -1,6 +1,6 @@
-// Service Worker — WeKall Intelligence v23
+// Service Worker — WeKall Intelligence v24
 // Network-first: siempre datos frescos, fallback a caché solo si offline
-const CACHE_NAME = 'wekall-intelligence-v23';
+const CACHE_NAME = 'wekall-intelligence-v24';
 const OFFLINE_FALLBACK = '/';
 
 self.addEventListener('install', (event) => {
