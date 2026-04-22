@@ -33,7 +33,7 @@ function generateVickyFallbackResponse(question: string): ChatMessage {
   return {
     id: `vicky-${Date.now()}`,
     role: 'vicky' as const,
-    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros, Supabase) y 62 grabaciones transcritas. Por favor intenta nuevamente en unos segundos - si el problema persiste, verifica la conexión.',
+    content: '**No pude conectar con el motor de análisis en este momento.**\n\nTengo disponibles datos CDR histórico enero 2024 - abril 2026 (CDR histórico completo, Supabase) y transcripciones del cliente. Por favor intenta nuevamente en unos segundos - si el problema persiste, verifica la conexión.',
     timestamp: new Date(),
     sources: ['WeKall CDR · datos en tiempo real · Supabase'],
     confidence: 'Baja' as const,
@@ -944,7 +944,7 @@ Antes de presentar cualquier cálculo financiero, valida que el resultado esté 
 | Ahorro de nómina/mes | COP $0 | COP $243,000,000 (100% nómina activa) | Recalcular |
 | Agentes liberados | 0 | 81 (total agentes activos) | Recalcular |
 | Llamadas adicionales/día | 0 | 16,129 (capacidad total actual) | Recalcular |
-| Promesas de pago adicionales/día | 0 | 2,780 (máximo actual teórico) | Recalcular |
+| Promesas de pago adicionales/día | 0 | máximo actual del cliente | Recalcular |
 | AHT objetivo | 3.0 min | 12.0 min | Fuera de rango real |
 
 ### PROTOCOLO DE CÁLCULO VERIFICABLE (OBLIGATORIO)
@@ -1048,7 +1048,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 - **Evita tecnicismos operativos sin contexto**: no "AHT" a secas - dice "tiempo promedio por llamada". No "FCR" - dice "resolución en el primer contacto". Introduce las siglas solo si las explica de inmediato.
 
 ## REGLAS DE DATOS - INAMOVIBLES
-- Usa datos del CDR histórico enero 2024 - abril 2026 (822 días, 12 millones de registros) y las 62 grabaciones transcritas
+- Usa datos del CDR histórico enero 2024 - abril 2026 (CDR histórico completo) y las transcripciones disponibles del cliente
 - Si el dato no existe, dilo: "Para responder esto necesito [dato específico]"
 - Nunca inventar horarios, tendencias históricas, o datos no disponibles
 - Los cálculos financieros los produce el motor determinístico (funciones TypeScript) - NO calcules tú
@@ -1065,7 +1065,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 - **NUNCA inventes datos, métricas, horarios, porcentajes ni análisis que no estén explícitamente en el contexto anterior.**
 - Si la pregunta requiere datos que NO tienes (ej: datos financieros reales de recaudo, NPS, datos CRM de clientes individuales), responde así:
   "No tengo ese dato disponible. Lo que sí tengo es [menciona qué sí tienes en el CDR]. Para responder con precisión necesitaría [explica qué dato falta]."
-- DATOS QUE SÍ TIENES: CDR 822 días (ene 2024-abr 2026) de Colombia Y Perú, volumen de llamadas, tasas de contacto, AHT, agentes, campañas, 62 transcripciones Colombia. Usa query_cdr_data para consultar cualquiera de estos.
+- DATOS QUE SÍ TIENES: CDR histórico completo del cliente activo
 - Es preferible admitir la limitación que fabricar un insight. La credibilidad ejecutiva depende de la precisión, no de parecer omnisciente.
 - Los datos disponibles son: CDR histórico del cliente activo (consultar rango real via query_cdr_data), transcripciones analizadas con IA, benchmarks de industria. Usa siempre query_cdr_data para obtener datos actualizados antes de responder.
 - El cliente activo puede operar en múltiples países y tener múltiples campañas. El CDR incluye TODAS las campañas del cliente. Usa query_cdr_data con query_type="country_comparison" para obtener el desglose real por país/campaña. NUNCA asumas que solo hay un país sin consultar primero.
@@ -1229,7 +1229,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                 query_type: {
                   type: 'string',
                   enum: ['annual_summary', 'monthly_summary', 'date_range', 'top_agents', 'daily_trend', 'year_over_year', 'country_comparison'],
-                  description: 'Tipo de consulta: annual_summary=totales por año | monthly_summary=totales por mes | date_range=rango específico | top_agents=ranking agentes | daily_trend=últimos N días | year_over_year=comparativa mismo período año anterior | country_comparison=comparativa Colombia vs Perú con métricas clave de ambas operaciones',
+                  description: 'Tipo de consulta: annual_summary=totales por año | monthly_summary=totales por mes | date_range=rango específico | top_agents=ranking agentes | daily_trend=últimos N días | year_over_year=comparativa mismo período año anterior | country_comparison=comparativa por país/campaña con métricas clave de la operación',
                 },
                 params: {
                   type: 'object',
@@ -1241,7 +1241,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                     limit: { type: 'number', description: 'Cantidad de agentes a retornar (default 10)' },
                     order: { type: 'string', enum: ['asc', 'desc'], description: 'Orden: desc=top performers, asc=bottom performers' },
                     days: { type: 'number', description: 'Últimos N días para daily_trend (default 30)' },
-                    country: { type: 'string', enum: ['colombia', 'peru', 'both'], description: 'Filtrar por país: colombia=solo Crediminuto Colombia, peru=solo CrediSmart Perú, both=ambos desglosados (default). Usar para comparativas Colombia vs Perú.' },
+                    country: { type: 'string', type: 'string', description: 'Filtrar por país si el cliente opera en varios países. Usar both para comparativa entre operaciones.' },
                   },
                 },
               },
@@ -1380,35 +1380,18 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
             } catch (e) { calcResult = { error: String(e) }; }
           }
           else if (fnName === 'query_cdr_data') {
-            // country_comparison: datos estáticos ya en el contexto (no requiere query al Worker)
+            // country_comparison: consulta dinámica al Worker — nunca datos estáticos
             if (fnArgs.query_type === 'country_comparison') {
-              calcResult = {
-                comparison: [
-                  {
-                    pais: 'Colombia',
-                    entidad: 'Crediminuto Colombia S.A.S',
-                    campanas: ['Cobranzas', 'Servicio al Cliente'],
-                    llamadas_total_historico: 8871863,
-                    contactos_efectivos: 1246726,
-                    tasa_contacto_pct: 14.1,
-                    agentes_activos: 91,
-                    pct_volumen: 65,
-                    nota: 'CDR ene 2024 - abr 2026',
-                  },
-                  {
-                    pais: 'Perú',
-                    entidad: 'CrediSmart SAS Perú',
-                    campanas: ['Cobranzas', 'Servicio al Cliente'],
-                    llamadas_total_historico: 2013618,
-                    contactos_efectivos: 382539,
-                    tasa_contacto_pct: 19.0,
-                    agentes_activos: 48,
-                    pct_volumen: 35,
-                    nota: 'Perú tiene MEJOR tasa de contacto que Colombia (19% vs 14.1%). 5 agentes de cobranza perános con mayor productividad por agente.',
-                  },
-                ],
-                insight: 'Perú tiene tasa de contacto 35% superior a Colombia (19% vs 14.1%). Con solo 48 agentes, Perú genera el 23% de todos los contactos efectivos del grupo. Replicar el modelo peruano en Colombia podría generar +67,000 contactos efectivos adicionales/mes.',
-              };
+              try {
+                const ccResp = await fetch(BASE_PROXY + '/cdr-stats', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ client_id: clientId, query_type: 'country_comparison' }),
+                });
+                calcResult = await ccResp.json();
+              } catch(e) {
+                calcResult = { error: 'No se pudo obtener comparativo por país. Intenta con una consulta específica de CDR.' };
+              }
             } else {
               // Consulta dinámica al CDR via worker /cdr-stats
               try {

@@ -92,7 +92,7 @@ const areaConfig: Record<string, {
   description: string;
 }> = {
   'Cobranzas': {
-    description: 'Recuperación de cartera — efectividad y compliance · Crediminuto Colombia',
+    description: 'Efectividad y compliance de la operación',
     kpis: [
       { label: 'Tasa Contacto', key: 'avg_tasa_contacto', format: v => `${v.toFixed(1)}%`, benchmark: 43 },
       { label: 'Tasa Promesa', key: 'avg_tasa_promesa', format: v => `${v.toFixed(1)}%`, benchmark: 40 },

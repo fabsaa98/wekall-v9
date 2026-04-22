@@ -1,7 +1,7 @@
 // NOTA: Este archivo contiene SOLO datos de configuración estática y estimaciones base.
 // Los datos reales vienen de Supabase.
 // ─── Data — WeKall Intelligence ──────────────────────────────────────────
-// Datos: CDR histórico enero 2024 - abril 2026, 822 días de datos, 12 millones de registros
+// Datos: CDR histórico enero 2024 - abril 2026, CDR histórico del cliente
 // Fuente: Supabase (cdr_daily_metrics, cdr_campaign_metrics, cdr_hourly_metrics, transcriptions)
 
 export type Role = 'CEO' | 'VP Ventas' | 'VP CX' | 'COO';
@@ -61,7 +61,7 @@ export interface ChatMessage {
 }
 
 // ─── KPIs — Se construyen dinámicamente desde Supabase via useCDRData hook ───
-// Los datos ahora vienen de cdr_daily_metrics (822 días, ene 2024 - abr 2026)
+// Los datos ahora vienen de cdr_daily_metrics (CDR histórico del cliente
 
 // REAL: estructura construida dinámicamente desde Supabase via buildKPIsFromCDR()
 export const kpiData: KPIData[] = []; // Array vacío: compatibilidad con imports existentes
@@ -91,7 +91,7 @@ export function buildKPIsFromCDR(
       roles: ['CEO', 'COO'],
       unit: '',
       bsc: 'Procesos',
-      description: 'Volumen total de conversaciones. Histórico: 822 días, ene 2024 - abr 2026',
+      description: 'Volumen total de conversaciones. Histórico: CDR histórico del cliente
     },
     {
       id: 'costo_contacto',
@@ -172,7 +172,7 @@ export const proactiveInsights = [
     id: '1',
     type: 'warning' as const,
     title: 'Análisis de tasa de contacto — datos históricos Supabase',
-    description: 'CDR histórico enero 2024 - abril 2026 (822 días): la tasa de contacto varía por día, hora y campaña. Datos en tiempo real desde Supabase.',
+    description: 'CDR histórico enero 2024 - abril 2026 (CDR histórico del cliente
     action: 'Ver análisis en Vicky →',
     question: '¿Cuál ha sido la tendencia de la tasa de contacto efectivo en los últimos 30 días y qué factores la explican?',
   },
@@ -180,7 +180,7 @@ export const proactiveInsights = [
     id: '2',
     type: 'success' as const,
     title: 'Crecimiento operacional: 7x desde enero 2024',
-    description: 'La operación creció de ~4,000 llamadas/día (enero 2024) a más de 30,000 llamadas/día (abril 2026). 12 millones de registros CDR en Supabase.',
+    description: 'La operación creció de ~4,000 llamadas/día (enero 2024) a más de 30,000 llamadas/día (abril 2026). datos en tiempo real
     action: 'Ver detalle →',
     question: '¿Cómo ha evolucionado el volumen de llamadas y la tasa de contacto desde enero 2024 hasta hoy?',
   },
@@ -188,7 +188,7 @@ export const proactiveInsights = [
     id: '3',
     type: 'info' as const,
     title: 'Oportunidad: optimizar franja horaria de marcación',
-    description: 'El análisis de 822 días de CDR muestra patrones horarios consistentes. La ventana 10h–16h concentra el mayor % de contactos efectivos.',
+    description: 'El análisis de CDR histórico del cliente
     action: 'Explorar →',
     question: '¿Cuál es la distribución horaria de contactos efectivos y cuál es la franja óptima para marcar?',
   },
@@ -216,7 +216,7 @@ export function buildAlertsFromCDR(
     id: 'a-contacto-live',
     severity: deltaTasa < -3 ? 'critical' : deltaTasa < -1.5 ? 'warning' : 'info',
     title: `Tasa de contacto: ${latestDay.tasa_contacto_pct}% (${deltaTasa > 0 ? '+' : ''}${deltaTasa}pp vs promedio 7d)`,
-    description: `Último día: ${latestDay.fecha} — ${latestDay.total_llamadas.toLocaleString()} llamadas. Promedio 7d: ${promedio7dTasa}% | Promedio 30d: ${promedio30dTasa}%. Fuente: Supabase — CDR histórico 822 días.`,
+    description: `Último día: ${latestDay.fecha} — ${latestDay.total_llamadas.toLocaleString()} llamadas. Promedio 7d: ${promedio7dTasa}% | Promedio 30d: ${promedio30dTasa}%. Fuente: Supabase — CDR histórico CDR histórico del cliente
     time: latestDay.fecha,
     active: true,
     metric: 'Contacto Efectivo %',
@@ -229,7 +229,7 @@ export function buildAlertsFromCDR(
     id: 'a-volumen-live',
     severity: 'info',
     title: `Volumen: ${latestDay.total_llamadas.toLocaleString()} llamadas el ${latestDay.fecha}`,
-    description: `Histórico: 822 días de datos (ene 2024 - abr 2026), 12 millones de registros. Tendencia: +7x vs enero 2024 (~4,000 llamadas/día). Datos en tiempo real desde Supabase.`,
+    description: `Histórico: CDR histórico del cliente
     time: latestDay.fecha,
     active: true,
     metric: 'Volumen diario',
@@ -252,14 +252,14 @@ export const initialVickyMessages: ChatMessage[] = [
   {
     id: 'init-1',
     role: 'vicky',
-    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR histórico enero 2024 - abril 2026**: 822 días de datos · 12 millones de registros · Supabase en tiempo real\n- **62 grabaciones** transcritas con IA · Análisis de objeciones y resultados\n- **Benchmarks** de industria: COPC, SQM, E&Y, MetricNet (Colombia · Latam · Global)\n- **Motor EBITDA**: impacto financiero en COP de cada mejora operativa\n\n¿Qué quieres analizar?',
+    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR histórico enero 2024 - abril 2026**: CDR histórico del cliente
     timestamp: new Date(Date.now() - 60000),
     sources: ['WeKall CDR · Supabase en tiempo real'],
     confidence: 'Alta',
     reasoning: 'Datos CDR históricos consultados desde Supabase en tiempo real.',
     followUps: [
       '¿Cuál es el top 10 de agentes por volumen de llamadas?',
-      '¿Cómo se compara la operación Colombia vs Perú?',
+      '¿Cómo se compara la operación por campaña?',
       '¿Qué campaña tiene mejor rendimiento?',
     ],
   },

@@ -178,7 +178,7 @@ export default function ForecastView() {
             Forecast & Dimensionamiento
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Proyección de volumen (822 días CDR) + Erlang C por hora
+            Proyección de volumen CDR + Erlang C por hora
           </p>
         </div>
         <Button

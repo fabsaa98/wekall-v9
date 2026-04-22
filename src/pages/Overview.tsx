@@ -137,14 +137,14 @@ export default function Overview() {
     'CEO': {
       short: cdr.loading
         ? 'Cargando datos en tiempo real desde Supabase...'
-        : `${clientName} procesó ${latestLlamadas} llamadas el ${latestFecha}. Tasa de contacto efectivo: ${latestTasa}% (promedio 7d: ${cdr.promedio7dTasa}%, promedio 30d: ${cdr.promedio30dTasa}%). Datos: CDR histórico 822 días, ene 2024 - abr 2026.`,
-      full: `Contactos efectivos: ${cdr.latestDay?.contactos_efectivos?.toLocaleString('es-CO') ?? '...'} (${latestTasa}% del total). Delta vs promedio 7d: ${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp. Fuente: Supabase — cdr_daily_metrics, 12 millones de registros.`,
+        : `${clientName} procesó ${latestLlamadas} llamadas el ${latestFecha}. Tasa de contacto efectivo: ${latestTasa}% (promedio 7d: ${cdr.promedio7dTasa}%, promedio 30d: ${cdr.promedio30dTasa}%). Datos: CDR histórico del cliente en tiempo real.`,
+      full: `Contactos efectivos: ${cdr.latestDay?.contactos_efectivos?.toLocaleString('es-CO') ?? '...'} (${latestTasa}% del total). Delta vs promedio 7d: ${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp. Fuente: Supabase — cdr_daily_metrics en tiempo real.`,
     },
     'VP Ventas': {
       short: cdr.loading
         ? 'Cargando datos en tiempo real...'
         : `Volumen ${latestFecha}: ${latestLlamadas} llamadas. Tasa de contacto: ${latestTasa}% (promedio 7d: ${cdr.promedio7dTasa}%). Delta: ${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp.`,
-      full: `Promedio 30d: ${cdr.promedio30dTasa}% | Promedio 7d: ${cdr.promedio7dTasa}%. Datos reales desde Supabase — 822 días de CDR histórico.`,
+      full: `Promedio 30d: ${cdr.promedio30dTasa}% | Promedio 7d: ${cdr.promedio7dTasa}%. Datos reales desde Supabase — CDR histórico del cliente.`,
     },
     'VP CX': {
       short: cdr.loading
@@ -156,7 +156,7 @@ export default function Overview() {
       short: cdr.loading
         ? 'Cargando datos en tiempo real...'
         : `Operación ${latestFecha}: ${latestLlamadas} llamadas. Tasa de contacto: ${latestTasa}% (${cdr.deltaTasa > 0 ? '+' : ''}${cdr.deltaTasa}pp vs promedio 7d de ${cdr.promedio7dTasa}%). AHT referencia: 8.1 min (benchmark Colombia: 7.8 min).`,
-      full: `Datos en tiempo real desde Supabase — cdr_daily_metrics (822 días). Delta tasa 30d: ${cdr.promedio30dTasa}%. Utilización de agentes por día requiere datos Engage360.`,
+      full: `Datos en tiempo real desde Supabase — cdr_daily_metrics del cliente. Delta tasa 30d: ${cdr.promedio30dTasa}%. Utilización de agentes por día requiere datos Engage360.`,
     },
   };
 
