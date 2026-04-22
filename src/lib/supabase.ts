@@ -160,7 +160,7 @@ export async function getLastNDays(n: number, clientId: string, minLlamadas?: nu
   const min = minLlamadas ?? 1;
   const data = await proxyQuery<CDRDayMetric[]>({
     table: 'cdr_daily_metrics',
-    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct',
+    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct,aht_minutos',
     filters: {
       'client_id': `eq.${clientId}`,
       'total_llamadas': `gte.${min}`,
