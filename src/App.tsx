@@ -50,24 +50,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     async function checkAuth() {
       try {
         const { data } = await supabase.auth.getSession();
+        // Confiar en la sesión de Supabase como fuente de verdad.
+        // No bloquear por flags de localStorage — el JWT de Supabase es suficiente garantía.
         if (data.session) {
-          // Verificar que haya sesión de usuario guardada (wki_remember_session o wki_current_user)
-          // Si el usuario no marcó "recordar sesión", el wki_current_user solo vive en sessionStorage
-          const hasRemembered = localStorage.getItem('wki_remember_session');
-          const hasSessionUser = sessionStorage.getItem('wki_remember_session');
-          const hasUser = localStorage.getItem('wki_current_user');
-          if (!hasRemembered && !hasSessionUser && !hasUser) {
-            // Supabase tiene JWT pero el usuario no pidió recordar sesión — forzar logout
-            await supabase.auth.signOut();
-            setAuthState('denied');
-          } else {
-            setAuthState('allowed');
-          }
+          setAuthState('allowed');
         } else {
           setAuthState('denied');
         }
       } catch {
-        // Si falla la verificación → denegar por seguridad
         setAuthState('denied');
       }
     }
