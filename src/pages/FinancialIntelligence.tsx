@@ -351,7 +351,9 @@ export default function FinancialIntelligence() {
 
         const margen    = recaudo - COSTO_OP_MES;
         // Scale-G Fix #4 (21 abr 2026) — margenPct = costo CC como % del recaudo
-        const margenPct = recaudo > 0 ? (COSTO_OP_MES / recaudo) * 100 : 0;
+        // Cap a 200% para evitar barras que explotan cuando recaudo es muy bajo (mes parcial)
+        const margenPctRaw = recaudo > 0 ? (COSTO_OP_MES / recaudo) * 100 : 0;
+        const margenPct = Math.min(margenPctRaw, 200);
         const tasaContacto = m.llamadas > 0 ? (m.contactos / m.llamadas) * 100 : 0;
 
         return {
@@ -683,7 +685,7 @@ export default function FinancialIntelligence() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="mesLabel" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 9 }} axisLine={false} tickLine={false} width={40} />
-              <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, 'Costo CC / Recaudo']} />
+              <Tooltip formatter={(v: number) => [v >= 200 ? 'N/D (recaudo insuficiente)' : `${v.toFixed(1)}%`, 'Costo CC / Recaudo']} />
               <Bar dataKey="margenPct" name="Costo CC %" radius={[4,4,0,0]} maxBarSize={32}>
                 {monthlyData.map((entry, i) => (
                   <Cell key={`cell-${i}`} fill={entry.margenPct <= BM_COSTO_CC_PCT ? '#22c55e' : '#f59e0b'} />
@@ -744,7 +746,7 @@ export default function FinancialIntelligence() {
                 ))}
                 {campaigns.length > 0 && (
                   <tr className="border-t-2 border-border font-bold">
-                    <td className="py-2.5 text-foreground font-semibold">TOTAL</td>
+                    <td className="py-2.5 text-foreground font-semibold">TOTAL cobranza</td>
                     <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.llamadas,0).toLocaleString('es-CO')}</td>
                     <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.contactos,0).toLocaleString('es-CO')}</td>
                     <td className="py-2.5 text-right text-emerald-400">{fmtUSD(campaigns.filter(c=>c.tipo==='cobranza').reduce((s,c)=>s+toUSD(c.recaudoEst,c.moneda),0))}</td>
