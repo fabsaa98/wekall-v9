@@ -1235,7 +1235,11 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           // Nuevo endpoint RAG /vicky: contexto mínimo dinámico, sin function calling
           question: text,
           client_id: clientId,
-          history: conversationHistoryRef.current.slice(-6),
+          // Truncar historial para evitar payloads grandes que causan timeout
+          history: conversationHistoryRef.current.slice(-4).map(m => ({
+            role: m.role,
+            content: m.content.length > 400 ? m.content.substring(0, 400) + '…' : m.content,
+          })),
           // Pasar datos de agentes que el frontend ya tiene (via useAgentsData que usa /query con service key)
           agent_context: _hasAgentKPIs ? {
             csat_promedio: agentKPIs.csatPromedio,
