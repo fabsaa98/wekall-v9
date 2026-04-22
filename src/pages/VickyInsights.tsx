@@ -464,6 +464,7 @@ export default function VickyInsights() {
       /^(y\s|pero\s|entonces\s|en ese caso|sobre eso|respecto a eso|a qué se debe|por qué|cómo (lo|la|los|las|eso)|qué significa|qué implica|cuál es la causa|profundiza|explícame|detállame|dame más|y si|qué pasa si|en comparación|vs\.?|comparado|compáralo|y los|y las|y el|y la|¿y |¿pero )/i,
       /(ese|esa|esos|esas|este|esta|estos|estas|dicho|mencionado|anterior|arriba|lo que dijiste|lo que mencionaste|el mismo|la misma)/i,
       /(agente|campaña|métrica|indicador|tasa|porcentaje|número|cifra|resultado|dato)\s+(que|del|de la|anterior|mencionad)/i,
+      /^(de (estos|esas|ellos|ellas|los|las)|cuál de|quién de|entre (ellos|esas|estos)|del (top|grupo|listado|ranking|anterior)|de ese (top|grupo|listado)|cuánto (recauda|gana|produce)|y (cuál|quién|cuánto)|ahora (dime|muéstrame|compara))/i,
     ];
 
     const isReference = referencePatterns.some(p => p.test(currentQuestion));
