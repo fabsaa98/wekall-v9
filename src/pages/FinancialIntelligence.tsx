@@ -158,18 +158,19 @@ function FinancialTooltip({ active, payload, label }: {
 // ─── Executive Brief ──────────────────────────────────────────────────────────
 function ExecutiveBrief({
   recaudoHoy, recaudoMes, margenMes, tendenciaPct, hasRealData,
-  tasaContacto, mesLabel,
+  tasaContacto, mesLabel, industry,
 }: {
   recaudoHoy: number; recaudoMes: number; margenMes: number;
-  tendenciaPct: number; hasRealData: boolean; tasaContacto: number; mesLabel: string;
+  tendenciaPct: number; hasRealData: boolean; tasaContacto: number; mesLabel: string; industry?: string;
 }) {
+  const isFintech = industry === 'fintech_pagos';
   // Scale-G Fix #4 (21 abr 2026) — costoPct = costo CC como % del recaudo
   const costoPct   = recaudoMes > 0 ? (COSTO_OP_MES / recaudoMes) * 100 : 0;
   const margenOk   = costoPct <= BM_COSTO_CC_PCT; // ≤15% = eficiente
   const tcVsBm     = tasaContacto - BM_TASA_CONTACTO_PCT;
   const tendOk     = tendenciaPct >= 0;
 
-  const statusColor = margenOk ? 'text-emerald-400' : 'text-amber-400';
+  const statusColor = margenOk ? 'text-emerald-400' : 'text-orange-400';
   const statusText  = margenOk ? 'Costo CC dentro de benchmark' : 'Costo CC supera benchmark';
 
   return (
@@ -193,37 +194,52 @@ function ExecutiveBrief({
           ? <>muestra una tendencia <span className="text-emerald-400 font-semibold">positiva de +{tendenciaPct.toFixed(1)}%</span> vs. el mes anterior.</>
           : <>registra una caída de <span className="text-red-400 font-semibold">{tendenciaPct.toFixed(1)}%</span> vs. el mes anterior.</>
         }{' '}
-        {/* Scale-G Fix #3 (21 abr 2026) — solo campañas cobranza, contactos efectivos */}
-        El recaudo {hasRealData ? 'real' : 'estimado'} acumulado{' '}
-        <span className="text-muted-foreground/80">(solo campañas cobranza, contactos efectivos)</span>{' '}
-        asciende a{' '}
-        <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoMes, 'COP'))}</span>{' '}
-        <span className="text-muted-foreground/60 text-[11px]">≈ {fmtCOP(recaudoMes)} COP</span>.
-        El costo del contact center representa{' '}
-        <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-amber-400'}`}>
-          {costoPct.toFixed(1)}% del recaudo
-        </span>{' '}
-        {margenOk
-          ? `(benchmark saludable: ≤${BM_COSTO_CC_PCT}%).`
-          : `— por encima del benchmark de ≤${BM_COSTO_CC_PCT}%.`
-        }{' '}
-        La tasa de contacto{' '}
-        {tcVsBm >= 0
-          ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
-          : <><span className="text-amber-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
-        }{' '}
-        Proyección diaria: <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoHoy, 'COP'))}</span> de recaudo hoy.
+        {isFintech ? (
+          <>
+            El volumen de atención muestra una tasa de contacto de{' '}
+            <span className="text-foreground font-semibold">{tasaContacto.toFixed(1)}%</span>.{' '}
+            La tasa de contacto{' '}
+            {tcVsBm >= 0
+              ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+              : <><span className="text-orange-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+            }{' '}
+            Proyección diaria: <span className="text-foreground font-semibold">{(13059/30).toFixed(0)} llamadas</span> estimadas hoy.
+          </>
+        ) : (
+          <>
+            {/* Scale-G Fix #3 (21 abr 2026) — solo campañas cobranza, contactos efectivos */}
+            El recaudo {hasRealData ? 'real' : 'estimado'} acumulado{' '}
+            <span className="text-muted-foreground/80">(solo campañas cobranza, contactos efectivos)</span>{' '}
+            asciende a{' '}
+            <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoMes, 'COP'))}</span>{' '}
+            <span className="text-muted-foreground/60 text-[11px]">≈ {fmtCOP(recaudoMes)} COP</span>.
+            El costo del contact center representa{' '}
+            <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-orange-400'}`}>
+              {costoPct.toFixed(1)}% del recaudo
+            </span>{' '}
+            {margenOk
+              ? `(benchmark saludable: ≤${BM_COSTO_CC_PCT}%).`
+              : `— por encima del benchmark de ≤${BM_COSTO_CC_PCT}%.`
+            }{' '}
+            La tasa de contacto{' '}
+            {tcVsBm >= 0
+              ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+              : <><span className="text-orange-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+            }{' '}
+            Proyección diaria: <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoHoy, 'COP'))}</span> de recaudo hoy.
+          </>
+        )}
       </p>
 
       {/* Disclaimer Scale-G Fix #3 */}
       <p className="mt-3 text-[11px] text-muted-foreground/50 leading-relaxed border-t border-border/50 pt-3">
-        ⚠️ Estimativo basado en contactos efectivos (llamadas contestadas). Campañas de servicio excluidas del recaudo. No incluye llamadas abandonadas, ocupadas ni rechazadas. No refleja otros costos operativos del cliente.
+        {isFintech ? "Datos basados en CDR histórico del cliente. Tasa de contacto = llamadas completadas / total llamadas." : "⚠️ Estimativo basado en contactos efectivos (llamadas contestadas). Campañas de servicio excluidas del recaudo. No incluye llamadas abandonadas, ocupadas ni rechazadas. No refleja otros costos operativos del cliente."}
       </p>
 
-      {!margenOk && (
-        <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-500/8 border border-amber-500/20 p-3">
-          <Zap className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-300 leading-relaxed">
+      {!margenOk && !isFintech && (
+        <div className="mt-3 flex items-start gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 p-3">
+          <Zap className="h-3.5 w-3.5 text-orange-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-orange-300 leading-relaxed">
             <strong>Atención:</strong> El costo del CC supera el benchmark de ≤{BM_COSTO_CC_PCT}%. Conectar datos reales de recaudo para diagnóstico preciso.
           </p>
         </div>
@@ -465,7 +481,12 @@ export default function FinancialIntelligence() {
           description: 'Nómina estimada + carga social',
         },
       ];
-      setKpis(kpisBuilt);
+      // Filtrar KPIs según industria — fintech no muestra recaudo/cobranza
+      const industry = clientConfig?.industry;
+      const filteredKpis = industry === 'fintech_pagos'
+        ? kpisBuilt.filter(k => !['recaudo_mes', 'margen_op'].includes(k.id))
+        : kpisBuilt;
+      setKpis(filteredKpis);
 
     } catch (e: unknown) {
       setError(`Error cargando datos financieros: ${e instanceof Error ? e.message : String(e)}`);
@@ -585,7 +606,7 @@ export default function FinancialIntelligence() {
         </div>
         {/* Badge estimativos — minimalista, no dominante */}
         {!hasRealData && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-medium text-amber-400 self-start">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-medium text-blue-400 self-start">
             <AlertTriangle className="h-3 w-3" />
             Estimativos CDR
           </span>
@@ -601,6 +622,7 @@ export default function FinancialIntelligence() {
         hasRealData={hasRealData}
         tasaContacto={avgTasaContacto}
         mesLabel={currentMesLabel}
+        industry={clientConfig?.industry}
       />
 
       {/* ── KPI Cards con sparklines ─────────────────────────────────────── */}
@@ -653,7 +675,7 @@ export default function FinancialIntelligence() {
         {/* Scale-G Fix #4 — Costo CC como % Recaudo (menor = mejor = verde) */}
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-5 shadow-wk-sm">
           <div className="mb-4">
-            <h2 className="text-base font-medium text-foreground">Costo CC como % Recaudo</h2>
+            <h2 className="text-base font-medium text-foreground">{clientConfig?.industry === 'fintech_pagos' ? 'Tasa de Contacto Mensual' : 'Costo CC como % Recaudo'}</h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">Benchmark: ≤{BM_COSTO_CC_PCT}% · Verde = eficiente</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
@@ -722,7 +744,7 @@ export default function FinancialIntelligence() {
                 ))}
                 {campaigns.length > 0 && (
                   <tr className="border-t-2 border-border font-bold">
-                    <td className="py-2.5 text-foreground">TOTAL cobranza</td>
+                    <td className="py-2.5 text-foreground font-semibold">TOTAL</td>
                     <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.llamadas,0).toLocaleString('es-CO')}</td>
                     <td className="py-2.5 text-right text-foreground">{campaigns.reduce((s,c)=>s+c.contactos,0).toLocaleString('es-CO')}</td>
                     <td className="py-2.5 text-right text-emerald-400">{fmtUSD(campaigns.filter(c=>c.tipo==='cobranza').reduce((s,c)=>s+toUSD(c.recaudoEst,c.moneda),0))}</td>
