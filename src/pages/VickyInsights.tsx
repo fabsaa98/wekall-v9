@@ -1235,11 +1235,10 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           // Nuevo endpoint RAG /vicky: contexto mínimo dinámico, sin function calling
           question: text,
           client_id: clientId,
-          // Truncar historial para evitar payloads grandes que causan timeout
-          history: conversationHistoryRef.current.slice(-4).map(m => ({
-            role: m.role,
-            content: m.content.length > 400 ? m.content.substring(0, 400) + '…' : m.content,
-          })),
+          // Sin historial: cada pregunta a Vicky es independiente.
+          // Vicky consulta datos frescos de Supabase en cada llamada.
+          // El historial solo infla el payload y causa timeouts.
+          history: [],
           // Pasar datos de agentes que el frontend ya tiene (via useAgentsData que usa /query con service key)
           agent_context: _hasAgentKPIs ? {
             csat_promedio: agentKPIs.csatPromedio,
