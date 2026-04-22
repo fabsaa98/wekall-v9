@@ -37,10 +37,10 @@ async function proxyQuery<T>(payload: object): Promise<T> {
 const TICKET_PROMEDIO_COP = 160_000;
 const TASA_CUMPLIMIENTO   = 0.60;
 const TASA_PROMESA        = 0.40;
-const COSTO_AGENTE_MES    = 3_000_000;
-const AGENTES_ACTIVOS     = 81;
+// Defaults — se sobreescriben con datos reales de client_labor_costs
+const DEFAULT_costoAgenteMes = 3_000_000; // COP — solo para Crediminuto
+const DEFAULT_agentesActivos  = 0;          // 0 = sin datos configurados
 const DIAS_LABORALES_MES  = 22;
-const COSTO_OP_MES        = COSTO_AGENTE_MES * AGENTES_ACTIVOS;
 
 // Benchmarks industria cobranzas LATAM (COPC 2024)
 const BM_TASA_CONTACTO_PCT  = 22.5;   // %
@@ -165,7 +165,7 @@ function ExecutiveBrief({
 }) {
   const isFintech = industry === 'fintech_pagos';
   // Scale-G Fix #4 (21 abr 2026) — costoPct = costo CC como % del recaudo
-  const costoPct   = recaudoMes > 0 ? (COSTO_OP_MES / recaudoMes) * 100 : 0;
+  const costoPct   = recaudoMes > 0 ? (costoOpMes / recaudoMes) * 100 : 0;
   const margenOk   = costoPct <= BM_COSTO_CC_PCT; // ≤15% = eficiente
   const tcVsBm     = tasaContacto - BM_TASA_CONTACTO_PCT;
   const tendOk     = tendenciaPct >= 0;
@@ -265,6 +265,9 @@ export default function FinancialIntelligence() {
   const [campaigns,         setCampaigns]         = useState<CampaignRow[]>([]);
   const [kpis,              setKpis]              = useState<KPIData[]>([]);
   const [avgTasaContacto,   setAvgTasaContacto]   = useState(0);
+  const [costoAgenteMes,    setCostoAgenteMes]    = useState(0);  // desde client_labor_costs
+  const [agentesActivos,    setAgentesActivos]    = useState(0);  // desde client_labor_costs
+  const costoOpMes = costoAgenteMes * agentesActivos; // calculado dinámico
 
   // Upload state
   const [uploading,    setUploading]    = useState(false);
@@ -282,6 +285,21 @@ export default function FinancialIntelligence() {
     try {
       setLoading(true);
       setError(null);
+
+      // 0. Cargar costos laborales del cliente (client_labor_costs)
+      try {
+        const laborRows = await proxyQuery<Array<{costo_agente_mes: number; agentes_activos: number}>>({
+          table: 'client_labor_costs',
+          select: 'costo_agente_mes,agentes_activos',
+          filters: { 'client_id': `eq.${clientId}` },
+          order: 'vigente_desde.desc',
+          limit: 1,
+        });
+        if (Array.isArray(laborRows) && laborRows.length > 0) {
+          setCostoAgenteMes(laborRows[0].costo_agente_mes || 0);
+          setAgentesActivos(laborRows[0].agentes_activos || 0);
+        }
+      } catch { /* sin datos de costos */ }
 
       // 1. Try real financial_results
       let realRows: Array<{ fecha: string; monto_recaudado_cop: number }> = [];
@@ -349,10 +367,10 @@ export default function FinancialIntelligence() {
           if (mReal.length > 0) recaudo = mReal.reduce((s, r) => s + r.monto_recaudado_cop, 0);
         }
 
-        const margen    = recaudo - COSTO_OP_MES;
+        const margen    = recaudo - costoOpMes;
         // Scale-G Fix #4 (21 abr 2026) — margenPct = costo CC como % del recaudo
         // Cap a 200% para evitar barras que explotan cuando recaudo es muy bajo (mes parcial)
-        const margenPctRaw = recaudo > 0 ? (COSTO_OP_MES / recaudo) * 100 : 0;
+        const margenPctRaw = recaudo > 0 ? (costoOpMes / recaudo) * 100 : 0;
         const margenPct = Math.min(margenPctRaw, 200);
         const tasaContacto = m.llamadas > 0 ? (m.contactos / m.llamadas) * 100 : 0;
 
@@ -360,7 +378,7 @@ export default function FinancialIntelligence() {
           mes: ym,
           mesLabel: mesLabel(ym),
           recaudo,
-          costoOp: COSTO_OP_MES,
+          costoOp: costoOpMes,
           margen,
           margenPct,
           promesas,
@@ -425,7 +443,7 @@ export default function FinancialIntelligence() {
       const prevRec = prevMonth?.recaudo ?? 0;
       const tendPct = prevRec > 0 ? ((curRec - prevRec) / prevRec) * 100 : 0;
       // Scale-G Fix #4 (21 abr 2026) — curCostoPct = costoCC/recaudo*100
-      const curCostoPct = curMonth?.margenPct ?? 0; // margenPct ahora = COSTO_OP_MES/recaudo*100
+      const curCostoPct = curMonth?.margenPct ?? 0; // margenPct ahora = costoOpMes/recaudo*100
       const margenVsBm = curCostoPct - BM_COSTO_CC_PCT; // positivo = supera benchmark (malo)
       const tcVsBm = avgTC - BM_TASA_CONTACTO_PCT;
 
@@ -472,12 +490,12 @@ export default function FinancialIntelligence() {
         {
           id: 'costo_op',
           title: 'Costo Operativo',
-          value: fmtCOP(COSTO_OP_MES),
-          numericValue: COSTO_OP_MES,
+          value: costoOpMes > 0 ? fmtCOP(costoOpMes) : 'N/D',
+          numericValue: costoOpMes,
           change: 0,
-          changeLabel: `${AGENTES_ACTIVOS} agentes × $3M`,
+          changeLabel: agentesActivos > 0 ? `${agentesActivos} agentes × $${(costoAgenteMes/1_000_000).toFixed(1)}M` : 'Sin datos de costos',
           vsIndustry: 0,
-          sparkline: Array(7).fill(COSTO_OP_MES / 1_000_000),
+          sparkline: Array(7).fill(costoOpMes > 0 ? costoOpMes / 1_000_000 : 0),
           invertColor: true,
           roles: ['CEO', 'COO'],
           description: 'Nómina estimada + carga social',
@@ -571,7 +589,7 @@ export default function FinancialIntelligence() {
   const tendenciaMes = mesAnteriorRecaudo > 0
     ? ((mesActualRecaudo - mesAnteriorRecaudo) / mesAnteriorRecaudo) * 100
     : 0;
-  const margenMesActual = mesActualRecaudo - COSTO_OP_MES;
+  const margenMesActual = mesActualRecaudo - costoOpMes;
   const currentMesLabel = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].mesLabel : '';
 
   // ─── States ─────────────────────────────────────────────────────────────────
@@ -843,8 +861,8 @@ export default function FinancialIntelligence() {
             { label: 'Ticket promedio PE', value: `S/${TICKET_PEN}`,              note: `≈ ${fmtUSD(toUSD(TICKET_PEN,'PEN'))} USD` },
             { label: 'Tasa promesa',       value: `${(TASA_PROMESA*100).toFixed(0)}%`,   note: `Bm: ${BM_TASA_PROMESA_PCT}%` },
             { label: 'Tasa cumplimiento',  value: `${(TASA_CUMPLIMIENTO*100).toFixed(0)}%`, note: `Bm: ${BM_TASA_CUMPLIM_PCT}%` },
-            { label: 'Agentes activos',    value: String(AGENTES_ACTIVOS),          note: 'Estimado — contactos ef. CDR' },
-            { label: 'Costo/agente/mes',   value: fmtCOPFull(COSTO_AGENTE_MES),    note: 'Nómina + carga social' },
+            { label: 'Agentes activos',    value: String(agentesActivos),          note: 'Estimado — contactos ef. CDR' },
+            { label: 'Costo/agente/mes',   value: fmtCOPFull(costoAgenteMes),    note: 'Nómina + carga social' },
             { label: 'Tasa COP/USD',       value: `1 USD = $${USD_COP.toLocaleString()} COP`, note: 'TRM promedio abr 2026 — Banco de la República' },
             { label: 'Tasa PEN/USD',       value: `1 USD = S/${USD_PEN} PEN`,       note: 'TC promedio abr 2026 — BCRP interbancario' },
           ].map((p, i) => (
