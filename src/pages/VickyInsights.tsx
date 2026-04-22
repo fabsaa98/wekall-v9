@@ -445,10 +445,39 @@ export default function VickyInsights() {
       }];
     });
   }, [clientConfig?.client_id, cdr.loading, cdr.latestDay?.fecha]); // Fix 4: depende también del CDR // eslint-disable-line react-hooks/exhaustive-deps
-  // Feature 1: Conversation memory
+  // Feature 1: Conversation memory con sliding window (máx 3 turnos)
   const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user'|'assistant', content: string}>>([]);
   // useRef to avoid stale closure in async sendMessage (especially in tool_calls second pass)
-  const conversationHistoryRef = useRef<Array<{role: 'user'|'assistant', content: string}>>([]);
+  const conversationHistoryRef = useRef<Array<{role: 'user'|'assistant', content: string}>>([]); 
+
+  /**
+   * Detecta si la nueva pregunta hace referencia a la respuesta anterior.
+   * Si no hay referencia → contexto limpio (pregunta independiente).
+   * Si hay referencia → incluir últimos N turnos (máx 3, sliding window).
+   */
+  function buildVickyHistory(currentQuestion: string): Array<{role: string, content: string}> {
+    const history = conversationHistoryRef.current;
+    if (history.length === 0) return [];
+
+    // Palabras/frases que indican referencia a la respuesta anterior
+    const referencePatterns = [
+      /^(y\s|pero\s|entonces\s|en ese caso|sobre eso|respecto a eso|a qué se debe|por qué|cómo (lo|la|los|las|eso)|qué significa|qué implica|cuál es la causa|profundiza|explícame|detállame|dame más|y si|qué pasa si|en comparación|vs\.?|comparado|compáralo|y los|y las|y el|y la|¿y |¿pero )/i,
+      /(ese|esa|esos|esas|este|esta|estos|estas|dicho|mencionado|anterior|arriba|lo que dijiste|lo que mencionaste|el mismo|la misma)/i,
+      /(agente|campaña|métrica|indicador|tasa|porcentaje|número|cifra|resultado|dato)\s+(que|del|de la|anterior|mencionad)/i,
+    ];
+
+    const isReference = referencePatterns.some(p => p.test(currentQuestion));
+    if (!isReference) return []; // Pregunta independiente → sin historial
+
+    // Sliding window: máx últimos 3 turnos (6 mensajes: 3 user + 3 assistant)
+    // Si hay más de 3 turnos, descartar los más antiguos
+    const window = history.slice(-6); // 3 turnos = 6 mensajes
+    // Truncar cada mensaje a 500 chars para no inflar el payload
+    return window.map(m => ({
+      role: m.role,
+      content: m.content.length > 500 ? m.content.substring(0, 500) + '…' : m.content,
+    }));
+  }
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [actionOpen, setActionOpen] = useState(false);
@@ -1235,10 +1264,10 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           // Nuevo endpoint RAG /vicky: contexto mínimo dinámico, sin function calling
           question: text,
           client_id: clientId,
-          // Sin historial: cada pregunta a Vicky es independiente.
-          // Vicky consulta datos frescos de Supabase en cada llamada.
-          // El historial solo infla el payload y causa timeouts.
-          history: [],
+          // Sliding window con detección de referencia:
+          // - Pregunta independiente → history: [] (contexto limpio, datos frescos)
+          // - Pregunta que refiere a la anterior → últimos 3 turnos máx (sliding window)
+          history: buildVickyHistory(text),
           // Pasar datos de agentes que el frontend ya tiene (via useAgentsData que usa /query con service key)
           agent_context: _hasAgentKPIs ? {
             csat_promedio: agentKPIs.csatPromedio,
