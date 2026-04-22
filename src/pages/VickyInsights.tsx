@@ -1250,7 +1250,11 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
       ];
 
       // ─── Llamada a la API con Function Calling ──────────────────────────────
+      // Timeout 30s para evitar que el fetch quede colgado indefinidamente
+      const fetchCtrl = new AbortController();
+      const fetchTimeout = setTimeout(() => fetchCtrl.abort(), 30000);
       const apiResp = await fetch(PROXY_URL, {
+        signal: fetchCtrl.signal,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1303,6 +1307,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         }),
       });
 
+      clearTimeout(fetchTimeout);
       if (!apiResp.ok) throw new Error(`API error: ${apiResp.status}`);
       const data = await apiResp.json();
       const choice = data.choices?.[0];
