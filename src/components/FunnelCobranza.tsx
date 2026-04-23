@@ -68,8 +68,8 @@ export function FunnelCobranza({
       status: null,
       ref: null,
       topW: 100,
-      botW: 72,
-      height: 100,
+      botW: 76,
+      height: 90,
       gradient: 'from-indigo-500 to-indigo-600',
     },
     {
@@ -79,9 +79,9 @@ export function FunnelCobranza({
       pct: `${rpcPct}%`,
       status: rpcStatus,
       ref: 'Ref: 8–15%',
-      topW: 72,
-      botW: 44,
-      height: 90,
+      topW: 76,
+      botW: 52,
+      height: 85,
       gradient: 'from-violet-500 to-violet-600',
     },
     {
@@ -91,8 +91,8 @@ export function FunnelCobranza({
       pct: `${ptpPct}%`,
       status: ptpStatus,
       ref: 'Ref: 25–45%',
-      topW: 44,
-      botW: 20,
+      topW: 52,
+      botW: 28,
       height: 80,
       gradient: 'from-emerald-500 to-emerald-600',
     },
@@ -192,37 +192,39 @@ export function FunnelCobranza({
                   Horizontal padding must account for the trapezoid narrowing.
                   At the midpoint of the layer the usable width ≈ avg(topW, botW).
                   We add 6% extra inset so text never touches the slanted edges. */}
+              {/* Content: padding horizontal proporcional al ancho promedio de la capa */}
               {(() => {
-                const midW = (layer.topW + layer.botW) / 2; // % of container
-                // inset in px ≈ ((100 - midW) / 2)% of container width, but
-                // since this div is already layer.topW% wide we compute relative:
-                const insetPct = ((layer.topW - midW) / layer.topW / 2) * 100 + 6;
+                // El ancho promedio (midpoint) de la capa es (topW+botW)/2.
+                // Cuánto se estrecha cada lado respecto al topW: ((topW - botW)/2) como % del topW.
+                // Añadimos 8% de margen extra para que el texto nunca toque el borde inclinado.
+                const shrinkPct = ((layer.topW - layer.botW) / 2 / layer.topW) * 100;
+                const padPct = shrinkPct + 8;
                 return (
                   <div
-                    className="relative z-10 flex flex-col justify-center h-full gap-0.5"
-                    style={{ paddingLeft: `${insetPct}%`, paddingRight: `${insetPct}%` }}
+                    className="relative z-10 flex flex-col justify-center h-full gap-1"
+                    style={{ paddingLeft: `${padPct}%`, paddingRight: `${padPct}%` }}
                   >
                     {/* Row 1: label + percentage */}
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-white/70 text-[10px] font-semibold uppercase tracking-widest truncate">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white/80 text-[10px] font-bold uppercase tracking-widest">
                         {layer.label}
                       </span>
-                      <span className="text-white font-bold text-sm shrink-0">
+                      <span className="text-white font-bold text-[13px] shrink-0">
                         {layer.pct}
                       </span>
                     </div>
 
                     {/* Row 2: big number + status badge */}
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-white font-black text-xl leading-tight drop-shadow-md truncate">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white font-black text-[22px] leading-none drop-shadow-md">
                         {layer.value}
                       </span>
                       {layer.status && <Dot status={layer.status} />}
                     </div>
 
-                    {/* Row 3: industry reference (RPC & PTP only) */}
+                    {/* Row 3: industry reference */}
                     {layer.ref && (
-                      <span className="text-white/40 text-[9px]">{layer.ref}</span>
+                      <span className="text-white/50 text-[9px] mt-0.5">{layer.ref}</span>
                     )}
                   </div>
                 );
