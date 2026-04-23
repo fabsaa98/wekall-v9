@@ -470,16 +470,19 @@ function detectarChartData(respuesta: string, pregunta: string): import('@/data/
     const agents: string[] = []; const values: number[] = [];
     // Formato: **Nombre Apellido**: X,XXX llamadas, XX.X% de tasa de contacto
     // o formato numerado: 1. Nombre: XX%
-    const agentRegex = /\*\*([A-ZÁÉÍÓÚ][A-Za-záéíóúüñÁÉÍÓÚÜÑ]+(?:\s+[A-Za-záéíóúüñÁÉÍÓÚÜÑ]+){1,4})\*\*[^\d]+(\d{1,2}[.,]\d{1,2})%\s+de\s+tasa/gi;
-    const agentRegex2 = /\d+\.\s+([A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s+[A-Za-záéíóú]+){1,3}).*?(\d{1,2}[.,]\d{1,2})\s*%/gi;
+    // Regex 1: **Nombre en negritas**: ... X% de tasa de contacto
+    const agentRegex1 = /\*\*([A-ZÁÉÍÓÚ][A-Za-záéíóúüñÁÉÍÓÚÜÑ]+(?:\s+[A-Za-záéíóúüñÁÉÍÓÚÜÑ]+){1,4})\*\*[^\d]+(\d{1,2}[.,]\d{1,2})%\s+de\s+tasa/gi;
+    // Regex 2: Agente XXXX: N llamadas | N contactos | X% contacto
+    const agentRegex2 = /([A-ZÁÉÍÓÚ][A-Za-záéíóúüñÁÉÍÓÚÜÑ\s]+?|Agente\s+[\w]+):\s+[\d,.]+ llamadas.*?(\d{1,2}[.,]?\d{0,2})%\s+contacto/gi;
+    // Regex 3: numerado 1. Nombre: XX%
+    const agentRegex3 = /\d+\.\s+([A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s+[A-Za-záéíóú]+){1,3}).*?(\d{1,2}[.,]\d{1,2})\s*%/gi;
     let m;
-    while ((m = agentRegex.exec(respuesta)) !== null) {
-      agents.push(m[1].split(' ')[0]);
-      values.push(parseFloat(m[2].replace(',', '.')));
-    }
-    if (agents.length === 0) {
-      while ((m = agentRegex2.exec(respuesta)) !== null) {
-        agents.push(m[1].split(' ')[0]);
+    for (const rx of [agentRegex1, agentRegex2, agentRegex3]) {
+      if (agents.length >= 3) break;
+      agents.length = 0; values.length = 0;
+      while ((m = rx.exec(respuesta)) !== null) {
+        const nombre = m[1].trim().replace(/^Agente\s+/, 'Ag. ');
+        agents.push(nombre.length > 15 ? nombre.split(' ')[0] : nombre);
         values.push(parseFloat(m[2].replace(',', '.')));
       }
     }
