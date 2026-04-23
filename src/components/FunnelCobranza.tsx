@@ -62,38 +62,38 @@ export function FunnelCobranza({
   const layers: LayerDef[] = [
     {
       key: 'vol',
-      label: 'VOLUMEN',
+      label: 'Volumen de Llamadas',
       value: totalHoy.toLocaleString('es-CO'),
       pct: '100%',
       status: null,
       ref: null,
       topW: 100,
       botW: 76,
-      height: 90,
+      height: 110,
       gradient: 'from-indigo-500 to-indigo-600',
     },
     {
       key: 'rpc',
-      label: 'RPC',
+      label: 'Contacto Persona Correcta (RPC)',
       value: rpcAbs.toLocaleString('es-CO'),
       pct: `${rpcPct}%`,
       status: rpcStatus,
-      ref: 'Ref: 8–15%',
+      ref: null,
       topW: 76,
       botW: 52,
-      height: 85,
+      height: 100,
       gradient: 'from-violet-500 to-violet-600',
     },
     {
       key: 'ptp',
-      label: 'PTP',
+      label: 'Promesa de Pago (PTP)',
       value: ptpAbs.toLocaleString('es-CO'),
       pct: `${ptpPct}%`,
       status: ptpStatus,
-      ref: 'Ref: 25–45%',
+      ref: null,
       topW: 52,
       botW: 28,
-      height: 80,
+      height: 90,
       gradient: 'from-emerald-500 to-emerald-600',
     },
   ];
@@ -192,37 +192,29 @@ export function FunnelCobranza({
                   Horizontal padding must account for the trapezoid narrowing.
                   At the midpoint of the layer the usable width ≈ avg(topW, botW).
                   We add 6% extra inset so text never touches the slanted edges. */}
-              {/* Contenido centrado — todo alineado al centro del trapezoid */}
+              {/* Contenido centrado dentro del trapezoid */}
               {(() => {
                 const shrinkPct = ((layer.topW - layer.botW) / 2 / layer.topW) * 100;
-                const padPct = shrinkPct + 6;
+                const padPct = shrinkPct + 5;
                 return (
                   <div
-                    className="relative z-10 flex flex-col items-center justify-center h-full gap-0.5 text-center"
+                    className="relative z-10 flex flex-col items-center justify-center h-full gap-1 text-center"
                     style={{ paddingLeft: `${padPct}%`, paddingRight: `${padPct}%` }}
                   >
-                    {/* Label + porcentaje en la misma fila centrada */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">
-                        {layer.label}
-                      </span>
-                      <span className="text-white font-bold text-[12px]">
-                        {layer.pct}
-                      </span>
-                    </div>
+                    {/* Nombre completo de la métrica */}
+                    <span className="text-white/80 text-[11px] font-semibold leading-tight">
+                      {layer.label}
+                    </span>
 
-                    {/* Número grande + badge en la misma fila */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-black text-[22px] leading-none drop-shadow-md">
-                        {layer.value}
-                      </span>
-                      {layer.status && <Dot status={layer.status} />}
-                    </div>
+                    {/* Número grande */}
+                    <span className="text-white font-black text-[32px] leading-none drop-shadow-lg">
+                      {layer.value}
+                    </span>
 
-                    {/* Ref. industria */}
-                    {layer.ref && (
-                      <span className="text-white/50 text-[9px]">{layer.ref}</span>
-                    )}
+                    {/* Porcentaje grande */}
+                    <span className="text-white font-bold text-[20px] leading-none opacity-90">
+                      {layer.pct}
+                    </span>
                   </div>
                 );
               })()}
