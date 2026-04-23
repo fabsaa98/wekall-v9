@@ -216,13 +216,32 @@ export default function Overview() {
     })),
   ];
 
+  // ── Helpers: filtro de días atípicos ──────────────────────────────────────
+  // Regla: domingos siempre excluidos. Sábados si volumen < 40% de la mediana del bloque.
+  const filtrarDiasHabiles = (days: typeof cdr.last30Days) => {
+    // 1. Excluir domingos siempre
+    const sinDomingos = days.filter(d => new Date(d.fecha + 'T12:00:00').getDay() !== 0);
+    // 2. Calcular mediana del bloque sin domingos
+    const vols = [...sinDomingos.map(d => d.total_llamadas)].sort((a, b) => a - b);
+    const mediana = vols.length > 0 ? vols[Math.floor(vols.length / 2)] : 0;
+    const umbralSabado = mediana * 0.40;
+    // 3. Excluir sábados que caen muy por debajo
+    return sinDomingos.filter(d => {
+      const dow = new Date(d.fecha + 'T12:00:00').getDay();
+      if (dow === 6 && d.total_llamadas < umbralSabado) return false;
+      return true;
+    });
+  };
+
   // ── Comparativa semanal (esta semana vs semana anterior) ─────────────────
   const weeklyComparison = (() => {
     if (cdr.last30Days.length < 10) return null;
-    // Semana actual: últimos 5 días hábiles (o menos si no hay)
     const all = [...cdr.last30Days].sort((a, b) => a.fecha.localeCompare(b.fecha));
-    const thisWeek = all.slice(-5);
-    const prevWeek = all.slice(-10, -5);
+    // Filtrar días atípicos antes de comparar
+    const hábiles = filtrarDiasHabiles(all);
+    if (hábiles.length < 6) return null;
+    const thisWeek = hábiles.slice(-5);
+    const prevWeek = hábiles.slice(-10, -5);
     if (thisWeek.length === 0 || prevWeek.length === 0) return null;
 
     const avgTasa = (arr: typeof thisWeek) =>
@@ -232,18 +251,64 @@ export default function Overview() {
 
     const thisWeekTasa = avgTasa(thisWeek);
     const prevWeekTasa = avgTasa(prevWeek);
-    const thisWeekVol = avgVol(thisWeek);
-    const prevWeekVol = avgVol(prevWeek);
+    const thisWeekVol  = avgVol(thisWeek);
+    const prevWeekVol  = avgVol(prevWeek);
 
-    const deltaTasa = Math.round((thisWeekTasa - prevWeekTasa) * 10) / 10;
-    const deltaVol = thisWeekVol - prevWeekVol;
+    const deltaTasa   = Math.round((thisWeekTasa - prevWeekTasa) * 10) / 10;
+    const deltaVol    = thisWeekVol - prevWeekVol;
     const deltaVolPct = prevWeekVol > 0 ? Math.round(((thisWeekVol - prevWeekVol) / prevWeekVol) * 1000) / 10 : 0;
-
-    // Día más productivo (mayor tasa de contacto) y más bajo de la semana actual
-    const bestDay = thisWeek.reduce((a, b) => a.tasa_contacto_pct > b.tasa_contacto_pct ? a : b);
-    const worstDay = thisWeek.reduce((a, b) => a.tasa_contacto_pct < b.tasa_contacto_pct ? a : b);
+    const bestDay     = thisWeek.reduce((a, b) => a.tasa_contacto_pct > b.tasa_contacto_pct ? a : b);
+    const worstDay    = thisWeek.reduce((a, b) => a.tasa_contacto_pct < b.tasa_contacto_pct ? a : b);
 
     return { thisWeekTasa, prevWeekTasa, deltaTasa, thisWeekVol, prevWeekVol, deltaVol, deltaVolPct, bestDay, worstDay };
+  })();
+
+  // ── MTD: Mes hasta la fecha vs mismo período mes anterior ─────────────────
+  const mtdComparison = (() => {
+    if (cdr.last30Days.length < 5) return null;
+    const today = new Date();
+    const dayOfMonth = today.getDate(); // ej: 22 si hoy es 22 abril
+    const thisMonth  = today.getMonth();   // 0-indexed
+    const thisYear   = today.getFullYear();
+
+    // Mes actual: días 1 al 'dayOfMonth' del mes corriente
+    const mtdCurrent = cdr.last30Days.filter(d => {
+      const dd = new Date(d.fecha + 'T12:00:00');
+      return dd.getMonth() === thisMonth && dd.getFullYear() === thisYear && dd.getDate() <= dayOfMonth;
+    });
+
+    // Mes anterior: días 1 al 'dayOfMonth' del mes anterior (apples-to-apples)
+    const prevMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+    const prevYear  = thisMonth === 0 ? thisYear - 1 : thisYear;
+    const mtdPrev   = cdr.last30Days.filter(d => {
+      const dd = new Date(d.fecha + 'T12:00:00');
+      return dd.getMonth() === prevMonth && dd.getFullYear() === prevYear && dd.getDate() <= dayOfMonth;
+    });
+
+    if (mtdCurrent.length === 0) return null;
+
+    // Filtrar días atípicos en ambos períodos
+    const curHábiles  = filtrarDiasHabiles(mtdCurrent);
+    const prevHábiles = filtrarDiasHabiles(mtdPrev);
+
+    const sumVol  = (arr: typeof mtdCurrent) => arr.reduce((s, d) => s + d.total_llamadas, 0);
+    const avgTasa = (arr: typeof mtdCurrent) => arr.length > 0
+      ? Math.round(arr.reduce((s, d) => s + d.tasa_contacto_pct, 0) / arr.length * 10) / 10 : 0;
+
+    const curTasa    = avgTasa(curHábiles.length > 0 ? curHábiles : mtdCurrent);
+    const prevTasa   = avgTasa(prevHábiles.length > 0 ? prevHábiles : mtdPrev);
+    const curVol     = sumVol(mtdCurrent);
+    const prevVol    = sumVol(mtdPrev);
+    const deltaTasa  = Math.round((curTasa - prevTasa) * 10) / 10;
+    const deltaVol   = curVol - prevVol;
+    const deltaVolPct = prevVol > 0 ? Math.round(((curVol - prevVol) / prevVol) * 1000) / 10 : 0;
+    const diasCur    = curHábiles.length || mtdCurrent.length;
+    const diasPrev   = prevHábiles.length || mtdPrev.length;
+
+    const mesNombre  = today.toLocaleString('es-CO', { month: 'long' });
+    const mesAnteriorNombre = new Date(prevYear, prevMonth, 1).toLocaleString('es-CO', { month: 'long' });
+
+    return { curTasa, prevTasa, deltaTasa, curVol, prevVol, deltaVol, deltaVolPct, diasCur, diasPrev, dayOfMonth, mesNombre, mesAnteriorNombre };
   })();
 
   // Proyección promedio
@@ -668,6 +733,45 @@ export default function Overview() {
               <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wider mb-1">📉 Día más bajo</p>
               <p className="text-sm font-bold text-foreground">{weeklyComparison.worstDay.fecha.slice(5)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.worstDay.tasa_contacto_pct}% contacto · {weeklyComparison.worstDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MTD vs mes anterior */}
+      {mtdComparison && (
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📅</span>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Mes hasta la fecha vs mes anterior</h2>
+                <p className="text-xs text-muted-foreground capitalize">{mtdComparison.mesNombre} 1–{mtdComparison.dayOfMonth} ({mtdComparison.diasCur} días hábiles) vs mismo período de {mtdComparison.mesAnteriorNombre}</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Tasa contacto MTD */}
+            <div className="rounded-lg bg-secondary/50 p-4">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">TASA DE CONTACTO</p>
+              <p className="text-2xl font-bold text-foreground">{mtdComparison.curTasa}%</p>
+              <div className="flex items-center gap-1 mt-1">
+                <span className={`text-xs font-semibold ${mtdComparison.deltaTasa >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {mtdComparison.deltaTasa >= 0 ? '↑' : '↓'}{Math.abs(mtdComparison.deltaTasa)}pp
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 capitalize">Mes ant.: {mtdComparison.prevTasa}%</p>
+            </div>
+            {/* Volumen MTD */}
+            <div className="rounded-lg bg-secondary/50 p-4">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">VOLUMEN LLAMADAS</p>
+              <p className="text-2xl font-bold text-foreground">{mtdComparison.curVol.toLocaleString('es-CO')}</p>
+              <div className="flex items-center gap-1 mt-1">
+                <span className={`text-xs font-semibold ${mtdComparison.deltaVolPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {mtdComparison.deltaVolPct >= 0 ? '↑' : '↓'}{Math.abs(mtdComparison.deltaVolPct)}%
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Mes ant.: {mtdComparison.prevVol.toLocaleString('es-CO')}</p>
             </div>
           </div>
         </div>
