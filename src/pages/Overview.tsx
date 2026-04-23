@@ -5,7 +5,7 @@ import {
   BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar, FileText, Activity, Phone,
 } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, ComposedChart, Line,
 } from 'recharts';
 import { KPICard } from '@/components/KPICard';
@@ -823,70 +823,18 @@ export default function Overview() {
           </div>
           <div className="h-44 sm:h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={conversationTrend} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-              <defs>
-                <linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6334C0" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#6334C0" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gResolved" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22C55E" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#22C55E" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <BarChart data={conversationTrend} margin={{ top: 5, right: 5, bottom: 0, left: -20 }} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
               <XAxis dataKey="day" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{ background: '#1A1F2E', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#F9FAFB' }}
-                        itemStyle={{ color: '#F9FAFB' }}
+                itemStyle={{ color: '#F9FAFB' }}
               />
-              <Area type="monotone" dataKey="total" name="Total" stroke="#6334C0" strokeWidth={2} fill="url(#gTotal)" dot={(() => {
-                const totalVals = conversationTrend.map((d: TrendItem) => d.total ?? 0);
-                const hasEnough = totalVals.length >= 3;
-                const maxIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v > totalVals[best] ? i : best, 0) : -1;
-                const minIdx = hasEnough ? totalVals.reduce((best: number, v: number, i: number) => v < totalVals[best] ? i : best, 0) : -1;
-                const showDots = hasEnough && maxIdx !== minIdx;
-                if (!showDots) return false;
-                return (props: ChartDotProps) => {
-                  const { cx, cy, index, value } = props;
-                  const isMax = index === maxIdx;
-                  const isMin = index === minIdx;
-                  if (!isMax && !isMin) return <g key={index} />;
-                  const color = isMax ? '#22c55e' : '#ef4444';
-                  const fmt = typeof value === 'number' ? (value % 1 === 0 ? String(value) : value.toFixed(1)) : String(value);
-                  return (
-                    <g key={index}>
-                      <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="none" />
-                      <text x={cx} y={isMax ? cy - 7 : cy + 13} textAnchor="middle" fontSize={9} fill={color} fontWeight="600">{fmt}</text>
-                    </g>
-                  );
-                };
-              })()} activeDot={false} />
-              <Area type="monotone" dataKey="resolved" name="Contactos" stroke="#22C55E" strokeWidth={2} fill="url(#gResolved)" dot={(() => {
-                const resolvedVals = conversationTrend.map((d: TrendItem) => d.resolved ?? 0);
-                const hasEnough = resolvedVals.length >= 3;
-                const maxIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v > resolvedVals[best] ? i : best, 0) : -1;
-                const minIdx = hasEnough ? resolvedVals.reduce((best: number, v: number, i: number) => v < resolvedVals[best] ? i : best, 0) : -1;
-                const showDots = hasEnough && maxIdx !== minIdx;
-                if (!showDots) return false;
-                return (props: ChartDotProps) => {
-                  const { cx, cy, index, value } = props;
-                  const isMax = index === maxIdx;
-                  const isMin = index === minIdx;
-                  if (!isMax && !isMin) return <g key={index} />;
-                  const color = isMax ? '#22c55e' : '#ef4444';
-                  const fmt = typeof value === 'number' ? (value % 1 === 0 ? String(value) : value.toFixed(1)) : String(value);
-                  return (
-                    <g key={index}>
-                      <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="none" />
-                      <text x={cx} y={isMax ? cy - 7 : cy + 13} textAnchor="middle" fontSize={9} fill={color} fontWeight="600">{fmt}</text>
-                    </g>
-                  );
-                };
-              })()} activeDot={false} />
-            </AreaChart>
+              <Bar dataKey="total" name="Total" fill="#6334C0" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="resolved" name="Contactos" fill="#22C55E" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
           </div>
         </div>
