@@ -521,7 +521,9 @@ export default function Overview() {
       </div>
 
       {/* ── Scale-H1: Embudo RPC → PTP (solo cobranza outbound) ─────────────── */}
-      {cdr.latestDay?.rpc_contactos != null && industry !== 'fintech_pagos' && (() => {
+      {(() => {
+        const diasConRpcCheck = cdr.last30Days.filter(d => d.rpc_contactos != null && (d.rpc_contactos ?? 0) > 0);
+        if (diasConRpcCheck.length === 0 || industry === 'fintech_pagos') return null;
         // Usar promedio últimos 30 días hábiles con datos RPC
         const diasConRpc = cdr.last30Days.filter(d => d.rpc_contactos != null && d.rpc_contactos > 0);
         const avgRpcRate = diasConRpc.length > 0
