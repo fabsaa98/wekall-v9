@@ -891,6 +891,31 @@ FLUJO OBLIGATORIO para preguntas históricas:
 4. Para tendencias recientes → usa query_type="daily_trend" con days=30 o 90
 5. Solo di "no tengo datos" si query_cdr_data retorna vacío para ese período
 
+## CAPACIDAD DE GRÁFICOS — Scale-F
+Cuando el usuario pida explícitamente un gráfico, DEBES responder con los datos en el formato estructurado a continuación.
+Frases que activan esta capacidad: "grafícame", "hazme un gráfico", "muéstrame en barras", "quiero ver el gráfico", "grafícalo", "dame el gráfico", "visualízame", "hazme un pipe", "en barras", "en línea".
+
+Cuando detectes una de estas frases, sigue este protocolo:
+1. Consulta los datos reales con query_cdr_data o la herramienta apropiada
+2. Responde en prosa con el análisis ejecutivo CORTO (2-3 líneas máximo)
+3. Termina tu respuesta con un bloque JSON con este formato EXACTO (sin markdown alrededor):
+
+CHART_JSON:{"type":"line","title":"Título del gráfico","labels":["Ene 2026","Feb 2026"],"datasets":[{"label":"Tasa contacto","data":[22.5,19.3],"color":"#818cf8"}],"unit":"%","benchmark":22.5,"benchmarkLabel":"Bm COPC 22.5%"}
+
+Tipos de gráfico disponibles:
+- "line" → para tendencias temporales (tasa contacto, AHT, volumen por mes)
+- "bar" → para comparaciones por período o categoría
+- "bar-horizontal" → para rankings (top agentes, top objeciones, top campañas)
+
+Ejemplos de uso:
+- "Grafícame la tasa de contacto mes a mes" → type:"line", labels: meses, data: tasas
+- "Hazme un gráfico del top 10 agentes" → type:"bar-horizontal", labels: nombres, data: tasas  
+- "Muéstrame las objeciones en barras" → type:"bar", labels: tipos objeción, data: frecuencias
+- "Dame el volumen de llamadas por mes" → type:"bar", labels: meses, data: llamadas
+
+Si no tienes los datos en memoria, usa query_cdr_data PRIMERO para obtenerlos, luego construye el JSON.
+IMPORTANTE: El JSON debe ir al final de tu respuesta, en una sola línea, precedido exactamente por "CHART_JSON:".
+
 ## RESUMEN ANUAL CDR
 Para obtener totales anuales, mensuales o tendencias históricas del CDR, usa la función query_cdr_data con el query_type apropiado. Los datos se consultan en tiempo real desde Supabase.
 
@@ -1540,15 +1565,26 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         finalContent = convertirMarkdownAProsa(choice?.message?.content || 'Sin respuesta');
       }
 
-      // Scale-F: detectar si la respuesta tiene datos visualizables
-      const _chartData = detectarChartData(finalContent, text);
+      // Scale-F: parsear CHART_JSON explícito de Vicky (solicitud directa)
+      let _chartData: import('@/data/mockData').VickyChartData | undefined;
+      let _finalContent = finalContent;
+      const chartJsonMatch = finalContent.match(/CHART_JSON:({.+})/);
+      if (chartJsonMatch) {
+        try {
+          _chartData = JSON.parse(chartJsonMatch[1]) as import('@/data/mockData').VickyChartData;
+          // Limpiar el CHART_JSON de la respuesta visible
+          _finalContent = finalContent.replace(/\s*CHART_JSON:{.+}/, '').trim();
+        } catch { /* JSON malformado — ignorar */ }
+      }
+      // Fallback: detección automática si Vicky no emitió CHART_JSON
+      if (!_chartData) _chartData = detectarChartData(_finalContent, text);
 
       resp = {
         id: `vicky-${Date.now()}`,
         role: 'vicky',
-        content: finalContent,
+        content: _finalContent,
         timestamp: new Date(),
-        ...(  _chartData ? { chartData: _chartData } : {}),
+        ...(_chartData ? { chartData: _chartData } : {}),
         sources: [
           `${_clientName} · CDR histórico en tiempo real · Supabase`,
           `Transcripciones analizadas con Whisper · Análisis NLP real`,
