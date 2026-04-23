@@ -542,40 +542,45 @@ export default function Overview() {
               Embudo de Gestión de Cobranza
             </h2>
             <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex flex-col lg:flex-row gap-6 items-center">
-                {/* Funnel SVG */}
-                <div className="w-full lg:w-1/2 flex justify-center">
+              {/* Fila superior: funnel + KPIs grandes */}
+              <div className="flex flex-col lg:flex-row gap-5 items-stretch">
+                {/* Funnel SVG mejorado */}
+                <div className="flex justify-center items-center lg:w-56 shrink-0">
                   {(() => {
-                    const rpcDisplay = latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate;
-                    const ptpDisplay = latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate;
-                    const rpcAbs = latestRpc && latestRpc > 0 ? rpcHoy : Math.round(totalHoy * avgRpcRate / 100);
-                    const ptpAbs = latestPtp && latestPtp > 0 ? ptpHoy : Math.round(rpcAbs * avgPtpRate / 100);
-                    const W = 280; const H = 200;
-                    const layers = [
-                      { label: 'Volumen total', value: totalHoy, pct: 100, color: '#818cf8', w1: W, w2: W * 0.72 },
-                      { label: 'RPC — Persona real', value: rpcAbs, pct: rpcDisplay, color: '#a78bfa', w1: W * 0.72, w2: W * 0.42 },
-                      { label: 'PTP — Promesa de pago', value: ptpAbs, pct: ptpDisplay, color: '#34d399', w1: W * 0.42, w2: W * 0.22 },
+                    const rpcDisplay = (latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate) || 0;
+                    const ptpDisplay = (latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate) || 0;
+                    const rpcAbs = latestRpc && latestRpc > 0 ? rpcHoy : Math.round(totalHoy * rpcDisplay / 100);
+                    const ptpAbs = latestPtp && latestPtp > 0 ? ptpHoy : Math.round(rpcAbs * ptpDisplay / 100);
+                    const W = 200; const H = 210; const cx = W / 2;
+                    const segs = [
+                      { v: totalHoy, pct: '100%', c1: '#6366f1', c2: '#818cf8', w1: W, w2: W * 0.68, label: 'Volumen' },
+                      { v: rpcAbs, pct: `${rpcDisplay}%`, c1: '#7c3aed', c2: '#a78bfa', w1: W * 0.68, w2: W * 0.38, label: 'RPC' },
+                      { v: ptpAbs, pct: `${ptpDisplay}%`, c1: '#059669', c2: '#34d399', w1: W * 0.38, w2: W * 0.16, label: 'PTP' },
                     ];
-                    const segH = H / 3;
-                    const cx = W / 2;
+                    const sh = H / 3;
                     return (
-                      <svg width={W} height={H + 8} viewBox={`0 0 ${W} ${H + 8}`} className="overflow-visible">
-                        {layers.map((l, i) => {
-                          const y = i * segH;
-                          const x1s = cx - l.w1 / 2; const x1e = cx + l.w1 / 2;
-                          const x2s = cx - l.w2 / 2; const x2e = cx + l.w2 / 2;
+                      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+                        <defs>
+                          {segs.map((s, i) => (
+                            <linearGradient key={i} id={`fg${i}`} x1="0" y1="0" x2="1" y2="0">
+                              <stop offset="0%" stopColor={s.c1} />
+                              <stop offset="100%" stopColor={s.c2} />
+                            </linearGradient>
+                          ))}
+                        </defs>
+                        {segs.map((s, i) => {
+                          const y = i * sh;
+                          const x1s = cx - s.w1/2; const x1e = cx + s.w1/2;
+                          const x2s = cx - s.w2/2; const x2e = cx + s.w2/2;
                           return (
                             <g key={i}>
-                              <polygon
-                                points={`${x1s},${y} ${x1e},${y} ${x2e},${y + segH - 2} ${x2s},${y + segH - 2}`}
-                                fill={l.color}
-                                fillOpacity={0.85 - i * 0.1}
-                              />
-                              <text x={cx} y={y + segH / 2 - 5} textAnchor="middle" fill="white" fontSize={11} fontWeight="700">
-                                {l.value.toLocaleString('es-CO')}
+                              <polygon points={`${x1s},${y} ${x1e},${y} ${x2e},${y+sh-3} ${x2s},${y+sh-3}`}
+                                fill={`url(#fg${i})`} />
+                              <text x={cx} y={y+sh/2-6} textAnchor="middle" fill="white" fontSize={12} fontWeight="800" fontFamily="system-ui">
+                                {s.v.toLocaleString('es-CO')}
                               </text>
-                              <text x={cx} y={y + segH / 2 + 9} textAnchor="middle" fill="white" fontSize={9} opacity={0.9}>
-                                {i === 0 ? '100%' : `${l.pct}%`}
+                              <text x={cx} y={y+sh/2+8} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={10} fontWeight="600">
+                                {s.pct}
                               </text>
                             </g>
                           );
@@ -584,58 +589,103 @@ export default function Overview() {
                     );
                   })()}
                 </div>
-                {/* Métricas al lado */}
-                <div className="w-full lg:w-1/2 flex flex-col gap-3">
+                {/* KPIs — mismo tamaño que primarios */}
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Volumen */}
-                  <div className="flex items-start gap-3">
-                    <div className="w-2.5 h-2.5 rounded-sm mt-1 shrink-0" style={{background:'#818cf8'}} />
-                    <div className="flex-1">
-                      <div className="flex items-baseline justify-between">
-                        <p className="text-xs font-semibold text-foreground">Volumen total</p>
-                        <p className="text-lg font-bold text-foreground">{totalHoy.toLocaleString('es-CO')}</p>
+                  <div className="rounded-lg border border-border bg-secondary/30 p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <div className="w-2 h-2 rounded-sm" style={{background:'#818cf8'}} />
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Volumen</p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">Llamadas marcadas</p>
+                      <p className="text-3xl font-bold text-foreground tracking-tight">{totalHoy.toLocaleString('es-CO')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Llamadas marcadas</p>
                     </div>
+                    <p className="text-[10px] text-muted-foreground mt-3">100% de la base</p>
                   </div>
-                  <div className="h-px bg-border" />
                   {/* RPC */}
-                  <div className="flex items-start gap-3">
-                    <div className="w-2.5 h-2.5 rounded-sm mt-1 shrink-0" style={{background:'#a78bfa'}} />
-                    <div className="flex-1">
-                      <div className="flex items-baseline justify-between">
-                        <p className="text-xs font-semibold text-foreground">Contacto persona real <span className="text-[10px] font-normal text-muted-foreground">(RPC)</span></p>
-                        <p className="text-lg font-bold text-foreground">{latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate}%</p>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] text-muted-foreground">Ref. industria: 8–15%</p>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${(latestRpc || avgRpcRate) >= 8 && (latestRpc || avgRpcRate) <= 15 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                          {(latestRpc || avgRpcRate) >= 8 && (latestRpc || avgRpcRate) <= 15 ? '✓ En rango' : '⚠ Revisar'}
+                  <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-sm" style={{background:'#a78bfa'}} />
+                          <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wider">RPC</p>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ (latestRpc || avgRpcRate) >= 8 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                          {(latestRpc || avgRpcRate) >= 8 ? '✓ En rango' : '⚠ Revisar'}
                         </span>
                       </div>
+                      <p className="text-3xl font-bold text-foreground tracking-tight">{(latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate)}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">Contacto persona real</p>
                     </div>
+                    <p className="text-[10px] text-muted-foreground mt-3">Ref.: 8–15%</p>
                   </div>
-                  <div className="h-px bg-border" />
                   {/* PTP */}
-                  <div className="flex items-start gap-3">
-                    <div className="w-2.5 h-2.5 rounded-sm mt-1 shrink-0" style={{background:'#34d399'}} />
-                    <div className="flex-1">
-                      <div className="flex items-baseline justify-between">
-                        <p className="text-xs font-semibold text-foreground">Promesa de pago <span className="text-[10px] font-normal text-muted-foreground">(PTP de RPC)</span></p>
-                        <p className="text-lg font-bold text-foreground">{latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate}%</p>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] text-muted-foreground">Ref. industria: 25–45%</p>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${(latestPtp || avgPtpRate) >= 25 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-sm" style={{background:'#34d399'}} />
+                          <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">PTP</p>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ (latestPtp || avgPtpRate) >= 25 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                           {(latestPtp || avgPtpRate) >= 25 ? '✓ En rango' : '↓ Bajo'}
                         </span>
                       </div>
+                      <p className="text-3xl font-bold text-foreground tracking-tight">{(latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate)}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">Promesas de pago</p>
                     </div>
+                    <p className="text-[10px] text-muted-foreground mt-3">Ref.: 25–45% de RPC</p>
                   </div>
-                  {(latestRpc == null || latestRpc === 0) && (
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">
-                      Mostrando promedio 30 días — datos del día actual disponibles al cargar CDR con tipificaciones
-                    </p>
-                  )}
+                </div>
+              </div>
+
+              {/* Fila inferior: comparativa 3 períodos */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evolución histórica — Promedio por período</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[{
+                    label: 'Semana anterior',
+                    dias: diasConRpc.slice(-10, -5),
+                  }, {
+                    label: 'Mes anterior',
+                    dias: diasConRpc.filter(d => {
+                      const m = new Date(d.fecha + 'T12:00:00').getMonth();
+                      const now = new Date();
+                      return m === (now.getMonth() === 0 ? 11 : now.getMonth() - 1);
+                    }),
+                  }, {
+                    label: 'Año anterior',
+                    dias: diasConRpc.filter(d => new Date(d.fecha + 'T12:00:00').getFullYear() === new Date().getFullYear() - 1),
+                  }].map((periodo, i) => {
+                    const d = periodo.dias;
+                    const vol = d.length > 0 ? Math.round(d.reduce((s,r) => s + r.total_llamadas, 0) / d.length) : null;
+                    const rpc = d.length > 0 ? Math.round(d.reduce((s,r) => s + (r.rpc_rate_pct||0), 0) / d.length * 10) / 10 : null;
+                    const ptp = d.length > 0 ? Math.round(d.reduce((s,r) => s + (r.ptp_rate_pct||0), 0) / d.length * 10) / 10 : null;
+                    return (
+                      <div key={i} className="rounded-lg bg-secondary/30 p-3">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{periodo.label}</p>
+                        {vol != null ? (
+                          <>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] text-muted-foreground">Volumen/día</span>
+                              <span className="text-xs font-bold text-foreground">{vol.toLocaleString('es-CO')}</span>
+                            </div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] text-muted-foreground">RPC</span>
+                              <span className="text-xs font-bold text-violet-400">{rpc}%</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-muted-foreground">PTP</span>
+                              <span className="text-xs font-bold text-emerald-400">{ptp}%</span>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground/50">Sin datos</p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
