@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FunnelCobranza } from '@/components/FunnelCobranza';
 import {
   ChevronDown, ChevronUp, Lightbulb, AlertTriangle, TrendingUp, TrendingDown,
   BarChart2, Loader2, Zap, ArrowUp, ArrowDown, Calendar, FileText, Activity, Phone,
