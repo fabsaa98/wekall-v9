@@ -54,7 +54,7 @@ export interface ChartDataset {
 }
 
 export interface VickyChartData {
-  type: 'line' | 'bar' | 'bar-horizontal';
+  type: 'line' | 'bar' | 'bar-horizontal' | 'pie';
   title: string;
   labels: string[];       // eje X (fechas, nombres, etc.)
   datasets: ChartDataset[];
