@@ -539,80 +539,106 @@ export default function Overview() {
         return (
           <div>
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-              Embudo de Gestión — Estándar Global (Genesys / NICE / Five9)
+              Embudo de Gestión de Cobranza
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Capa 1: Volumen */}
-              <div className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CAPA 1 — VOLUMEN</p>
-                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Intentos</span>
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex flex-col lg:flex-row gap-6 items-center">
+                {/* Funnel SVG */}
+                <div className="w-full lg:w-1/2 flex justify-center">
+                  {(() => {
+                    const rpcDisplay = latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate;
+                    const ptpDisplay = latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate;
+                    const rpcAbs = latestRpc && latestRpc > 0 ? rpcHoy : Math.round(totalHoy * avgRpcRate / 100);
+                    const ptpAbs = latestPtp && latestPtp > 0 ? ptpHoy : Math.round(rpcAbs * avgPtpRate / 100);
+                    const W = 280; const H = 200;
+                    const layers = [
+                      { label: 'Volumen total', value: totalHoy, pct: 100, color: '#818cf8', w1: W, w2: W * 0.72 },
+                      { label: 'RPC — Persona real', value: rpcAbs, pct: rpcDisplay, color: '#a78bfa', w1: W * 0.72, w2: W * 0.42 },
+                      { label: 'PTP — Promesa de pago', value: ptpAbs, pct: ptpDisplay, color: '#34d399', w1: W * 0.42, w2: W * 0.22 },
+                    ];
+                    const segH = H / 3;
+                    const cx = W / 2;
+                    return (
+                      <svg width={W} height={H + 8} viewBox={`0 0 ${W} ${H + 8}`} className="overflow-visible">
+                        {layers.map((l, i) => {
+                          const y = i * segH;
+                          const x1s = cx - l.w1 / 2; const x1e = cx + l.w1 / 2;
+                          const x2s = cx - l.w2 / 2; const x2e = cx + l.w2 / 2;
+                          return (
+                            <g key={i}>
+                              <polygon
+                                points={`${x1s},${y} ${x1e},${y} ${x2e},${y + segH - 2} ${x2s},${y + segH - 2}`}
+                                fill={l.color}
+                                fillOpacity={0.85 - i * 0.1}
+                              />
+                              <text x={cx} y={y + segH / 2 - 5} textAnchor="middle" fill="white" fontSize={11} fontWeight="700">
+                                {l.value.toLocaleString('es-CO')}
+                              </text>
+                              <text x={cx} y={y + segH / 2 + 9} textAnchor="middle" fill="white" fontSize={9} opacity={0.9}>
+                                {i === 0 ? '100%' : `${l.pct}%`}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    );
+                  })()}
                 </div>
-                <p className="text-3xl font-bold text-foreground">{totalHoy.toLocaleString('es-CO')}</p>
-                <p className="text-xs text-muted-foreground mt-1">Llamadas marcadas hoy</p>
-                <div className="mt-3 h-1.5 rounded-full bg-secondary">
-                  <div className="h-1.5 rounded-full bg-primary" style={{width: '100%'}} />
+                {/* Métricas al lado */}
+                <div className="w-full lg:w-1/2 flex flex-col gap-3">
+                  {/* Volumen */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-2.5 h-2.5 rounded-sm mt-1 shrink-0" style={{background:'#818cf8'}} />
+                    <div className="flex-1">
+                      <div className="flex items-baseline justify-between">
+                        <p className="text-xs font-semibold text-foreground">Volumen total</p>
+                        <p className="text-lg font-bold text-foreground">{totalHoy.toLocaleString('es-CO')}</p>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Llamadas marcadas</p>
+                    </div>
+                  </div>
+                  <div className="h-px bg-border" />
+                  {/* RPC */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-2.5 h-2.5 rounded-sm mt-1 shrink-0" style={{background:'#a78bfa'}} />
+                    <div className="flex-1">
+                      <div className="flex items-baseline justify-between">
+                        <p className="text-xs font-semibold text-foreground">Contacto persona real <span className="text-[10px] font-normal text-muted-foreground">(RPC)</span></p>
+                        <p className="text-lg font-bold text-foreground">{latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate}%</p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-muted-foreground">Ref. industria: 8–15%</p>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${(latestRpc || avgRpcRate) >= 8 && (latestRpc || avgRpcRate) <= 15 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                          {(latestRpc || avgRpcRate) >= 8 && (latestRpc || avgRpcRate) <= 15 ? '✓ En rango' : '⚠ Revisar'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-px bg-border" />
+                  {/* PTP */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-2.5 h-2.5 rounded-sm mt-1 shrink-0" style={{background:'#34d399'}} />
+                    <div className="flex-1">
+                      <div className="flex items-baseline justify-between">
+                        <p className="text-xs font-semibold text-foreground">Promesa de pago <span className="text-[10px] font-normal text-muted-foreground">(PTP de RPC)</span></p>
+                        <p className="text-lg font-bold text-foreground">{latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate}%</p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-muted-foreground">Ref. industria: 25–45%</p>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${(latestPtp || avgPtpRate) >= 25 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                          {(latestPtp || avgPtpRate) >= 25 ? '✓ En rango' : '↓ Bajo'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {(latestRpc == null || latestRpc === 0) && (
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">
+                      Mostrando promedio 30 días — datos del día actual disponibles al cargar CDR con tipificaciones
+                    </p>
+                  )}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">100% base de marcación</p>
-              </div>
-              {/* Capa 2: RPC */}
-              <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wider">CAPA 2 — RPC</p>
-                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Right Party Contact</span>
-                </div>
-                {latestRpc != null && latestRpc > 0 ? (
-                  <>
-                    <p className="text-3xl font-bold text-foreground">{latestRpc}%</p>
-                    <p className="text-xs text-muted-foreground mt-1">{rpcHoy.toLocaleString('es-CO')} contactos persona real</p>
-                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
-                      <div className="h-1.5 rounded-full bg-violet-500" style={{width: `${Math.min(latestRpc / 20 * 100, 100)}%`}} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark: 8–15% · Prom 30d: {avgRpcRate}%</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-foreground">{avgRpcRate}%</p>
-                    <p className="text-xs text-muted-foreground mt-1">Promedio 30 días (hoy sin datos)</p>
-                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
-                      <div className="h-1.5 rounded-full bg-violet-500" style={{width: `${Math.min(avgRpcRate / 20 * 100, 100)}%`}} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark global: 8–15%</p>
-                  </>
-                )}
-              </div>
-              {/* Capa 3: PTP */}
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">CAPA 3 — PTP</p>
-                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Promise to Pay</span>
-                </div>
-                {latestPtp != null && latestPtp > 0 ? (
-                  <>
-                    <p className="text-3xl font-bold text-foreground">{latestPtp}%</p>
-                    <p className="text-xs text-muted-foreground mt-1">{ptpHoy.toLocaleString('es-CO')} promesas de pago hoy</p>
-                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
-                      <div className="h-1.5 rounded-full bg-emerald-500" style={{width: `${Math.min(latestPtp / 45 * 100, 100)}%`}} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark: 25–45% de RPC · Prom 30d: {avgPtpRate}%</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-foreground">{avgPtpRate}%</p>
-                    <p className="text-xs text-muted-foreground mt-1">Promedio 30 días de RPC (hoy sin datos)</p>
-                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
-                      <div className="h-1.5 rounded-full bg-emerald-500" style={{width: `${Math.min(avgPtpRate / 45 * 100, 100)}%`}} />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark global: 25–45% de RPC</p>
-                  </>
-                )}
               </div>
             </div>
-            {(latestRpc == null || latestRpc === 0) && (
-              <p className="text-[10px] text-muted-foreground mt-2">
-                ⚠️ RPC y PTP del día más reciente no disponibles — datos históricos hasta 1 abr 2026. Se actualizan al cargar nuevo CDR con tipificaciones.
-              </p>
-            )}
           </div>
         );
       })()}
