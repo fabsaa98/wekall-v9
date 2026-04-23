@@ -111,8 +111,9 @@ function exponentialSmoothing(values: number[], alpha = 0.3): number[] {
 // Reemplaza la regresión lineal que ignoraba los días más recientes.
 // ETS da más peso a los últimos días → si la tasa cae, el forecast lo refleja.
 
-// Detectar días atípicos: volumen < 40% de la mediana → excluir de regresión
-// Cubre Semana Santa, feriados, días de corte de sistema
+// Detectar días atípicos: volumen < 40% de la mediana → excluir de tendencia
+// Cubre fines de semana (sábado/domingo con 5-20% del volumen normal),
+// feriados y días de corte de sistema — sin hardcodear fechas específicas
 function detectarDiasAtipicos(days: CDRDayMetric[]): boolean[] {
   const vols = days.map(d => d.total_llamadas).sort((a, b) => a - b);
   const mediana = vols[Math.floor(vols.length / 2)];
