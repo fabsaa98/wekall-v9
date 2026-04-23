@@ -684,96 +684,87 @@ export default function Overview() {
       )}
 
       {/* ── COMPARATIVA SEMANAL (Sisense Weekly Digest) ───────────────────────── */}
-      {weeklyComparison && (
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Calendar size={15} className="text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Esta semana vs semana anterior</h2>
-            <span className="text-xs text-muted-foreground ml-1">— últimos 5 días hábiles vs 5 anteriores</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Δ Tasa de contacto */}
-            <div className="rounded-lg border border-border bg-secondary/20 p-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tasa de contacto</p>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-bold text-foreground">{weeklyComparison.thisWeekTasa}%</span>
-                <span className={cn(
-                  'flex items-center text-xs font-semibold',
-                  weeklyComparison.deltaTasa >= 0 ? 'text-emerald-400' : 'text-red-400',
-                )}>
-                  {weeklyComparison.deltaTasa >= 0 ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
-                  {Math.abs(weeklyComparison.deltaTasa)}pp
-                </span>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Sem. ant.: {weeklyComparison.prevWeekTasa}%</p>
-            </div>
-            {/* Δ Volumen */}
-            <div className="rounded-lg border border-border bg-secondary/20 p-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Volumen llamadas</p>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-bold text-foreground">{weeklyComparison.thisWeekVol.toLocaleString('es-CO')}</span>
-                <span className={cn(
-                  'flex items-center text-xs font-semibold',
-                  weeklyComparison.deltaVol >= 0 ? 'text-emerald-400' : 'text-red-400',
-                )}>
-                  {weeklyComparison.deltaVol >= 0 ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
-                  {Math.abs(weeklyComparison.deltaVolPct)}%
-                </span>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Sem. ant.: {weeklyComparison.prevWeekVol.toLocaleString('es-CO')}</p>
-            </div>
-            {/* Día más productivo */}
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-              <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🏆 Mejor día</p>
-              <p className="text-sm font-bold text-foreground">{weeklyComparison.bestDay.fecha.slice(5)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.bestDay.tasa_contacto_pct}% contacto · {weeklyComparison.bestDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
-            </div>
-            {/* Día más bajo */}
-            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
-              <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wider mb-1">📉 Día más bajo</p>
-              <p className="text-sm font-bold text-foreground">{weeklyComparison.worstDay.fecha.slice(5)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.worstDay.tasa_contacto_pct}% contacto · {weeklyComparison.worstDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Semana vs anterior + MTD — mismo layout de 2 columnas */}
+      {(weeklyComparison || mtdComparison) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-      {/* MTD vs mes anterior */}
-      {mtdComparison && (
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-base">📅</span>
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">Mes hasta la fecha vs mes anterior</h2>
-                <p className="text-xs text-muted-foreground capitalize">{mtdComparison.mesNombre} 1–{mtdComparison.dayOfMonth} ({mtdComparison.diasCur} días hábiles) vs mismo período de {mtdComparison.mesAnteriorNombre}</p>
+          {/* ── Semana actual vs semana anterior ── */}
+          {weeklyComparison && (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar size={15} className="text-primary" />
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Esta semana vs semana anterior</h2>
+                  <p className="text-xs text-muted-foreground">Últimos 5 días hábiles vs 5 anteriores</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {/* Δ Tasa */}
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tasa de contacto</p>
+                  <p className="text-2xl font-bold text-foreground">{weeklyComparison.thisWeekTasa}%</p>
+                  <span className={cn('flex items-center text-xs font-semibold mt-0.5', weeklyComparison.deltaTasa >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {weeklyComparison.deltaTasa >= 0 ? <ArrowUp size={11}/> : <ArrowDown size={11}/>}{Math.abs(weeklyComparison.deltaTasa)}pp
+                  </span>
+                  <p className="text-[10px] text-muted-foreground mt-1">Sem. ant.: {weeklyComparison.prevWeekTasa}%</p>
+                </div>
+                {/* Δ Volumen */}
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Volumen llamadas</p>
+                  <p className="text-2xl font-bold text-foreground">{weeklyComparison.thisWeekVol.toLocaleString('es-CO')}</p>
+                  <span className={cn('flex items-center text-xs font-semibold mt-0.5', weeklyComparison.deltaVol >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {weeklyComparison.deltaVol >= 0 ? <ArrowUp size={11}/> : <ArrowDown size={11}/>}{Math.abs(weeklyComparison.deltaVolPct)}%
+                  </span>
+                  <p className="text-[10px] text-muted-foreground mt-1">Sem. ant.: {weeklyComparison.prevWeekVol.toLocaleString('es-CO')}</p>
+                </div>
+              </div>
+              {/* Mejor/Peor día en fila */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+                  <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🏆 Mejor día</p>
+                  <p className="text-sm font-bold text-foreground">{weeklyComparison.bestDay.fecha.slice(5)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.bestDay.tasa_contacto_pct}% · {weeklyComparison.bestDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
+                </div>
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                  <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wider mb-1">📉 Día más bajo</p>
+                  <p className="text-sm font-bold text-foreground">{weeklyComparison.worstDay.fecha.slice(5)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.worstDay.tasa_contacto_pct}% · {weeklyComparison.worstDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Tasa contacto MTD */}
-            <div className="rounded-lg bg-secondary/50 p-4">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">TASA DE CONTACTO</p>
-              <p className="text-2xl font-bold text-foreground">{mtdComparison.curTasa}%</p>
-              <div className="flex items-center gap-1 mt-1">
-                <span className={`text-xs font-semibold ${mtdComparison.deltaTasa >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {mtdComparison.deltaTasa >= 0 ? '↑' : '↓'}{Math.abs(mtdComparison.deltaTasa)}pp
-                </span>
+          )}
+
+          {/* ── Mes hasta la fecha vs mes anterior ── */}
+          {mtdComparison && (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-base">📅</span>
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Mes hasta la fecha vs mes anterior</h2>
+                  <p className="text-xs text-muted-foreground capitalize">{mtdComparison.mesNombre} 1–{mtdComparison.dayOfMonth} ({mtdComparison.diasCur} días hábiles) vs mismo período de {mtdComparison.mesAnteriorNombre}</p>
+                </div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1 capitalize">Mes ant.: {mtdComparison.prevTasa}%</p>
-            </div>
-            {/* Volumen MTD */}
-            <div className="rounded-lg bg-secondary/50 p-4">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">VOLUMEN LLAMADAS</p>
-              <p className="text-2xl font-bold text-foreground">{mtdComparison.curVol.toLocaleString('es-CO')}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <span className={`text-xs font-semibold ${mtdComparison.deltaVolPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {mtdComparison.deltaVolPct >= 0 ? '↑' : '↓'}{Math.abs(mtdComparison.deltaVolPct)}%
-                </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tasa de contacto</p>
+                  <p className="text-2xl font-bold text-foreground">{mtdComparison.curTasa}%</p>
+                  <span className={`flex items-center text-xs font-semibold mt-0.5 ${mtdComparison.deltaTasa >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {mtdComparison.deltaTasa >= 0 ? '↑' : '↓'}{Math.abs(mtdComparison.deltaTasa)}pp
+                  </span>
+                  <p className="text-[10px] text-muted-foreground mt-1 capitalize">Mes ant.: {mtdComparison.prevTasa}%</p>
+                </div>
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Volumen llamadas</p>
+                  <p className="text-2xl font-bold text-foreground">{mtdComparison.curVol.toLocaleString('es-CO')}</p>
+                  <span className={`flex items-center text-xs font-semibold mt-0.5 ${mtdComparison.deltaVolPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {mtdComparison.deltaVolPct >= 0 ? '↑' : '↓'}{Math.abs(mtdComparison.deltaVolPct)}%
+                  </span>
+                  <p className="text-[10px] text-muted-foreground mt-1">Mes ant.: {mtdComparison.prevVol.toLocaleString('es-CO')}</p>
+                </div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">Mes ant.: {mtdComparison.prevVol.toLocaleString('es-CO')}</p>
             </div>
-          </div>
+          )}
+
         </div>
       )}
 

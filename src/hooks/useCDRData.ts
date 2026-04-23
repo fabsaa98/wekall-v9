@@ -251,7 +251,7 @@ export function useCDRData(): CDRState {
         );
 
         const [last30, lastDay] = await Promise.race([
-          Promise.all([getLastNDays(30, clientId), getLatestDay(clientId)]),
+          Promise.all([getLastNDays(60, clientId), getLatestDay(clientId)]),
           timeout,
         ]) as [Awaited<ReturnType<typeof getLastNDays>>, Awaited<ReturnType<typeof getLatestDay>>];
 
