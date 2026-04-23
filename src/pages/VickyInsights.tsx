@@ -466,18 +466,25 @@ function detectarChartData(respuesta: string, pregunta: string): import('@/data/
   }
 
   // ── Top agentes (ranking) ─────────────────────────────────────────────────
-  if ((q.includes('agente') || q.includes('top') || q.includes('ranking') || q.includes('mejor')) && (q.includes('agente') || q.includes('rendimiento'))) {
+  if (q.includes('agente') || q.includes('top') || q.includes('performer') || q.includes('ranking') || q.includes('mejor agente')) {
     const agents: string[] = []; const values: number[] = [];
-    lines.forEach(line => {
-      const aMatch = line.match(/\d+\.\s+([A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s+[A-Za-záéíóú]+){1,3})/);
-      const vMatch = line.match(/(\d{1,2}[.,]\d{1,2}|\d{2,3})\s*%/);
-      if (aMatch && vMatch) {
-        agents.push(aMatch[1].split(' ')[0]); // primer nombre
-        values.push(parseFloat(vMatch[1].replace(',', '.')));
+    // Formato: **Nombre Apellido**: X,XXX llamadas, XX.X% de tasa de contacto
+    // o formato numerado: 1. Nombre: XX%
+    const agentRegex = /\*\*([A-ZÁÉÍÓÚ][A-Za-záéíóúüñÁÉÍÓÚÜÑ]+(?:\s+[A-Za-záéíóúüñÁÉÍÓÚÜÑ]+){1,4})\*\*[^\d]+(\d{1,2}[.,]\d{1,2})%\s+de\s+tasa/gi;
+    const agentRegex2 = /\d+\.\s+([A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s+[A-Za-záéíóú]+){1,3}).*?(\d{1,2}[.,]\d{1,2})\s*%/gi;
+    let m;
+    while ((m = agentRegex.exec(respuesta)) !== null) {
+      agents.push(m[1].split(' ')[0]);
+      values.push(parseFloat(m[2].replace(',', '.')));
+    }
+    if (agents.length === 0) {
+      while ((m = agentRegex2.exec(respuesta)) !== null) {
+        agents.push(m[1].split(' ')[0]);
+        values.push(parseFloat(m[2].replace(',', '.')));
       }
-    });
+    }
     if (agents.length >= 3) {
-      return { type: 'bar-horizontal', title: 'Tasa de Contacto por Agente', labels: agents.slice(0, 10), datasets: [{ label: 'Tasa contacto %', data: values.slice(0, 10), color: '#4ade80' }], unit: '%' };
+      return { type: 'bar-horizontal', title: 'Tasa de Contacto por Agente', labels: agents.slice(0, 10), datasets: [{ label: 'Tasa contacto %', data: values.slice(0, 10), color: '#4ade80' }], unit: '%', benchmark: 22.5, benchmarkLabel: 'Bm 22.5%' };
     }
   }
 
