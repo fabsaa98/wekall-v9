@@ -188,31 +188,45 @@ export function FunnelCobranza({
                 style={{ clipPath }}
               />
 
-              {/* Content — z-10, lives inside the visual trapezoid */}
-              <div className="relative z-10 w-full px-5 flex flex-col justify-center h-full gap-0.5">
-                {/* Row 1: label + percentage */}
-                <div className="flex items-center justify-between">
-                  <span className="text-white/70 text-[10px] font-semibold uppercase tracking-widest">
-                    {layer.label}
-                  </span>
-                  <span className="text-white font-bold text-sm">
-                    {layer.pct}
-                  </span>
-                </div>
+              {/* Content — z-10, lives inside the visual trapezoid.
+                  Horizontal padding must account for the trapezoid narrowing.
+                  At the midpoint of the layer the usable width ≈ avg(topW, botW).
+                  We add 6% extra inset so text never touches the slanted edges. */}
+              {(() => {
+                const midW = (layer.topW + layer.botW) / 2; // % of container
+                // inset in px ≈ ((100 - midW) / 2)% of container width, but
+                // since this div is already layer.topW% wide we compute relative:
+                const insetPct = ((layer.topW - midW) / layer.topW / 2) * 100 + 6;
+                return (
+                  <div
+                    className="relative z-10 flex flex-col justify-center h-full gap-0.5"
+                    style={{ paddingLeft: `${insetPct}%`, paddingRight: `${insetPct}%` }}
+                  >
+                    {/* Row 1: label + percentage */}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-white/70 text-[10px] font-semibold uppercase tracking-widest truncate">
+                        {layer.label}
+                      </span>
+                      <span className="text-white font-bold text-sm shrink-0">
+                        {layer.pct}
+                      </span>
+                    </div>
 
-                {/* Row 2: big number + status badge */}
-                <div className="flex items-center justify-between">
-                  <span className="text-white font-black text-2xl leading-tight drop-shadow-md">
-                    {layer.value}
-                  </span>
-                  {layer.status && <Dot status={layer.status} />}
-                </div>
+                    {/* Row 2: big number + status badge */}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-white font-black text-xl leading-tight drop-shadow-md truncate">
+                        {layer.value}
+                      </span>
+                      {layer.status && <Dot status={layer.status} />}
+                    </div>
 
-                {/* Row 3: industry reference (RPC & PTP only) */}
-                {layer.ref && (
-                  <span className="text-white/40 text-[9px]">{layer.ref}</span>
-                )}
-              </div>
+                    {/* Row 3: industry reference (RPC & PTP only) */}
+                    {layer.ref && (
+                      <span className="text-white/40 text-[9px]">{layer.ref}</span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
