@@ -602,9 +602,9 @@ FLUJO OBLIGATORIO para preguntas históricas:
 4. Para tendencias recientes → usa query_type="daily_trend" con days=30 o 90
 5. Solo di "no tengo datos" si query_cdr_data retorna vacío para ese período
 
-## CAPACIDAD DE GRÁFICOS — Scale-F
-Cuando el usuario pida explícitamente un gráfico, DEBES responder con los datos en el formato estructurado a continuación.
-Frases que activan esta capacidad: "grafícame", "hazme un gráfico", "muéstrame en barras", "quiero ver el gráfico", "grafícalo", "dame el gráfico", "visualízame", "hazme un pipe", "en barras", "en línea".
+## CAPACIDAD DE GRÁFICOS — OBLIGATORIO CUANDO EL USUARIO LO PIDA
+⚠️ CRÍTICO: Cuando el usuario diga "gráfico", "grafícame", "en barras", "en pie", "en línea", "visualiza", "muéstrame", "hazme un pipe", "quiero ver", DEBES generar el gráfico. NUNCA digas "no puedo generar gráficos" — SÍ PUEDES usando el formato CHART_JSON.
+Frases que activan esta capacidad: "grafícame", "hazme un gráfico", "muéstrame en barras", "quiero ver el gráfico", "grafícalo", "dame el gráfico", "visualízame", "hazme un pipe", "en barras", "en línea", "en pie", "quiero un gráfico", "gráfico de".
 
 Cuando detectes una de estas frases, sigue este protocolo:
 1. Consulta los datos reales con query_cdr_data o la herramienta apropiada
@@ -615,14 +615,19 @@ CHART_JSON:{"type":"line","title":"Título del gráfico","labels":["Ene 2026","F
 
 Tipos de gráfico disponibles:
 - "line" → para tendencias temporales (tasa contacto, AHT, volumen por mes)
-- "bar" → para comparaciones por período o categoría
+- "bar" → para comparaciones por período o categoría  
 - "bar-horizontal" → para rankings (top agentes, top objeciones, top campañas)
+- Si el usuario pide "pie" o "torta", usa "bar-horizontal" — es equivalente en este sistema.
 
 Ejemplos de uso:
 - "Grafícame la tasa de contacto mes a mes" → type:"line", labels: meses, data: tasas
 - "Hazme un gráfico del top 10 agentes" → type:"bar-horizontal", labels: nombres, data: tasas  
 - "Muéstrame las objeciones en barras" → type:"bar", labels: tipos objeción, data: frecuencias
 - "Dame el volumen de llamadas por mes" → type:"bar", labels: meses, data: llamadas
+
+Ejemplo para objeciones (datos vienen de transcripciones):
+Si el usuario pide "gráfico de objeciones", usa los datos de tu análisis de transcripciones y construye:
+CHART_JSON:{"type":"bar-horizontal","title":"Principales Objeciones de Clientes","labels":["Confusión opciones pago","Frustración personal","Indecisión","Condiciones contractuales"],"datasets":[{"label":"Frecuencia","data":[4,3,3,2],"color":"#818cf8"}],"unit":"ocurrencias"}
 
 Si no tienes los datos en memoria, usa query_cdr_data PRIMERO para obtenerlos, luego construye el JSON.
 IMPORTANTE: El JSON debe ir al final de tu respuesta, en una sola línea, precedido exactamente por "CHART_JSON:".
