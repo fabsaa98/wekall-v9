@@ -115,6 +115,10 @@ export interface CDRDayMetric {
   contactos_efectivos: number;
   tasa_contacto_pct: number;
   aht_minutos?: number;
+  rpc_contactos?: number | null;
+  rpc_rate_pct?: number | null;
+  ptp_contactos?: number | null;
+  ptp_rate_pct?: number | null;
 }
 
 export interface CDRCampaignMetric {
@@ -160,7 +164,7 @@ export async function getLastNDays(n: number, clientId: string, minLlamadas?: nu
   const min = minLlamadas ?? 1;
   const data = await proxyQuery<CDRDayMetric[]>({
     table: 'cdr_daily_metrics',
-    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct,aht_minutos',
+    select: 'fecha,total_llamadas,contactos_efectivos,tasa_contacto_pct,aht_minutos,rpc_contactos,rpc_rate_pct,ptp_contactos,ptp_rate_pct',
     filters: {
       'client_id': `eq.${clientId}`,
       'total_llamadas': `gte.${min}`,

@@ -960,6 +960,100 @@ export default function Overview() {
         </div>
       )}
 
+      {/* ── Scale-H1: Embudo RPC → PTP (solo cobranza outbound) ─────────────── */}
+      {cdr.latestDay?.rpc_contactos != null && industry !== 'fintech_pagos' && (() => {
+        // Usar promedio últimos 30 días hábiles con datos RPC
+        const diasConRpc = cdr.last30Days.filter(d => d.rpc_contactos != null && d.rpc_contactos > 0);
+        const avgRpcRate = diasConRpc.length > 0
+          ? Math.round(diasConRpc.reduce((s, d) => s + (d.rpc_rate_pct || 0), 0) / diasConRpc.length * 10) / 10 : 0;
+        const avgPtpRate = diasConRpc.length > 0
+          ? Math.round(diasConRpc.reduce((s, d) => s + (d.ptp_rate_pct || 0), 0) / diasConRpc.length * 10) / 10 : 0;
+        const latestRpc = cdr.latestDay?.rpc_rate_pct ?? null;
+        const latestPtp = cdr.latestDay?.ptp_rate_pct ?? null;
+        const totalHoy = cdr.latestDay?.total_llamadas || 0;
+        const rpcHoy = cdr.latestDay?.rpc_contactos || 0;
+        const ptpHoy = cdr.latestDay?.ptp_contactos || 0;
+        return (
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+              Embudo de Gestión — Estándar Global (Genesys / NICE / Five9)
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Capa 1: Volumen */}
+              <div className="rounded-xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CAPA 1 — VOLUMEN</p>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Intentos</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{totalHoy.toLocaleString('es-CO')}</p>
+                <p className="text-xs text-muted-foreground mt-1">Llamadas marcadas hoy</p>
+                <div className="mt-3 h-1.5 rounded-full bg-secondary">
+                  <div className="h-1.5 rounded-full bg-primary" style={{width: '100%'}} />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">100% base de marcación</p>
+              </div>
+              {/* Capa 2: RPC */}
+              <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wider">CAPA 2 — RPC</p>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Right Party Contact</span>
+                </div>
+                {latestRpc != null && latestRpc > 0 ? (
+                  <>
+                    <p className="text-3xl font-bold text-foreground">{latestRpc}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">{rpcHoy.toLocaleString('es-CO')} contactos persona real</p>
+                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
+                      <div className="h-1.5 rounded-full bg-violet-500" style={{width: `${Math.min(latestRpc / 20 * 100, 100)}%`}} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark: 8–15% · Prom 30d: {avgRpcRate}%</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold text-foreground">{avgRpcRate}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Promedio 30 días (hoy sin datos)</p>
+                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
+                      <div className="h-1.5 rounded-full bg-violet-500" style={{width: `${Math.min(avgRpcRate / 20 * 100, 100)}%`}} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark global: 8–15%</p>
+                  </>
+                )}
+              </div>
+              {/* Capa 3: PTP */}
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">CAPA 3 — PTP</p>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Promise to Pay</span>
+                </div>
+                {latestPtp != null && latestPtp > 0 ? (
+                  <>
+                    <p className="text-3xl font-bold text-foreground">{latestPtp}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">{ptpHoy.toLocaleString('es-CO')} promesas de pago hoy</p>
+                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
+                      <div className="h-1.5 rounded-full bg-emerald-500" style={{width: `${Math.min(latestPtp / 45 * 100, 100)}%`}} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark: 25–45% de RPC · Prom 30d: {avgPtpRate}%</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold text-foreground">{avgPtpRate}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Promedio 30 días de RPC (hoy sin datos)</p>
+                    <div className="mt-3 h-1.5 rounded-full bg-secondary">
+                      <div className="h-1.5 rounded-full bg-emerald-500" style={{width: `${Math.min(avgPtpRate / 45 * 100, 100)}%`}} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Benchmark global: 25–45% de RPC</p>
+                  </>
+                )}
+              </div>
+            </div>
+            {(latestRpc == null || latestRpc === 0) && (
+              <p className="text-[10px] text-muted-foreground mt-2">
+                ⚠️ RPC y PTP del día más reciente no disponibles — datos históricos hasta 1 abr 2026. Se actualizan al cargar nuevo CDR con tipificaciones.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Secondary KPIs */}
       {secondaryKPIs.length > 0 && (
         <div>
