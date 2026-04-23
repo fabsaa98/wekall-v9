@@ -1,38 +1,22 @@
 /**
- * FunnelCobranza — Scale-H1
- * Embudo real con Recharts FunnelChart + KPIs + histórico 3 períodos.
+ * FunnelCobranza — Scale-H1 v6
+ * Embudo ejecutivo con CSS clip-path — control total sobre proporciones visuales.
+ * Los tamaños del funnel son VISUALES (no proporcionales a los valores reales),
+ * para que las 3 capas sean legibles aunque los porcentajes sean muy distintos.
  */
-import { FunnelChart, Funnel, Tooltip, LabelList, ResponsiveContainer } from 'recharts';
 import type { CDRDayMetric } from '@/lib/supabase';
 
 type Status = 'green' | 'yellow' | 'red';
 
-function StatusBadge({ status, labels }: { status: Status; labels: [string, string, string] }) {
-  const cfg: Record<Status, string> = {
-    green:  'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    yellow: 'bg-amber-500/10  text-amber-400  border-amber-500/20',
-    red:    'bg-red-500/10    text-red-400    border-red-500/20',
-  };
-  const label = status === 'green' ? labels[0] : status === 'yellow' ? labels[1] : labels[2];
+function Dot({ status }: { status: Status }) {
+  const color = status === 'green' ? '#22c55e' : status === 'yellow' ? '#f59e0b' : '#ef4444';
+  const label = status === 'green' ? 'Óptimo' : status === 'yellow' ? 'Aceptable' : 'Bajo';
+  const bg    = status === 'green' ? 'bg-emerald-500/10 text-emerald-400' : status === 'yellow' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400';
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg[status]}`}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{
-        background: status === 'green' ? '#22c55e' : status === 'yellow' ? '#f59e0b' : '#ef4444'
-      }} />
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${bg}`}>
+      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
       {label}
     </span>
-  );
-}
-
-// Tooltip personalizado para el funnel
-function FunnelTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; pct: string } }> }) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-xl">
-      <p className="font-semibold text-foreground">{d.name}</p>
-      <p className="text-muted-foreground mt-0.5">{d.value.toLocaleString('es-CO')} · {d.pct}</p>
-    </div>
   );
 }
 
@@ -50,18 +34,36 @@ export function FunnelCobranza({ totalHoy, rpcPct, rpcAbs, ptpPct, ptpAbs, isHis
   const rpcStatus: Status = rpcPct >= 12 ? 'green' : rpcPct >= 8  ? 'yellow' : 'red';
   const ptpStatus: Status = ptpPct >= 25 ? 'green' : ptpPct >= 15 ? 'yellow' : 'red';
 
-  // Datos para Recharts FunnelChart — valores deben ser decrecientes
-  const funnelData = [
-    { name: 'Volumen', value: totalHoy,  pct: '100%',        fill: '#6366f1' },
-    { name: 'RPC',     value: rpcAbs,    pct: `${rpcPct}%`,  fill: '#8b5cf6' },
-    { name: 'PTP',     value: ptpAbs,    pct: `${ptpPct}%`,  fill: '#10b981' },
-  ];
-
-  // KPIs panel derecho
-  const kpis = [
-    { key: 'vol', label: 'Volumen',  sublabel: 'Llamadas marcadas',     display: totalHoy.toLocaleString('es-CO'), status: null as Status | null, ref: '' },
-    { key: 'rpc', label: 'RPC',      sublabel: 'Contacto persona real', display: `${rpcPct}%`,                    status: rpcStatus,              ref: 'Ref. industria: 8–15%' },
-    { key: 'ptp', label: 'PTP',      sublabel: 'Promesa de pago',       display: `${ptpPct}%`,                    status: ptpStatus,              ref: 'Ref. industria: 25–45% de RPC' },
+  // Capas del funnel — anchos VISUALES fijos para legibilidad
+  // (no proporcionales a los valores reales)
+  const layers = [
+    {
+      label: 'Volumen',
+      value: totalHoy.toLocaleString('es-CO'),
+      pct: '100%',
+      color: 'from-indigo-500 to-indigo-600',
+      topW: 100,   // % del ancho del contenedor
+      botW: 72,
+      height: 80,
+    },
+    {
+      label: 'RPC',
+      value: rpcAbs.toLocaleString('es-CO'),
+      pct: `${rpcPct}%`,
+      color: 'from-violet-500 to-violet-600',
+      topW: 72,
+      botW: 44,
+      height: 72,
+    },
+    {
+      label: 'PTP',
+      value: ptpAbs.toLocaleString('es-CO'),
+      pct: `${ptpPct}%`,
+      color: 'from-emerald-500 to-emerald-600',
+      topW: 44,
+      botW: 20,
+      height: 64,
+    },
   ];
 
   // Histórico 3 períodos
@@ -101,47 +103,51 @@ export function FunnelCobranza({ totalHoy, rpcPct, rpcAbs, ptpPct, ptpAbs, isHis
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
 
-      {/* Fila superior: embudo + KPIs */}
+      {/* Fila superior: funnel CSS + KPIs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border">
 
-        {/* Panel izquierdo — FunnelChart Recharts */}
-        <div className="p-6 flex flex-col items-center justify-center">
-          <ResponsiveContainer width="100%" height={220}>
-            <FunnelChart>
-              <Tooltip content={<FunnelTooltip />} />
-              <Funnel
-                dataKey="value"
-                data={funnelData}
-                isAnimationActive
-                labelLine={false}
+        {/* Panel izquierdo — funnel CSS clip-path */}
+        <div className="p-6 flex flex-col items-center justify-center gap-0">
+          {layers.map((l, i) => {
+            // clip-path trapezoid: top-left, top-right, bottom-right, bottom-left
+            const tl = `${(100 - l.topW) / 2}%`;
+            const tr = `${(100 + l.topW) / 2}%`;
+            const br = `${(100 + l.botW) / 2}%`;
+            const bl = `${(100 - l.botW) / 2}%`;
+            const clipPath = `polygon(${tl} 0%, ${tr} 0%, ${br} 100%, ${bl} 100%)`;
+            return (
+              <div
+                key={l.label}
+                className="w-full relative flex items-center justify-center"
+                style={{ height: `${l.height}px` }}
               >
-                <LabelList
-                  position="center"
-                  content={({ x, y, width, height, value, index }) => {
-                    const d = funnelData[index as number];
-                    const cx = (x as number) + (width as number) / 2;
-                    const cy = (y as number) + (height as number) / 2;
-                    return (
-                      <g>
-                        <text x={cx} y={cy - 8} textAnchor="middle" fill="white" fontSize={14} fontWeight="800" fontFamily="system-ui">
-                          {typeof value === 'number' ? value.toLocaleString('es-CO') : value}
-                        </text>
-                        <text x={cx} y={cy + 9} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={11} fontWeight="600">
-                          {d?.pct}
-                        </text>
-                      </g>
-                    );
-                  }}
+                {/* Trapezoid */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-b ${l.color}`}
+                  style={{ clipPath }}
                 />
-              </Funnel>
-            </FunnelChart>
-          </ResponsiveContainer>
+                {/* Content centrado */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <span className="text-white font-black text-lg leading-tight drop-shadow-md">
+                    {l.value}
+                  </span>
+                  <span className="text-white/85 font-semibold text-[12px] leading-tight">
+                    {l.pct}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
           {/* Leyenda */}
-          <div className="flex items-center gap-4 mt-1">
-            {funnelData.map(d => (
-              <div key={d.name} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: d.fill }} />
-                <span className="text-[11px] text-muted-foreground font-medium">{d.name}</span>
+          <div className="flex items-center gap-4 mt-4">
+            {[
+              { label: 'Volumen', color: '#6366f1' },
+              { label: 'RPC',     color: '#8b5cf6' },
+              { label: 'PTP',     color: '#10b981' },
+            ].map(d => (
+              <div key={d.label} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: d.color }} />
+                <span className="text-[11px] text-muted-foreground font-medium">{d.label}</span>
               </div>
             ))}
           </div>
@@ -154,16 +160,20 @@ export function FunnelCobranza({ totalHoy, rpcPct, rpcAbs, ptpPct, ptpAbs, isHis
 
         {/* Panel derecho — KPIs */}
         <div className="grid grid-rows-3 divide-y divide-border">
-          {kpis.map(k => (
-            <div key={k.key} className="px-6 py-4 flex items-center justify-between gap-3">
+          {[
+            { label: 'Volumen', sub: 'Llamadas marcadas',     val: totalHoy.toLocaleString('es-CO'), status: null as Status | null, ref: '' },
+            { label: 'RPC',     sub: 'Contacto persona real', val: `${rpcPct}%`,                     status: rpcStatus,              ref: 'Ref. industria: 8–15%' },
+            { label: 'PTP',     sub: 'Promesa de pago',       val: `${ptpPct}%`,                     status: ptpStatus,              ref: 'Ref. industria: 25–45% de RPC' },
+          ].map(k => (
+            <div key={k.label} className="px-6 py-4 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{k.label}</p>
-                <p className="text-2xl font-black text-foreground tracking-tight leading-tight mt-1">{k.display}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{k.sublabel}</p>
+                <p className="text-2xl font-black text-foreground tracking-tight leading-tight mt-1">{k.val}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{k.sub}</p>
               </div>
-              <div className="text-right shrink-0">
-                {k.status && <StatusBadge status={k.status} labels={['Óptimo', 'Aceptable', 'Bajo']} />}
-                {k.ref && <p className="text-[10px] text-muted-foreground/50 mt-1.5">{k.ref}</p>}
+              <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                {k.status && <Dot status={k.status} />}
+                {k.ref && <p className="text-[10px] text-muted-foreground/50">{k.ref}</p>}
               </div>
             </div>
           ))}
