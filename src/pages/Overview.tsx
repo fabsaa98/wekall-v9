@@ -541,47 +541,71 @@ export default function Overview() {
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
               Embudo de Gestión de Cobranza
             </h2>
-            <div className="rounded-xl border border-border bg-card p-5">
-              {/* Fila superior: funnel + KPIs grandes */}
-              <div className="flex flex-col lg:flex-row gap-5 items-stretch">
-                {/* Funnel SVG mejorado */}
-                <div className="flex justify-center items-center lg:w-56 shrink-0">
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="flex flex-col lg:flex-row">
+
+                {/* ── FUNNEL: columna izquierda, altura completa ── */}
+                <div className="lg:w-64 shrink-0 bg-gradient-to-b from-[#1e1b4b]/60 to-[#0f172a]/40 flex flex-col items-center justify-center p-6 gap-1">
                   {(() => {
-                    const rpcDisplay = (latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate) || 0;
-                    const ptpDisplay = (latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate) || 0;
-                    const rpcAbs = latestRpc && latestRpc > 0 ? rpcHoy : Math.round(totalHoy * rpcDisplay / 100);
-                    const ptpAbs = latestPtp && latestPtp > 0 ? ptpHoy : Math.round(rpcAbs * ptpDisplay / 100);
-                    const W = 200; const H = 210; const cx = W / 2;
-                    const segs = [
-                      { v: totalHoy, pct: '100%', c1: '#6366f1', c2: '#818cf8', w1: W, w2: W * 0.68, label: 'Volumen' },
-                      { v: rpcAbs, pct: `${rpcDisplay}%`, c1: '#7c3aed', c2: '#a78bfa', w1: W * 0.68, w2: W * 0.38, label: 'RPC' },
-                      { v: ptpAbs, pct: `${ptpDisplay}%`, c1: '#059669', c2: '#34d399', w1: W * 0.38, w2: W * 0.16, label: 'PTP' },
+                    const rpcPct = (latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate) || 0;
+                    const ptpPct = (latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate) || 0;
+                    const rpcAbs = latestRpc && latestRpc > 0 ? rpcHoy : Math.round(totalHoy * rpcPct / 100);
+                    const ptpAbs = latestPtp && latestPtp > 0 ? ptpHoy : Math.round(rpcAbs * ptpPct / 100);
+                    type Seg = { v: number; pct: string; raw: number; label: string; sub: string; from: string; to: string; status: 'green'|'yellow'|'red'|'neutral'; statusLabel: string };
+                    const rpcStatus: 'green'|'yellow'|'red' = rpcPct >= 12 ? 'green' : rpcPct >= 8 ? 'yellow' : 'red';
+                    const ptpStatus: 'green'|'yellow'|'red' = ptpPct >= 25 ? 'green' : ptpPct >= 15 ? 'yellow' : 'red';
+                    const segs: Seg[] = [
+                      { v: totalHoy, pct: '100%', raw: 100, label: 'Volumen', sub: 'Total marcaciones', from: '#6366f1', to: '#818cf8', status: 'neutral', statusLabel: '' },
+                      { v: rpcAbs, pct: `${rpcPct}%`, raw: rpcPct, label: 'RPC', sub: 'Contacto real', from: '#7c3aed', to: '#a78bfa', status: rpcStatus, statusLabel: rpcStatus === 'green' ? 'Óptimo' : rpcStatus === 'yellow' ? 'Aceptable' : 'Bajo' },
+                      { v: ptpAbs, pct: `${ptpPct}%`, raw: ptpPct, label: 'PTP', sub: 'Promesa de pago', from: '#047857', to: '#34d399', status: ptpStatus, statusLabel: ptpStatus === 'green' ? 'Óptimo' : ptpStatus === 'yellow' ? 'Mejorable' : 'Bajo' },
                     ];
-                    const sh = H / 3;
+                    const W = 200; const cx = W / 2;
+                    const heights = [72, 72, 72];
+                    const widths = [[W, W * 0.70], [W * 0.70, W * 0.40], [W * 0.40, W * 0.18]];
+                    const totalH = heights.reduce((a, b) => a + b, 0) + 8;
+                    const statusColor: Record<string, string> = { green: '#22c55e', yellow: '#f59e0b', red: '#ef4444', neutral: '#94a3b8' };
                     return (
-                      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+                      <svg width={W} height={totalH} viewBox={`0 0 ${W} ${totalH}`} className="drop-shadow-xl">
                         <defs>
                           {segs.map((s, i) => (
-                            <linearGradient key={i} id={`fg${i}`} x1="0" y1="0" x2="1" y2="0">
-                              <stop offset="0%" stopColor={s.c1} />
-                              <stop offset="100%" stopColor={s.c2} />
+                            <linearGradient key={i} id={`funG${i}`} x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor={s.from} />
+                              <stop offset="100%" stopColor={s.to} />
                             </linearGradient>
                           ))}
+                          <filter id="funnelShadow">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.3" />
+                          </filter>
                         </defs>
                         {segs.map((s, i) => {
-                          const y = i * sh;
-                          const x1s = cx - s.w1/2; const x1e = cx + s.w1/2;
-                          const x2s = cx - s.w2/2; const x2e = cx + s.w2/2;
+                          const y = heights.slice(0, i).reduce((a, b) => a + b, 0) + i * 2;
+                          const h = heights[i];
+                          const [w1, w2] = widths[i];
+                          const x1s = cx - w1/2; const x1e = cx + w1/2;
+                          const x2s = cx - w2/2; const x2e = cx + w2/2;
                           return (
-                            <g key={i}>
-                              <polygon points={`${x1s},${y} ${x1e},${y} ${x2e},${y+sh-3} ${x2s},${y+sh-3}`}
-                                fill={`url(#fg${i})`} />
-                              <text x={cx} y={y+sh/2-6} textAnchor="middle" fill="white" fontSize={12} fontWeight="800" fontFamily="system-ui">
+                            <g key={i} filter="url(#funnelShadow)">
+                              <polygon
+                                points={`${x1s},${y} ${x1e},${y} ${x2e},${y+h} ${x2s},${y+h}`}
+                                fill={`url(#funG${i})`}
+                              />
+                              {/* Valor grande */}
+                              <text x={cx} y={y + h/2 - 10} textAnchor="middle" fill="white" fontSize={15} fontWeight="800" fontFamily="system-ui, sans-serif" letterSpacing="-0.5">
                                 {s.v.toLocaleString('es-CO')}
                               </text>
-                              <text x={cx} y={y+sh/2+8} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={10} fontWeight="600">
+                              {/* Porcentaje */}
+                              <text x={cx} y={y + h/2 + 6} textAnchor="middle" fill="rgba(255,255,255,0.9)" fontSize={11} fontWeight="700">
                                 {s.pct}
                               </text>
+                              {/* Semáforo dot + label */}
+                              {s.status !== 'neutral' && (
+                                <g>
+                                  <circle cx={cx - 28} cy={y + h/2 + 20} r={5} fill={statusColor[s.status]} />
+                                  <text x={cx - 20} y={y + h/2 + 24} fill="rgba(255,255,255,0.8)" fontSize={9} fontWeight="600">
+                                    {s.statusLabel}
+                                  </text>
+                                </g>
+                              )}
                             </g>
                           );
                         })}
@@ -589,110 +613,97 @@ export default function Overview() {
                     );
                   })()}
                 </div>
-                {/* KPIs — mismo tamaño que primarios */}
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Volumen */}
-                  <div className="rounded-lg border border-border bg-secondary/30 p-4 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <div className="w-2 h-2 rounded-sm" style={{background:'#818cf8'}} />
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Volumen</p>
-                      </div>
-                      <p className="text-3xl font-bold text-foreground tracking-tight">{totalHoy.toLocaleString('es-CO')}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Llamadas marcadas</p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-3">100% de la base</p>
-                  </div>
-                  {/* RPC */}
-                  <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-sm" style={{background:'#a78bfa'}} />
-                          <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-wider">RPC</p>
-                        </div>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ (latestRpc || avgRpcRate) >= 8 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
-                          {(latestRpc || avgRpcRate) >= 8 ? '✓ En rango' : '⚠ Revisar'}
-                        </span>
-                      </div>
-                      <p className="text-3xl font-bold text-foreground tracking-tight">{(latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate)}%</p>
-                      <p className="text-xs text-muted-foreground mt-1">Contacto persona real</p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-3">Ref.: 8–15%</p>
-                  </div>
-                  {/* PTP */}
-                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-sm" style={{background:'#34d399'}} />
-                          <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">PTP</p>
-                        </div>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ (latestPtp || avgPtpRate) >= 25 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
-                          {(latestPtp || avgPtpRate) >= 25 ? '✓ En rango' : '↓ Bajo'}
-                        </span>
-                      </div>
-                      <p className="text-3xl font-bold text-foreground tracking-tight">{(latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate)}%</p>
-                      <p className="text-xs text-muted-foreground mt-1">Promesas de pago</p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-3">Ref.: 25–45% de RPC</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Fila inferior: comparativa 3 períodos */}
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evolución histórica — Promedio por período</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {[{
-                    label: 'Semana anterior',
-                    dias: diasConRpc.slice(-10, -5),
-                  }, {
-                    label: 'Mes anterior',
-                    dias: diasConRpc.filter(d => {
-                      const m = new Date(d.fecha + 'T12:00:00').getMonth();
-                      const now = new Date();
-                      return m === (now.getMonth() === 0 ? 11 : now.getMonth() - 1);
-                    }),
-                  }, {
-                    label: 'Año anterior',
-                    dias: diasConRpc.filter(d => new Date(d.fecha + 'T12:00:00').getFullYear() === new Date().getFullYear() - 1),
-                  }].map((periodo, i) => {
-                    const d = periodo.dias;
-                    const vol = d.length > 0 ? Math.round(d.reduce((s,r) => s + r.total_llamadas, 0) / d.length) : null;
-                    const rpc = d.length > 0 ? Math.round(d.reduce((s,r) => s + (r.rpc_rate_pct||0), 0) / d.length * 10) / 10 : null;
-                    const ptp = d.length > 0 ? Math.round(d.reduce((s,r) => s + (r.ptp_rate_pct||0), 0) / d.length * 10) / 10 : null;
-                    return (
-                      <div key={i} className="rounded-lg bg-secondary/30 p-3">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{periodo.label}</p>
-                        {vol != null ? (
-                          <>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] text-muted-foreground">Volumen/día</span>
-                              <span className="text-xs font-bold text-foreground">{vol.toLocaleString('es-CO')}</span>
-                            </div>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] text-muted-foreground">RPC</span>
-                              <span className="text-xs font-bold text-violet-400">{rpc}%</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] text-muted-foreground">PTP</span>
-                              <span className="text-xs font-bold text-emerald-400">{ptp}%</span>
-                            </div>
-                          </>
-                        ) : (
-                          <p className="text-[10px] text-muted-foreground/50">Sin datos</p>
-                        )}
+                {/* ── MÉTRICAS: columna derecha, 2 filas × 3 cols ── */}
+                <div className="flex-1 flex flex-col divide-y divide-border">
+
+                  {/* Fila 1: KPIs actuales */}
+                  <div className="grid grid-cols-3 divide-x divide-border">
+                    {/* Volumen */}
+                    <div className="p-5 flex flex-col gap-1">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Volumen</p>
+                      <p className="text-3xl font-black text-foreground tracking-tight leading-none mt-1">{totalHoy.toLocaleString('es-CO')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Llamadas marcadas hoy</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-auto pt-3">100% de la base</p>
+                    </div>
+                    {/* RPC */}
+                    <div className="p-5 flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest">RPC</p>
+                        {(() => {
+                          const v = latestRpc || avgRpcRate;
+                          const s = v >= 12 ? ['🟢','text-emerald-400','bg-emerald-500/10'] : v >= 8 ? ['🟡','text-amber-400','bg-amber-500/10'] : ['🔴','text-red-400','bg-red-500/10'];
+                          return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s[2]} ${s[1]}`}>{s[0]} {v >= 12 ? 'Óptimo' : v >= 8 ? 'Aceptable' : 'Bajo'}</span>;
+                        })()}
                       </div>
-                    );
-                  })}
+                      <p className="text-3xl font-black text-foreground tracking-tight leading-none mt-1">{(latestRpc && latestRpc > 0 ? latestRpc : avgRpcRate)}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">Contacto persona real</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-auto pt-3">Ref. industria: 8–15%</p>
+                    </div>
+                    {/* PTP */}
+                    <div className="p-5 flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest">PTP</p>
+                        {(() => {
+                          const v = latestPtp || avgPtpRate;
+                          const s = v >= 25 ? ['🟢','text-emerald-400','bg-emerald-500/10'] : v >= 15 ? ['🟡','text-amber-400','bg-amber-500/10'] : ['🔴','text-red-400','bg-red-500/10'];
+                          return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s[2]} ${s[1]}`}>{s[0]} {v >= 25 ? 'Óptimo' : v >= 15 ? 'Mejorable' : 'Bajo'}</span>;
+                        })()}
+                      </div>
+                      <p className="text-3xl font-black text-foreground tracking-tight leading-none mt-1">{(latestPtp && latestPtp > 0 ? latestPtp : avgPtpRate)}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">Promesas de pago</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-auto pt-3">Ref. industria: 25–45% de RPC</p>
+                    </div>
+                  </div>
+
+                  {/* Fila 2: Histórico 3 períodos */}
+                  <div className="grid grid-cols-3 divide-x divide-border">
+                    {[{
+                      label: 'Sem. anterior',
+                      dias: diasConRpc.filter(d => { const dd = new Date(d.fecha+'T12:00:00'); const now = new Date(); const diffDays = Math.floor((now.getTime()-dd.getTime())/86400000); return diffDays >= 7 && diffDays <= 13; }),
+                    },{
+                      label: 'Mes anterior',
+                      dias: diasConRpc.filter(d => { const dd = new Date(d.fecha+'T12:00:00'); const now = new Date(); return dd.getMonth() === (now.getMonth()===0?11:now.getMonth()-1) && dd.getFullYear() === (now.getMonth()===0?now.getFullYear()-1:now.getFullYear()); }),
+                    },{
+                      label: 'Año anterior',
+                      dias: diasConRpc.filter(d => new Date(d.fecha+'T12:00:00').getFullYear() === new Date().getFullYear()-1),
+                    }].map((p, i) => {
+                      const dd = p.dias.filter(d => d.total_llamadas > 3000);
+                      const vol = dd.length > 0 ? Math.round(dd.reduce((s,r)=>s+r.total_llamadas,0)/dd.length) : null;
+                      const rpc = dd.length > 0 ? Math.round(dd.reduce((s,r)=>s+(r.rpc_rate_pct||0),0)/dd.length*10)/10 : null;
+                      const ptp = dd.length > 0 ? Math.round(dd.reduce((s,r)=>s+(r.ptp_rate_pct||0),0)/dd.length*10)/10 : null;
+                      return (
+                        <div key={i} className="p-4 bg-secondary/20">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">{p.label}</p>
+                          {vol != null ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-muted-foreground">Vol/día</span>
+                                <span className="text-sm font-bold text-foreground">{vol.toLocaleString('es-CO')}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-muted-foreground">RPC</span>
+                                <span className="text-sm font-bold text-violet-400">{rpc}%</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-muted-foreground">PTP</span>
+                                <span className="text-sm font-bold text-emerald-400">{ptp}%</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground/40 italic">Sin datos</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
                 </div>
               </div>
             </div>
           </div>
         );
       })()}
-
 
       {/* ── FORECASTING 7 DÍAS ─────────────────────────────────────────────── */}
       {cdr.forecast.length > 0 && (
