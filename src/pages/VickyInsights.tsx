@@ -1606,12 +1606,25 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
       if (chartJsonMatch) {
         try {
           _chartData = JSON.parse(chartJsonMatch[1]) as import('@/data/mockData').VickyChartData;
-          // Limpiar el CHART_JSON de la respuesta visible
           _finalContent = finalContent.replace(/\s*CHART_JSON:{.+}/, '').trim();
         } catch { /* JSON malformado — ignorar */ }
       }
       // Fallback: detección automática si Vicky no emitió CHART_JSON
       if (!_chartData) _chartData = detectarChartData(_finalContent, text);
+
+      // Forzar tipo si el CEO lo especificó explícitamente — Vicky no puede cambiar el formato
+      if (_chartData) {
+        const tl = text.toLowerCase();
+        if (tl.includes('torta') || tl.includes('pie') || tl.includes('dona')) {
+          _chartData = { ..._chartData, type: 'pie' };
+        } else if (tl.includes('barras horizontales') || tl.includes('horizontal')) {
+          _chartData = { ..._chartData, type: 'bar-horizontal' };
+        } else if (tl.includes('en barras') || tl.includes('de barras')) {
+          if (_chartData.type === 'pie') _chartData = { ..._chartData, type: 'bar' };
+        } else if (tl.includes('línea') || tl.includes('linea') || tl.includes('tendencia')) {
+          _chartData = { ..._chartData, type: 'line' };
+        }
+      }
 
       resp = {
         id: `vicky-${Date.now()}`,
