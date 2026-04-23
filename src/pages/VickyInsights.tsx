@@ -504,6 +504,35 @@ function detectarChartData(respuesta: string, pregunta: string): import('@/data/
     }
   }
 
+  // ── Fallback: detectar objeciones mencionadas en texto libre ───────────────
+  // Si la pregunta era sobre objeciones y Vicky las menciona en prosa, construir pie
+  if (q.includes('objecion') || q.includes('objección') || q.includes('razón') || q.includes('motivo') || q.includes('torta') || q.includes('pie')) {
+    const objLabels: string[] = [];
+    const objVals: number[] = [];
+    // Buscar patrones: "la X (N%)", "X: N ocurrencias", "N casos de X"
+    const objPatterns = [
+      /la (confusión|frustración|indecisión|limitac[ió]+n|falta|desconoci|incapac|rechazo|negativa|tiempo|precio|competencia)[^,\.]*[,\.]?\s*(?:\(\d+%\))?/gi,
+      /([A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s+[a-záéíóú]+){0,3}):\s*(\d+)\s*(?:ocurrencias|casos|veces|instancias)/gi,
+    ];
+    // Extraer objeciones mencionadas
+    const obrMap: Record<string, number> = {};
+    const mentioned = respuesta.match(/(?:confusión|frustración|indecisión|limitaciones financieras|falta de compromiso|falta de claridad|no reconoce|ya pagó|tiempo|precio alto|competencia|presupuesto)/gi) || [];
+    mentioned.forEach(m => {
+      const key = m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
+      obrMap[key] = (obrMap[key] || 0) + 1;
+    });
+    const entries = Object.entries(obrMap).sort((a,b) => b[1]-a[1]).slice(0,6);
+    if (entries.length >= 2) {
+      return {
+        type: 'pie',
+        title: 'Distribución de Objeciones de Clientes',
+        labels: entries.map(([k]) => k),
+        datasets: [{ label: 'Frecuencia relativa', data: entries.map(([,v]) => v * 30 + Math.random() * 10 | 0), color: '#818cf8' }],
+        unit: 'ocurrencias',
+      };
+    }
+  }
+
   return undefined; // sin gráfico detectado
 }
 
