@@ -433,32 +433,33 @@ function detectarChartData(respuesta: string, pregunta: string): import('@/data/
   const dataLines = lines.filter(l => /\d{4}-\d{2}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre/i.test(l) && /\d+[.,]?\d*\s*(%|llamadas|contactos|agentes|COP|USD|M|K)?/i.test(l));
 
   // ── Tasa de contacto temporal ─────────────────────────────────────────────
-  if ((q.includes('tasa de contacto') || q.includes('tasa contacto')) && (q.includes('mes') || q.includes('tendencia') || q.includes('evolución') || q.includes('históric'))) {
+  if ((q.includes('tasa') || q.includes('contacto')) && (q.includes('mes') || q.includes('tendencia') || q.includes('evolución') || q.includes('históric') || q.includes('dame'))) {
     const months: string[] = []; const values: number[] = [];
-    lines.forEach(line => {
-      const mMatch = line.match(/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)[a-z]*\.?\s*(\d{4})?/i);
-      const vMatch = line.match(/(\d{1,2}[.,]\d{1,2}|\d{2,3})\s*%/);
-      if (mMatch && vMatch) {
-        months.push(mMatch[0].replace(/\s+/g, ' ').trim());
-        values.push(parseFloat(vMatch[1].replace(',', '.')));
-      }
-    });
+    // Parsear tanto formato multilínea como formato inline "Mes YYYY: X%."
+    const fullText = respuesta;
+    const tokenRegex = /(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\.?\s*(\d{4})?[^\d]*?(\d{1,2}[.,]\d{1,2})\s*%/gi;
+    let match;
+    while ((match = tokenRegex.exec(fullText)) !== null) {
+      const mesLabel = match[2] ? `${match[1].slice(0,3)} ${match[2]}` : match[1].slice(0,3);
+      months.push(mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1));
+      values.push(parseFloat(match[3].replace(',', '.')));
+    }
     if (months.length >= 2) {
       return { type: 'line', title: 'Tasa de Contacto Efectivo', labels: months, datasets: [{ label: 'Tasa contacto', data: values, color: '#818cf8' }], unit: '%', benchmark: 22.5, benchmarkLabel: 'Bm COPC 22.5%' };
     }
   }
 
   // ── Volumen de llamadas ───────────────────────────────────────────────────
-  if ((q.includes('volumen') || q.includes('llamadas')) && (q.includes('mes') || q.includes('día') || q.includes('tendencia'))) {
+  if ((q.includes('volumen') || q.includes('llamadas')) && (q.includes('mes') || q.includes('día') || q.includes('tendencia') || q.includes('dame') || q.includes('cuántas'))) {
     const months: string[] = []; const values: number[] = [];
-    lines.forEach(line => {
-      const mMatch = line.match(/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic|enero|febrero|marzo|abril)[a-z]*\.?\s*(\d{4})?/i);
-      const vMatch = line.match(/([\d.,]+)\s*(mil|K)?\s*llamadas/i);
-      if (mMatch && vMatch) {
-        const raw = parseFloat(vMatch[1].replace(/[.,]/g, '').replace(',', '.'));
-        months.push(mMatch[0].trim()); values.push(vMatch[2] ? raw * 1000 : raw);
-      }
-    });
+    const volRegex = /(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\.?\s*(\d{4})?[^\d]*?([\d.,]+)\s*(mil)?\s*llamadas/gi;
+    let match;
+    while ((match = volRegex.exec(respuesta)) !== null) {
+      const mesLabel = match[2] ? `${match[1].slice(0,3)} ${match[2]}` : match[1].slice(0,3);
+      months.push(mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1));
+      const raw = parseFloat(match[3].replace(/\./g, '').replace(',', '.'));
+      values.push(match[4] ? raw * 1000 : raw);
+    }
     if (months.length >= 2) {
       return { type: 'bar', title: 'Volumen de Llamadas', labels: months, datasets: [{ label: 'Llamadas', data: values, color: '#818cf8' }], unit: 'llamadas' };
     }
