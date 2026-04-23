@@ -47,6 +47,22 @@ export interface Agent {
   trend: 'up' | 'down' | 'stable';
 }
 
+export interface ChartDataset {
+  label: string;
+  data: number[];
+  color?: string;
+}
+
+export interface VickyChartData {
+  type: 'line' | 'bar' | 'bar-horizontal';
+  title: string;
+  labels: string[];       // eje X (fechas, nombres, etc.)
+  datasets: ChartDataset[];
+  unit?: string;          // '%', 'COP', 'llamadas', etc.
+  benchmark?: number;     // línea de referencia opcional
+  benchmarkLabel?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'vicky';
@@ -58,6 +74,7 @@ export interface ChatMessage {
   rootCauses?: { label: string; impact: number; color: string }[];
   followUps?: string[];
   projection?: string;
+  chartData?: VickyChartData;   // Scale-F: gráfico dinámico opcional
 }
 
 // ─── KPIs — Se construyen dinámicamente desde Supabase via useCDRData hook ───

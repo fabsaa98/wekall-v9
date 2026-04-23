@@ -26,6 +26,8 @@ import { useCDRData } from '@/hooks/useCDRData';
 import { useAgentKPIs } from '@/hooks/useAgentKPIs';
 import { useAgentsData } from '@/hooks/useAgentsData';
 import { convertirMarkdownAProsa } from '@/lib/vickyMarkdown';
+import { VickyChartToggle } from '@/components/VickyChart';
+import type { VickyChartData } from '@/data/mockData';
 
 // ─── Mock Vicky Responses ──────────────────────────────────────────────────────
 
@@ -158,6 +160,11 @@ function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
                 <p className="text-xs text-slate-700 leading-relaxed">{msg.projection}</p>
               </div>
             </div>
+          )}
+
+          {/* Scale-F: Gráfico dinámico */}
+          {msg.chartData && (
+            <VickyChartToggle chartData={msg.chartData} />
           )}
 
           {/* Sources */}
@@ -414,6 +421,79 @@ interface ActionSuggestion {
   label: string;
   icon: string;
   action: () => void;
+}
+
+// ─── Scale-F: Detección automática de gráficos en respuestas de Vicky ──────────
+function detectarChartData(respuesta: string, pregunta: string): import('@/data/mockData').VickyChartData | undefined {
+  const r = respuesta.toLowerCase();
+  const q = pregunta.toLowerCase();
+
+  // Detectar si hay tabla con datos numéricos en la respuesta
+  const lines = respuesta.split('\n');
+  const dataLines = lines.filter(l => /\d{4}-\d{2}|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre/i.test(l) && /\d+[.,]?\d*\s*(%|llamadas|contactos|agentes|COP|USD|M|K)?/i.test(l));
+
+  // ── Tasa de contacto temporal ─────────────────────────────────────────────
+  if ((q.includes('tasa de contacto') || q.includes('tasa contacto')) && (q.includes('mes') || q.includes('tendencia') || q.includes('evolución') || q.includes('históric'))) {
+    const months: string[] = []; const values: number[] = [];
+    lines.forEach(line => {
+      const mMatch = line.match(/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)[a-z]*\.?\s*(\d{4})?/i);
+      const vMatch = line.match(/(\d{1,2}[.,]\d{1,2}|\d{2,3})\s*%/);
+      if (mMatch && vMatch) {
+        months.push(mMatch[0].replace(/\s+/g, ' ').trim());
+        values.push(parseFloat(vMatch[1].replace(',', '.')));
+      }
+    });
+    if (months.length >= 2) {
+      return { type: 'line', title: 'Tasa de Contacto Efectivo', labels: months, datasets: [{ label: 'Tasa contacto', data: values, color: '#818cf8' }], unit: '%', benchmark: 22.5, benchmarkLabel: 'Bm COPC 22.5%' };
+    }
+  }
+
+  // ── Volumen de llamadas ───────────────────────────────────────────────────
+  if ((q.includes('volumen') || q.includes('llamadas')) && (q.includes('mes') || q.includes('día') || q.includes('tendencia'))) {
+    const months: string[] = []; const values: number[] = [];
+    lines.forEach(line => {
+      const mMatch = line.match(/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic|enero|febrero|marzo|abril)[a-z]*\.?\s*(\d{4})?/i);
+      const vMatch = line.match(/([\d.,]+)\s*(mil|K)?\s*llamadas/i);
+      if (mMatch && vMatch) {
+        const raw = parseFloat(vMatch[1].replace(/[.,]/g, '').replace(',', '.'));
+        months.push(mMatch[0].trim()); values.push(vMatch[2] ? raw * 1000 : raw);
+      }
+    });
+    if (months.length >= 2) {
+      return { type: 'bar', title: 'Volumen de Llamadas', labels: months, datasets: [{ label: 'Llamadas', data: values, color: '#818cf8' }], unit: 'llamadas' };
+    }
+  }
+
+  // ── Top agentes (ranking) ─────────────────────────────────────────────────
+  if ((q.includes('agente') || q.includes('top') || q.includes('ranking') || q.includes('mejor')) && (q.includes('agente') || q.includes('rendimiento'))) {
+    const agents: string[] = []; const values: number[] = [];
+    lines.forEach(line => {
+      const aMatch = line.match(/\d+\.\s+([A-ZÁÉÍÓÚ][a-záéíóú]+(?:\s+[A-Za-záéíóú]+){1,3})/);
+      const vMatch = line.match(/(\d{1,2}[.,]\d{1,2}|\d{2,3})\s*%/);
+      if (aMatch && vMatch) {
+        agents.push(aMatch[1].split(' ')[0]); // primer nombre
+        values.push(parseFloat(vMatch[1].replace(',', '.')));
+      }
+    });
+    if (agents.length >= 3) {
+      return { type: 'bar-horizontal', title: 'Tasa de Contacto por Agente', labels: agents.slice(0, 10), datasets: [{ label: 'Tasa contacto %', data: values.slice(0, 10), color: '#4ade80' }], unit: '%' };
+    }
+  }
+
+  // ── AHT tendencia ────────────────────────────────────────────────────────
+  if (q.includes('aht') || q.includes('tiempo promedio') || q.includes('duración')) {
+    const months: string[] = []; const values: number[] = [];
+    lines.forEach(line => {
+      const mMatch = line.match(/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)[a-z]*\.?\s*(\d{4})?/i);
+      const vMatch = line.match(/(\d{1,2}[.,]?\d{0,2})\s*min/i);
+      if (mMatch && vMatch) { months.push(mMatch[0].trim()); values.push(parseFloat(vMatch[1].replace(',', '.'))); }
+    });
+    if (months.length >= 2) {
+      return { type: 'line', title: 'AHT por Mes', labels: months, datasets: [{ label: 'AHT (min)', data: values, color: '#38bdf8' }], unit: '%', benchmark: 7.8, benchmarkLabel: 'Bm: 7.8 min' };
+    }
+  }
+
+  return undefined; // sin gráfico detectado
 }
 
 export default function VickyInsights() {
@@ -1449,11 +1529,15 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
         finalContent = convertirMarkdownAProsa(choice?.message?.content || 'Sin respuesta');
       }
 
+      // Scale-F: detectar si la respuesta tiene datos visualizables
+      const _chartData = detectarChartData(finalContent, text);
+
       resp = {
         id: `vicky-${Date.now()}`,
         role: 'vicky',
         content: finalContent,
         timestamp: new Date(),
+        ...(  _chartData ? { chartData: _chartData } : {}),
         sources: [
           `${_clientName} · CDR histórico en tiempo real · Supabase`,
           `Transcripciones analizadas con Whisper · Análisis NLP real`,
