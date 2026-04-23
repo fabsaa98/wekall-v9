@@ -461,7 +461,7 @@ export default function Overview() {
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Proyección 7 Días — Tasa de Contacto</h2>
-              <p className="text-xs text-muted-foreground">Regresión lineal sobre últimos 30 días · Banda de confianza ±1 desv. estándar</p>
+              <p className="text-xs text-muted-foreground">Suavizado exponencial + tendencia amortiguada · Feriados y días atípicos excluidos · Banda creciente de confianza</p>
             </div>
             <div className="flex items-center gap-3 sm:shrink-0">
               {forecastAvg !== null && (

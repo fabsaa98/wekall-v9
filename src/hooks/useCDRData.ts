@@ -111,11 +111,27 @@ function exponentialSmoothing(values: number[], alpha = 0.3): number[] {
 // Reemplaza la regresión lineal que ignoraba los días más recientes.
 // ETS da más peso a los últimos días → si la tasa cae, el forecast lo refleja.
 
+// Detectar días atípicos: volumen < 40% de la mediana → excluir de regresión
+// Cubre Semana Santa, feriados, días de corte de sistema
+function detectarDiasAtipicos(days: CDRDayMetric[]): boolean[] {
+  const vols = days.map(d => d.total_llamadas).sort((a, b) => a - b);
+  const mediana = vols[Math.floor(vols.length / 2)];
+  const umbralBajo  = mediana * 0.40; // < 40% mediana = día atípico bajo
+  const umbralAlto  = mediana * 2.50; // > 250% mediana = día atípico alto (errores)
+  return days.map(d => d.total_llamadas < umbralBajo || d.total_llamadas > umbralAlto);
+}
+
 function generateForecast(last30Days: CDRDayMetric[]): ForecastPoint[] {
   if (last30Days.length < 7) return [];
 
-  const tasaValues = last30Days.map(d => d.tasa_contacto_pct);
-  const volValues = last30Days.map(d => d.total_llamadas);
+  // Filtrar días atípicos para el cálculo de tendencia
+  const atipicos = detectarDiasAtipicos(last30Days);
+  const diasNormales = last30Days.filter((_, i) => !atipicos[i]);
+  // Usar días normales para estadísticas, pero mantener todos para el gráfico histórico
+  const datosParaForecast = diasNormales.length >= 7 ? diasNormales : last30Days;
+
+  const tasaValues = datosParaForecast.map(d => d.tasa_contacto_pct);
+  const volValues  = datosParaForecast.map(d => d.total_llamadas);
 
   // Suavizado exponencial — alpha=0.3 para tasa, 0.25 para volumen (más estable)
   const smoothedTasa = exponentialSmoothing(tasaValues, 0.3);
