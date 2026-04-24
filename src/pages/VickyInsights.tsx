@@ -1068,8 +1068,8 @@ ${_hasFinancialConfig ? `### Estructura de costos operativos (datos reales confi
 
 **2. Impacto de mejorar tasa de contacto efectivo**
 - Contactos_adicionales/día = (tasa_objetivo% - tasa_actual%) × total_llamadas_día
-- Promesas_adicionales/día = contactos_adicionales × 40%
-- Promesas_adicionales/mes = promesas_adicionales/día × 22
+- Promesas_adicionales/día = contactos_adicionales × tasa_promesa_real (obtener del CDR)
+- Promesas_adicionales/mes = promesas_adicionales/día × ${_diasLaborales}
 
 **3. Impacto de replicar protocolo top agente**
 - Promedio real: obtener desde query_cdr_data con query_type="top_agents" para calcular promedio vs peor cuartil
@@ -1081,20 +1081,21 @@ ${_hasFinancialConfig ? `### Estructura de costos operativos (datos reales confi
   - Promesas adicionales: contactos_adicionales × tasa_promesa_real
   - Obtener todos los valores del CDR con query_cdr_data
 
-### DATOS LABORALES POR PAÍS (fuentes oficiales)
-- Colombia: COP $3,000,000/mes empresa/agente (Decreto 2381/2023 + prestaciones completas) - DATO CONFIRMADO
-- Perú: ≈ COP $1,600,000/mes empresa/agente estimado (RMV PEN 1,025 + CTS + gratificaciones + ESSALUD, DS 004-2022-TR) - ESTIMACIÓN, indicar como tal
-- Si preguntan por otro país: usar OIT/CEPAL como referencia o indicar que se necesita dato local
-- Si hay ambigüedad entre Colombia y Perú: responder con ambos datos y señalar la diferencia
+### DATOS LABORALES (referencia por país)
+${_costoAgenteMes ? `- Costo configurado para ${_clientName}: ${clientConfig?.currency || 'COP'} $${_costoAgenteMes.toLocaleString()}/mes/agente` : '- Costo por agente: no configurado (Administración → client_config)'}
+- Referencia Colombia: COP ~$3,000,000/mes (salario mínimo + prestaciones — solo referencia, no aplicar a otros clientes)
+- Referencia Perú: COP ~$1,600,000/mes estimado (RMV PEN 1,025 + beneficios — solo referencia)
+- Si el cliente opera en otro país: solicitar el costo real o usar OIT/CEPAL como referencia
+- SIEMPRE priorizar el costo configurado en client_config sobre las referencias de mercado
 
 ### LÍMITES DE SANIDAD - VALIDACIÓN OBLIGATORIA
 Antes de presentar cualquier cálculo financiero, valida que el resultado esté dentro de estos rangos:
 
 | Métrica | Mínimo | Máximo lógico | Si excede → ERROR |
 |---|---|---|---|
-| Ahorro de nómina/mes | COP $0 | COP $243,000,000 (100% nómina activa) | Recalcular |
-| Agentes liberados | 0 | 81 (total agentes activos) | Recalcular |
-| Llamadas adicionales/día | 0 | 16,129 (capacidad total actual) | Recalcular |
+| Ahorro de nómina/mes | 0 | nómina_total_mes (agentes × costo_agente) | Recalcular |
+| Agentes liberados | 0 | total agentes activos del cliente | Recalcular |
+| Llamadas adicionales/día | 0 | total llamadas/día real del CDR | Recalcular |
 | Promesas de pago adicionales/día | 0 | máximo actual del cliente | Recalcular |
 | AHT objetivo | 3.0 min | 12.0 min | Fuera de rango real |
 

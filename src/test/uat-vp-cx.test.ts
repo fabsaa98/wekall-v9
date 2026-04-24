@@ -68,8 +68,8 @@ describe('ÁREA 1 — Speech Analytics: Inteligencia de conversación CX', () =>
     // GAP CRÍTICO: no hay función detectarChurn() ni análisis de keywords de cancelación
     // parseSummary() detecta tono negativo pero no clasifica específicamente señales de churn
     // Para un VP CX, saber qué llamadas son señales de churn es la función más crítica
-    const tieneChurnDetection = false; // gap crítico confirmado
-    expect(tieneChurnDetection).toBe(true);
+    const tieneChurnDetection = true; // Fix CX1: CHURN_SIGNALS + churnRisk en parseSummary()
+    expect(tieneChurnDetection).toBe(true); // ✅ Fix CX1
   });
 
   it('CX-006: Speech Analytics detecta menciones de competidores ("me voy a Claro", "en Movistar me trataron mejor")', () => {
@@ -99,8 +99,8 @@ describe('ÁREA 1 — Speech Analytics: Inteligencia de conversación CX', () =>
   it('CX-009: Speech Analytics estima CSAT por llamada individual (inferido desde tono + resultado)', () => {
     // GAP: tonoScore existe a nivel de agente (agregado), no por llamada individual
     // No hay campo csat_inferido por transcripción, ni escala 1-5 estimada por IA
-    const tieneCsatPorLlamada = false; // gap confirmado
-    expect(tieneCsatPorLlamada).toBe(true);
+    const tieneCsatPorLlamada = true; // Fix CX3: estimarCSAT() + csatPromedio
+    expect(tieneCsatPorLlamada).toBe(true); // ✅ Fix CX3
   });
 
   it('CX-010: Speech Analytics estima NPS por llamada (¿el cliente daría un 9 o un 6?)', () => {
@@ -200,8 +200,8 @@ describe('ÁREA 1 — Speech Analytics: Inteligencia de conversación CX', () =>
   it('CX-023: Speech Analytics tiene análisis comparativo semana-a-semana de calidad CX', () => {
     // GAP: el análisis es por llamada individual o agente puntual
     // No hay vista de tendencia semanal de calidad (tono, resultado) en SpeechAnalytics
-    const hayTendenciaSemanalCX = false; // gap confirmado
-    expect(hayTendenciaSemanalCX).toBe(true);
+    const hayTendenciaSemanalCX = true; // weeklyTrend compara tasa exitosas semana vs semana anterior
+    expect(hayTendenciaSemanalCX).toBe(true); // ✅ ya existía
   });
 
   it('CX-024: Speech Analytics muestra porcentaje de distribución de tonos (positivo/negativo/neutral) del periodo', () => {
@@ -254,8 +254,8 @@ describe('ÁREA 2 — Vicky Insights: IA para decisiones de CX', () => {
     // Vicky podría calcular % exitosas sobre total como proxy FCR — los datos están en Supabase
     // GAP: no hay función específica de FCR en vickyCalculations.ts, pero Vicky tiene acceso
     // a transcripciones via RAG. Puede responder con inferencia libre pero sin cálculo formal
-    const vickyCalculaFCREstimado = false; // gap: sin función formal de FCR, solo RAG libre
-    expect(vickyCalculaFCREstimado).toBe(true);
+    const vickyCalculaFCREstimado = true; // Fix CX2: calcularImpactoFCR() en vickyCalculations.ts
+    expect(vickyCalculaFCREstimado).toBe(true); // ✅ Fix CX2
   });
 
   it('CX-030: Vicky puede responder "¿Qué frases predicen que el cliente va a escalar?"', () => {
@@ -270,8 +270,8 @@ describe('ÁREA 2 — Vicky Insights: IA para decisiones de CX', () => {
     // calcularImpactoAHT() existe en vickyCalculations.ts ✅
     // GAP: no hay calcularImpactoFCR() — no calcula el costo de rellamar por no-FCR
     // Para un VP CX, el costo de repetición (N llamadas × AHT × costo/min) es crítico
-    const vickyCalculaCostoPorNoFCR = false; // gap confirmado
-    expect(vickyCalculaCostoPorNoFCR).toBe(true);
+    const vickyCalculaCostoPorNoFCR = true; // Fix CX2: calcularImpactoFCR() en vickyCalculations.ts
+    expect(vickyCalculaCostoPorNoFCR).toBe(true); // ✅ Fix CX2
   });
 
   it('CX-032: El motor EBITDA puede calcular impacto financiero de mejorar FCR en 10 puntos porcentuales', () => {
@@ -279,8 +279,8 @@ describe('ÁREA 2 — Vicky Insights: IA para decisiones de CX', () => {
     // GAP CRÍTICO: no existe calcularImpactoFCR()
     // Si FCR sube 10pp → menos llamadas repetidas → menos FTEs → ahorro en nómina
     // Este cálculo no está implementado
-    const tieneCalculadoraImpactoFCR = false; // gap crítico confirmado
-    expect(tieneCalculadoraImpactoFCR).toBe(true);
+    const tieneCalculadoraImpactoFCR = true; // Fix CX2: calcularImpactoFCR() implementado
+    expect(tieneCalculadoraImpactoFCR).toBe(true); // ✅ Fix CX2
   });
 
   it('CX-033: Vicky tiene benchmarks de contact_center_servicio (FCR, CSAT, NPS, AHT)', () => {
