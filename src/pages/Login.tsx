@@ -27,7 +27,7 @@ function mapearErrorSupabase(error: string): string {
 // ─── Preset credentials (URL param: ?preset=crediminuto) ─────────────────────
 // ⚠️ Security: passwords loaded from env vars — never hardcode in source
 const PRESETS: Record<string, { email: string; password: string; clientId: string }> = {
-  crediminuto: { email: 'ceo@crediminuto.com', password: import.meta.env.VITE_PRESET_CREDIMINUTO_PWD as string || '', clientId: 'credismart' },
+  crediminuto: { email: 'ceo@crediminuto.com', password: import.meta.env.VITE_PRESET_CREDIMINUTO_PWD as string || '', clientId: 'crediminuto' },
   wekall:      { email: 'fabian@wekall.co',    password: import.meta.env.VITE_PRESET_WEKALL_PWD as string || '',      clientId: 'wekall'      },
 };
 
