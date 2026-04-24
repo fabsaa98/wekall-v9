@@ -170,15 +170,17 @@ export function FunnelCobranza({
         {/* Funnel — columna izquierda */}
         <div className="flex-[6] p-5 flex flex-col items-center justify-center gap-0">
           {layers.map((layer) => {
-            const botInsetPct = ((layer.topW - layer.botW) / layer.topW / 2) * 100;
-            const clipPath = `polygon(0% 0%, 100% 0%, ${100 - botInsetPct}% 100%, ${botInsetPct}% 100%)`;
-            const shrinkPct = ((layer.topW - layer.botW) / 2 / layer.topW) * 100;
-            const padPct = shrinkPct + 5;
+            // clip-path relativo al ancho de ESTA capa (topW%)
+            // bottom es botW/topW * 100% del ancho de la capa
+            const botRelPct = (layer.botW / layer.topW) * 100;
+            const inset = (100 - botRelPct) / 2;
+            const clipPath = `polygon(0% 0%, 100% 0%, ${100 - inset}% 100%, ${inset}% 100%)`;
+            const padPct = inset + 4;
             return (
               <div
                 key={layer.key}
-                className="relative w-full"
-                style={{ height: `${layer.height}px` }}
+                className="relative"
+                style={{ width: `${layer.topW}%`, height: `${layer.height}px` }}
               >
                 <div
                   className={`absolute inset-0 bg-gradient-to-b ${layer.gradient}`}
