@@ -79,7 +79,7 @@ ALTER TABLE public.client_config
   ADD COLUMN IF NOT EXISTS alert_volumen_minimo integer DEFAULT 5000;
 ```
 
-**RLS:** Lectura pública para `anon` y `authenticated`.
+**RLS:** 🔐 ACTIVO — `client_id = public.get_user_client_id()` (V22). Solo el usuario autenticado puede leer la configuración de su empresa.
 
 ---
 
@@ -95,7 +95,7 @@ ALTER TABLE public.client_config
 | `tagline` | `text` | Tagline corto mostrado en sidebar |
 | `updated_at` | `timestamptz` | Última actualización del branding |
 
-**RLS:** Lectura pública para `anon` y `authenticated`.
+**RLS:** 🔐 ACTIVO — `client_id = public.get_user_client_id()` (V22).
 
 **Dato inicial:**
 ```sql
@@ -129,7 +129,7 @@ VALUES ('credismart', 'CrediSmart / Crediminuto', 'Cobranzas Crediminuto Colombi
 - `idx_app_users_email` — lookup rápido en login
 - `idx_app_users_auth_id` — **V20** lookup por sesión Supabase Auth
 
-**RLS:** Lectura pública para `anon` y `authenticated`. Con `auth_id` ya disponible, el siguiente paso es restringir via JWT claims.
+**RLS:** ⚠️ Permisiva (lectura para `authenticated`). La tabla de usuarios no usa el mismo filtro de `client_id` — la función `get_user_client_id()` la necesita sin restricción para resolver el `client_id` del JWT.
 
 **Migración V20 (agregar auth_id):**
 ```sql
@@ -258,7 +258,7 @@ const { data } = await supabase
 - `idx_agents_performance_client_id` — filtro multi-tenant
 - `idx_agents_performance_client_fecha` — queries principales `(client_id, fecha DESC)`
 
-**RLS:** Lectura para `anon` y `authenticated`. Escritura para `anon` habilitada durante el seed (puede restringirse después).
+**RLS:** 🔐 ACTIVO — `client_id = public.get_user_client_id()` (V22).
 
 ---
 
@@ -285,7 +285,7 @@ const { data } = await supabase
 - `idx_alert_log_fired_at` — historial más reciente primero
 - `idx_alert_log_severity` — filtrar por severity con orden temporal
 
-**RLS:** Lectura y escritura para `anon` (el frontend inserta alertas directamente).
+**RLS:** ⚠️ Permisiva — INSERT/SELECT para `anon` y `authenticated`. El sistema de alertas inserta desde el frontend antes de que haya sesión garantizada.
 
 ---
 
@@ -311,7 +311,7 @@ const { data } = await supabase
 - `idx_vicky_conversations_session` — historial por sesión
 - `idx_vicky_conversations_created_at` — historial global reciente primero
 
-**RLS:** Lectura y escritura para `anon`.
+**RLS:** 🔐 ACTIVO — `client_id = public.get_user_client_id()` (V22).
 
 ---
 
@@ -332,14 +332,14 @@ const { data } = await supabase
 | `client_id` | `text` | ID del cliente |
 | `created_at` | `timestamptz` | — |
 
-**Función especial — `search_transcriptions` (actualizada en V20):**
+**Función especial — `search_transcriptions` (recreada en V22 con DROP + CREATE OR REPLACE):**
 ```sql
--- V20: incluye client_id_filter para aislamiento RAG por cliente
+-- V22: client_id_filter es parte canónica de la firma — aislamiento RAG garantizado a nivel SQL
 SELECT * FROM search_transcriptions(
   query_embedding  => '[...]'::vector,
   match_count      => 5,
   match_threshold  => 0.7,
-  client_id_filter => 'credismart'  -- NUEVO en V20
+  client_id_filter => 'credismart'
 );
 ```
 
@@ -377,7 +377,7 @@ AS $$
 $$;
 ```
 
-**Por qué importa:** Con `client_id_filter`, la búsqueda vectorial solo considera transcripciones del cliente correcto — aislamiento RAG real. El Worker pasa `client_id` en cada `/rag-query` desde V20.
+**Por qué importa:** Con `client_id_filter` + RLS activo en la tabla, el aislamiento RAG opera en dos capas: (1) el Worker filtra por `client_id` en la función SQL, y (2) la policy RLS bloquea cualquier acceso directo a la tabla sin el `client_id` correcto en el JWT.
 
 Esta función es la base del RAG: el Worker embeds la pregunta del usuario, filtra por cliente, busca las transcripciones más similares y las incluye como contexto para GPT-4o.
 
@@ -401,13 +401,16 @@ AS $$
 $$;
 ```
 
-**Propósito:** Preparar el terreno para RLS real. Cuando se activen las policies restrictivas, cada query puede llamar a `get_user_client_id()` para obtener el `client_id` del usuario autenticado desde el JWT de Supabase Auth.
+**Propósito:** Resolver el `client_id` del usuario autenticado. Utilizada en las policies RLS de las 9 tablas de datos de negocio activadas en V22.
 
-**Ejemplo de uso en RLS (pendiente activación):**
+**En producción desde V22:**
 ```sql
-CREATE POLICY "Tenant isolation"
+-- Aplicada en cdr_daily_metrics, transcriptions, agents_performance,
+-- client_config, client_branding, vicky_conversations, y otras 3 tablas
+CREATE POLICY "tenant_isolation"
   ON public.cdr_daily_metrics
   FOR ALL
+  TO authenticated
   USING (client_id = public.get_user_client_id());
 ```
 
@@ -456,35 +459,70 @@ client_config (client_id)
 
 ---
 
-## RLS Policies (Estado V19 — MVP)
+## Row Level Security — Estado V22 (✅ ACTIVO)
 
-**Estado actual:** Todas las tablas tienen RLS habilitado con policies **permisivas** para `anon` y `authenticated`. El aislamiento por `client_id` es a nivel de aplicación (las queries siempre incluyen `.eq('client_id', clientId)`).
+**Estado actual:** RLS activado con policies restrictivas en **9 tablas de datos de negocio**. Aislamiento a nivel de base de datos — PostgreSQL rechaza cualquier query que intente acceder a datos de otro cliente, independientemente del frontend.
 
-**Razón:** Para el MVP con un solo cliente activo, las policies restrictivas agregarían complejidad sin beneficio práctico. En V20, cuando haya múltiples clientes reales, se migra a auth con JWT claims.
+### Tablas con RLS activo
 
-### Policies activas
+| Tabla | RLS | Policy |
+|-------|-----|--------|
+| `transcriptions` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `agents_performance` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `agent_daily_metrics` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `cdr_daily_metrics` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `client_config` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `client_branding` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `client_kpi_targets` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `client_labor_costs` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `vicky_conversations` | 🔐 ACTIVO | `client_id = get_user_client_id()` |
+| `alert_log` | ⚠️ Permisiva | INSERT para `anon`/`authenticated` |
+| `app_users` | ⚠️ Permisiva | Lectura para `authenticated` |
+
+### Policy template (aplicada en las 9 tablas)
 
 ```sql
--- Lectura global (MVP)
-POLICY "Allow anon read" ON <tabla>
-  FOR SELECT TO anon, authenticated USING (true);
+-- Habilitado en cada tabla de datos de negocio:
+ALTER TABLE public.<tabla> ENABLE ROW LEVEL SECURITY;
 
--- Escritura para tablas que el frontend inserta
-POLICY "Allow anon insert alert_log"
-  ON public.alert_log FOR INSERT TO anon, authenticated WITH CHECK (true);
-
-POLICY "Allow anon insert vicky_conversations"
-  ON public.vicky_conversations FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "tenant_isolation"
+  ON public.<tabla>
+  FOR ALL
+  TO authenticated
+  USING (client_id = public.get_user_client_id());
 ```
 
-### Plan V20 — RLS real con Supabase Auth
+### Cómo funciona el flujo
+
+```
+1. Usuario hace login → Supabase Auth emite JWT con auth.uid()
+2. Frontend hace query: SELECT * FROM cdr_daily_metrics ...
+3. PostgreSQL evalua la policy: client_id = get_user_client_id()
+4. get_user_client_id() ejecuta:
+   SELECT client_id FROM app_users WHERE auth_id = auth.uid() AND active = true
+5. Retorna el client_id del usuario autenticado
+6. Query solo devuelve filas donde client_id coincide
+7. Cliente A nunca puede ver datos del Cliente B — garantizado a nivel DB
+```
+
+### Prerrequisito: `get_user_client_id()`
 
 ```sql
--- Cuando haya auth real con JWT claims que incluyan client_id:
-CREATE POLICY "Tenant isolation"
-  ON public.cdr_daily_metrics
-  FOR ALL
-  USING (client_id = auth.jwt() ->> 'client_id');
+CREATE OR REPLACE FUNCTION public.get_user_client_id()
+RETURNS text
+LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT client_id FROM public.app_users
+  WHERE auth_id = auth.uid()
+    AND active = true
+  LIMIT 1;
+$$;
+```
+
+Requiere que todos los usuarios tengan `auth_id` vinculado en `app_users`. Verificar:
+```sql
+SELECT email, client_id, auth_id IS NOT NULL AS has_auth
+FROM public.app_users WHERE active = true;
 ```
 
 ---

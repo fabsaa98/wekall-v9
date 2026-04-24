@@ -1,8 +1,8 @@
 # WeKall Intelligence — Arquitectura Multi-Tenant
 
-**Versión:** V20.0.0  
-**Fecha de implementación:** 2026-04-05  
-**Estado:** Multi-tenant completo con Auth real — 3 clientes activos, aislamiento RAG validado
+**Versión:** V22.0.0  
+**Fecha de última actualización:** 2026-04-13  
+**Estado:** Aislamiento multi-tenant completo a 3 capas — RLS activo en 9 tablas, policies `get_user_client_id()` en producción
 
 ---
 
@@ -34,19 +34,19 @@ Tablas con client_id:
 5. Si el usuario hace login: setClientId(data.client_id) → persiste nuevo valor
 ```
 
-### 3 capas de aislamiento (V20)
+### 3 capas de aislamiento — COMPLETAS desde V22
 
 | Capa | Implementación | Estado |
 |------|---------------|--------|
-| **Capa 1 — Aplicación** | `.eq('client_id', clientId)` en todas las queries Supabase | ✅ Implementado |
-| **Capa 2 — RAG con client_id_filter** | Worker pasa `client_id` a `search_transcriptions` — cada cliente solo ve sus transcripciones | ✅ Implementado y validado |
-| **Capa 3 — Auth con get_user_client_id()** | Función SQL lista para RLS real usando `auth.uid()` → `app_users.auth_id` → `client_id` | ✅ Función implementada / ⏳ RLS policies pendientes de activación |
+| **Capa 1 — Aplicación** | `.eq('client_id', clientId)` en todas las queries + `clientId` obligatorio en funciones críticas (H-1) + guard explícito sin fallback (H-2) | ✅ Activo |
+| **Capa 2 — RAG con client_id_filter** | Worker pasa `client_id` a `search_transcriptions` — cada cliente solo ve sus transcripciones | ✅ Activo y validado |
+| **Capa 3 — RLS en base de datos** | Policies `USING (client_id = get_user_client_id())` en 9 tablas — PostgreSQL rechaza cualquier acceso cross-tenant | ✅ ACTIVO desde V22 |
 
-**Validación de aislamiento RAG (V20):**
+**Validación de aislamiento RAG (V20/V22):**
 - Cliente `wekall` consultando `/rag-query` → retorna **0 transcripciones** de `credismart`
-- Aislamiento confirmado con `client_id_filter` en `search_transcriptions`
+- Aislamiento confirmado con `client_id_filter` + RLS activo en `transcriptions`
 
-> **Estado actual:** Las capas 1 y 2 garantizan aislamiento funcional real. La capa 3 (RLS en base de datos) está preparada con `get_user_client_id()` pero las policies restrictivas aún están comentadas — se activan cuando todos los usuarios migren a Supabase Auth con `auth_id` en `app_users`.
+> **Estado V22:** Las 3 capas están activas y en producción. Un bug en el frontend no puede exponer datos de otro cliente — la base de datos es la última línea de defensa.
 
 ---
 
@@ -117,7 +117,7 @@ INSERT INTO public.app_users (
 
 ### Paso adicional: Cargar datos CDR
 
-Los datos del CDR (historial de llamadas) deben cargarse manualmente hasta que V21 implemente el pipeline automático:
+Los datos del CDR (historial de llamadas) deben cargarse manualmente hasta que V23 implemente el pipeline automático:
 
 ```sql
 -- Insertar datos CDR para el nuevo cliente
@@ -172,23 +172,27 @@ ON CONFLICT (email) DO UPDATE SET
 
 ## Consideraciones de Seguridad
 
-### Estado actual (V20 — Auth Real implementado)
+### Estado actual (V22 — Aislamiento Completo)
 
-**Riesgos resueltos en V20:**
+**Todos los riesgos resueltos:**
 
-1. ✅ **Auth real con Supabase Auth v2:** `signInWithPassword` con contraseñas reales hasheadas por Supabase. Fallback legacy disponible para migración gradual.
+1. ✅ **Auth real con Supabase Auth v2:** `signInWithPassword`. AuthGuard valida JWT Supabase — sin fallback de localStorage (fix V21).
 
-2. ✅ **RAG aislado por `client_id_filter`:** El Worker filtra transcripciones por `client_id` antes de la búsqueda vectorial.
+2. ✅ **RAG aislado por `client_id_filter`:** Worker filtra transcripciones por `client_id`. Función recreada en V22 como firma canónica.
 
-3. ⏳ **RLS en base de datos:** La función `get_user_client_id()` está implementada y lista. Las policies restrictivas están comentadas — se activarán cuando todos los usuarios tengan `auth_id` en `app_users`.
+3. ✅ **RLS activo en 9 tablas (V22):** Policies `USING (client_id = get_user_client_id())` en producción. PostgreSQL rechaza queries cross-tenant.
 
-4. **Anon key expuesta:** El `SUPABASE_ANON_KEY` es público (en el bundle de la app). Esto es normal y esperado para el anon key — no es un bug.
+4. ✅ **H-1: `clientId` obligatorio (V22):** `getRecentAlertLog()` y `getVickyHistory()` requieren parámetro explícito.
 
-**Mitigaciones actuales:**
-- El `SUPABASE_SERVICE_KEY` nunca está en el frontend
-- La API key de OpenAI está solo en Cloudflare Secrets
-- RAG aislado por `client_id_filter` — validado en producción
-- 3 clientes activos con datos aislados correctamente
+5. ✅ **H-2: sin fallback hardcodeado (V22):** Eliminado `|| 'credismart'` en 6 funciones — guard explícito.
+
+6. **Anon key en bundle:** Normal para `SUPABASE_ANON_KEY`. El RLS protege los datos incluso si alguien usa la anon key directamente.
+
+**Mitigaciones activas:**
+- `SUPABASE_SERVICE_KEY` nunca en el frontend
+- API key de OpenAI solo en Cloudflare Secrets
+- RLS bloquea acceso cross-tenant a nivel PostgreSQL
+- RAG aislado con `client_id_filter` + RLS en `transcriptions`
 
 ### Flujo de Auth Real (V20)
 
@@ -203,30 +207,39 @@ ON CONFLICT (email) DO UPDATE SET
 8. Worker RAG recibe client_id en cada /rag-query → filtra transcripciones
 ```
 
-### Roadmap — RLS Real en Base de Datos (próximo paso)
-
-Con `get_user_client_id()` ya implementada, activar RLS real requiere solo:
+### RLS en Producción (activo desde V22 — 2026-04-13)
 
 ```sql
--- Activar en cada tabla de negocio
-CREATE POLICY "Tenant isolation on cdr"
-  ON public.cdr_daily_metrics
+-- Policy aplicada en las 9 tablas de datos de negocio:
+CREATE POLICY "tenant_isolation"
+  ON public.<tabla>
   FOR ALL
+  TO authenticated
   USING (client_id = public.get_user_client_id());
 
-CREATE POLICY "Tenant isolation on transcriptions"
-  ON public.transcriptions
-  FOR ALL
-  USING (client_id = public.get_user_client_id());
-
--- Ídem para agents_performance, alert_log, vicky_conversations
+-- Tablas con RLS activo:
+-- cdr_daily_metrics, transcriptions, agents_performance, agent_daily_metrics,
+-- client_config, client_branding, client_kpi_targets, client_labor_costs,
+-- vicky_conversations
 ```
 
-**Prerequisito:** Todos los usuarios activos deben tener `auth_id` en `app_users`. Verificar con:
-```sql
-SELECT email, client_id, auth_id IS NOT NULL AS has_auth
-FROM public.app_users WHERE active = true;
-```
+### Tablas con RLS y sin RLS
+
+| Tabla | RLS | Razón |
+|-------|-----|-------|
+| `cdr_daily_metrics` | 🔐 ACTIVO | Datos operativos críticos por cliente |
+| `transcriptions` | 🔐 ACTIVO | Grabaciones confidenciales por cliente |
+| `agents_performance` | 🔐 ACTIVO | Performance de agentes por cliente |
+| `agent_daily_metrics` | 🔐 ACTIVO | Métricas diarias por cliente |
+| `client_config` | 🔐 ACTIVO | Config privada de cada cliente |
+| `client_branding` | 🔐 ACTIVO | Branding privado de cada cliente |
+| `client_kpi_targets` | 🔐 ACTIVO | Metas KPI privadas por cliente |
+| `client_labor_costs` | 🔐 ACTIVO | Costos laborales confidenciales |
+| `vicky_conversations` | 🔐 ACTIVO | Historial de IA privado por cliente |
+| `alert_log` | ⚠️ Permisiva | El frontend inserta alertas antes de tener sesión garantizada |
+| `app_users` | ⚠️ Permisiva | `get_user_client_id()` lee esta tabla para resolver el JWT — no puede restringirse con ella misma |
+| `cdr_campaign_metrics` | ⚠️ Sin RLS | Aggregados, sin PII, de bajo riesgo |
+| `cdr_hourly_metrics` | ⚠️ Sin RLS | Igual que campaign_metrics |
 
 ---
 
