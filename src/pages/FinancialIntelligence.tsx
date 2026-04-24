@@ -56,6 +56,16 @@ interface CDRDaily {
   contactos_efectivos: number;
 }
 
+// Scale-A (23 abr 2026) — PTP/RPC reales de Supabase
+interface CDRPTPRow {
+  fecha: string;
+  ptp_contactos: number | null;
+  ptp_rate_pct: number | null;
+  rpc_contactos: number | null;
+  rpc_rate_pct: number | null;
+  total_llamadas: number;
+}
+
 interface MonthlyFinancial {
   mes: string;
   mesLabel: string;
@@ -159,9 +169,11 @@ function FinancialTooltip({ active, payload, label }: {
 function ExecutiveBrief({
   recaudoHoy, recaudoMes, margenMes, tendenciaPct, hasRealData,
   tasaContacto, mesLabel, industry, costoOpMes,
+  hasPtpData = false, mesPtpContacts = 0, todayPtpContacts = 0, roiValue = 0,
 }: {
   recaudoHoy: number; recaudoMes: number; margenMes: number;
   tendenciaPct: number; hasRealData: boolean; tasaContacto: number; mesLabel: string; industry?: string; costoOpMes: number;
+  hasPtpData?: boolean; mesPtpContacts?: number; todayPtpContacts?: number; roiValue?: number;
 }) {
   const isFintech = industry === 'fintech_pagos';
   // costoPct = costo CC como % del recaudo
@@ -179,7 +191,7 @@ function ExecutiveBrief({
         <FileText className="h-4 w-4 text-primary mt-0.5 shrink-0" />
         <div>
           <h2 className="text-sm font-semibold text-foreground">Executive Brief — {mesLabel}</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Síntesis ejecutiva · {hasRealData ? 'Datos reales' : 'Estimativos CDR'}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Síntesis ejecutiva · {hasRealData ? 'Datos reales' : hasPtpData ? 'PTP real + estimativo' : 'Estimativos CDR'}</p>
         </div>
       </div>
 
@@ -207,33 +219,56 @@ function ExecutiveBrief({
           </>
         ) : (
           <>
-            {/* Scale-G Fix #3 (21 abr 2026) — solo campañas cobranza, contactos efectivos */}
-            El recaudo {hasRealData ? 'real' : 'estimado'} acumulado{' '}
-            <span className="text-muted-foreground/80">(solo campañas cobranza, contactos efectivos)</span>{' '}
-            asciende a{' '}
-            <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoMes, 'COP'))}</span>{' '}
-            <span className="text-muted-foreground/60 text-[11px]">≈ {fmtCOP(recaudoMes)} COP</span>.
-            El costo del contact center representa{' '}
-            <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-orange-400'}`}>
-              {costoPct.toFixed(1)}% del recaudo
-            </span>{' '}
-            {margenOk
-              ? `(benchmark saludable: ≤${BM_COSTO_CC_PCT}%).`
-              : `— por encima del benchmark de ≤${BM_COSTO_CC_PCT}%.`
-            }{' '}
-            La tasa de contacto{' '}
-            {tcVsBm >= 0
-              ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
-              : <><span className="text-orange-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
-            }{' '}
-            Proyección diaria: <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoHoy, 'COP'))}</span> de recaudo hoy.
+            {/* Scale-A (23 abr 2026) — Texto dinámico con PTP real */}
+            {hasPtpData && mesPtpContacts > 0 ? (
+              <>
+                Hoy: <span className="text-foreground font-semibold">{todayPtpContacts.toLocaleString('es-CO')} promesas de pago</span>{' '}
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400 uppercase tracking-wide">PTP real</span>.{' '}
+                Recaudo estimado mes:{' '}
+                <span className="text-foreground font-semibold">{fmtCOP(recaudoMes)}</span>
+                {roiValue > 0 && <>{'. '}ROI operación:{' '}<span className={`font-semibold ${roiValue > 3 ? 'text-emerald-400' : roiValue > 1 ? 'text-yellow-400' : 'text-red-400'}`}>{roiValue.toFixed(1)}x</span></>}.{' '}
+                El costo CC representa{' '}
+                <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-orange-400'}`}>
+                  {costoPct.toFixed(1)}% del recaudo
+                </span>{' '}
+                {margenOk ? `(benchmark: ≤${BM_COSTO_CC_PCT}%).` : `— por encima del benchmark de ≤${BM_COSTO_CC_PCT}%.`}
+              </>
+            ) : (
+              <>
+                {/* Scale-G Fix #3 (21 abr 2026) — solo campañas cobranza, contactos efectivos */}
+                El recaudo {hasRealData ? 'real' : 'estimado'} acumulado{' '}
+                <span className="text-muted-foreground/80">(solo campañas cobranza, contactos efectivos)</span>{' '}
+                asciende a{' '}
+                <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoMes, 'COP'))}</span>{' '}
+                <span className="text-muted-foreground/60 text-[11px]">≈ {fmtCOP(recaudoMes)} COP</span>.
+                El costo del contact center representa{' '}
+                <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-orange-400'}`}>
+                  {costoPct.toFixed(1)}% del recaudo
+                </span>{' '}
+                {margenOk
+                  ? `(benchmark saludable: ≤${BM_COSTO_CC_PCT}%).`
+                  : `— por encima del benchmark de ≤${BM_COSTO_CC_PCT}%.`
+                }{' '}
+                La tasa de contacto{' '}
+                {tcVsBm >= 0
+                  ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+                  : <><span className="text-orange-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+                }{' '}
+                Proyección diaria: <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoHoy, 'COP'))}</span> de recaudo hoy.
+              </>
+            )}
           </>
         )}
       </p>
 
-      {/* Disclaimer Scale-G Fix #3 */}
-      <p className="mt-3 text-[11px] text-muted-foreground/50 leading-relaxed border-t border-border/50 pt-3">
-        {isFintech ? "Datos basados en CDR histórico del cliente. Tasa de contacto = llamadas completadas / total llamadas." : "⚠️ Estimativo basado en contactos efectivos (llamadas contestadas). Campañas de servicio excluidas del recaudo. No incluye llamadas abandonadas, ocupadas ni rechazadas. No refleja otros costos operativos del cliente."}
+      {/* Scale-A (23 abr 2026) — Banner dinámico fuente de datos */}
+      <p className="mt-3 text-[11px] leading-relaxed border-t border-border/50 pt-3">
+        {isFintech
+          ? <span className="text-muted-foreground/50">Datos basados en CDR histórico del cliente. Tasa de contacto = llamadas completadas / total llamadas.</span>
+          : hasPtpData
+            ? <span className="text-emerald-400/70">✅ Basado en tipificación real del agente (PTP). Recaudo proyectado, no confirmado.</span>
+            : <span className="text-muted-foreground/50">⚠️ Estimativo — sin datos de tipificación para este período. Basado en contactos efectivos.</span>
+        }
       </p>
 
       {!margenOk && !isFintech && (
@@ -257,6 +292,12 @@ export default function FinancialIntelligence() {
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState<string | null>(null);
   const [hasRealData, setHasRealData] = useState(false);
+  // Scale-A (23 abr 2026) — PTP/RPC reales
+  const [hasPtpData,  setHasPtpData]  = useState(false);
+  const [todayPtpContacts, setTodayPtpContacts] = useState(0);
+  const [mesPtpContacts,   setMesPtpContacts]   = useState(0);
+  const [cppValue,         setCppValue]         = useState(0);   // Costo por Promesa
+  const [roiValue,         setRoiValue]         = useState(0);   // ROI de Operación
 
   const [monthlyData,       setMonthlyData]       = useState<MonthlyFinancial[]>([]);
   const [todayRecaudo,      setTodayRecaudo]      = useState(0);
@@ -335,6 +376,35 @@ export default function FinancialIntelligence() {
         return;
       }
 
+      // Scale-A (23 abr 2026) — Fetch PTP/RPC reales del CDR
+      let ptpRows: CDRPTPRow[] = [];
+      const ptpByMonth: Record<string, number> = {};
+      try {
+        const ptpResult = await proxyQuery<CDRPTPRow[]>({
+          table: 'cdr_daily_metrics',
+          select: 'fecha,ptp_contactos,ptp_rate_pct,rpc_contactos,rpc_rate_pct,total_llamadas',
+          filters: { 'client_id': `eq.${clientId}` },
+          order: 'fecha.desc',
+          limit: 60,
+        });
+        if (Array.isArray(ptpResult) && ptpResult.length > 0) {
+          const hasValidPtp = ptpResult.some(r => r.ptp_contactos !== null && r.ptp_contactos > 0);
+          if (hasValidPtp) {
+            ptpRows = ptpResult;
+            setHasPtpData(true);
+            // Aggregate PTP by month
+            for (const r of ptpRows) {
+              const ym = r.fecha.slice(0, 7);
+              ptpByMonth[ym] = (ptpByMonth[ym] || 0) + (r.ptp_contactos || 0);
+            }
+          } else {
+            setHasPtpData(false);
+          }
+        } else {
+          setHasPtpData(false);
+        }
+      } catch { setHasPtpData(false); }
+
       // 3. Group by month
       const byMonth: Record<string, { llamadas: number; contactos: number }> = {};
       for (const row of cdrData) {
@@ -352,15 +422,24 @@ export default function FinancialIntelligence() {
       const todayRow   = sortedDays[0];
       // Scale-G Fix #1 (21 abr 2026) — Solo contactos campañas cobranza (COBRANZA_PCT=0.80)
       const todayProm  = todayRow ? Math.round(todayRow.contactos_efectivos * COBRANZA_PCT * TASA_PROMESA) : 0;
-      const todayRec   = Math.round(todayProm * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
+      // Scale-A (23 abr 2026) — Usar PTP real si disponible
+      const todayPtp = ptpRows.length > 0 ? (ptpRows[0]?.ptp_contactos || 0) : 0;
+      const todayRec = todayPtp > 0
+        ? Math.round(todayPtp * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO)
+        : Math.round(todayProm * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
       setTodayRecaudo(todayRec);
+      if (todayPtp > 0) setTodayPtpContacts(todayPtp);
 
       // 5. Build monthly financial
       const financial: MonthlyFinancial[] = last12.map(ym => {
         const m        = byMonth[ym];
         const promesas = Math.round(m.contactos * TASA_PROMESA);
         // Scale-G Fix #1 (21 abr 2026) — recaudo solo campañas cobranza (COBRANZA_PCT=0.80)
-        let recaudo    = Math.round(Math.round(m.contactos * COBRANZA_PCT * TASA_PROMESA) * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
+        // Scale-A (23 abr 2026) — priorizar PTP real > datos reales > estimativo
+        const monthPtp = ptpByMonth[ym] || 0;
+        let recaudo = monthPtp > 0
+          ? Math.round(monthPtp * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO)
+          : Math.round(Math.round(m.contactos * COBRANZA_PCT * TASA_PROMESA) * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
 
         if (realRows.length > 0) {
           const mReal = realRows.filter(r => r.fecha.slice(0, 7) === ym);
@@ -417,6 +496,32 @@ export default function FinancialIntelligence() {
         : 0;
       setAvgTasaContacto(avgTC);
 
+      // Scale-A (23 abr 2026) — Calcular PTP del mes actual para CPP y ROI
+      const now2 = new Date();
+      const curYM2 = `${now2.getFullYear()}-${String(now2.getMonth() + 1).padStart(2, '0')}`;
+      // Usar el mes principal (puede ser mes anterior si el actual es parcial)
+      const mainMonth = financial[financial.length - 1];
+      const secondLast = financial[financial.length - 2];
+      const isCurrentPartial = mainMonth && secondLast && mainMonth.mes === curYM2 &&
+        secondLast.recaudo > 0 && mainMonth.recaudo < secondLast.recaudo * 0.30;
+      const kpiMonth = isCurrentPartial ? secondLast : mainMonth;
+      const kpiMonthPtp = kpiMonth ? (ptpByMonth[kpiMonth.mes] || 0) : 0;
+      setMesPtpContacts(kpiMonthPtp);
+      // CPP = costo_operativo / ptp_contactos
+      const localCostoOpMes = costoAgenteMes * agentesActivos;
+      if (kpiMonthPtp > 0 && localCostoOpMes > 0) {
+        setCppValue(localCostoOpMes / kpiMonthPtp);
+      } else {
+        setCppValue(0);
+      }
+      // ROI = recaudo_estimado_ptp / costo_operativo
+      if (localCostoOpMes > 0 && kpiMonthPtp > 0) {
+        const recaudoConPtp = kpiMonthPtp * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO;
+        setRoiValue(recaudoConPtp / localCostoOpMes);
+      } else {
+        setRoiValue(0);
+      }
+
       // Scale-G Fix #1+2b (21 abr 2026) — recaudoEst en moneda local correcta por campaña
       // Colombia: ticket en COP → recaudoEst en COP → toUSD con USD_COP
       // Perú: ticket en PEN → recaudoEst en PEN → toUSD con USD_PEN
@@ -446,6 +551,13 @@ export default function FinancialIntelligence() {
       const curCostoPct = curMonth?.margenPct ?? 0; // margenPct ahora = costoOpMes/recaudo*100
       const margenVsBm = curCostoPct - BM_COSTO_CC_PCT; // positivo = supera benchmark (malo)
       const tcVsBm = avgTC - BM_TASA_CONTACTO_PCT;
+
+      // Scale-A (23 abr 2026) — KPIs CPP y ROI
+      const localCostoOpMes2 = costoAgenteMes * agentesActivos;
+      const kpiMonthPtp2 = kpiMonth ? (ptpByMonth[kpiMonth.mes] || 0) : 0;
+      const cppKpi = kpiMonthPtp2 > 0 && localCostoOpMes2 > 0 ? localCostoOpMes2 / kpiMonthPtp2 : 0;
+      const recaudoConPtp2 = kpiMonthPtp2 * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO;
+      const roiKpi = localCostoOpMes2 > 0 && kpiMonthPtp2 > 0 ? recaudoConPtp2 / localCostoOpMes2 : 0;
 
       const kpisBuilt: KPIData[] = [
         // Scale-G Fix #2 (21 abr 2026) — KPI recaudo en USD
@@ -500,11 +612,38 @@ export default function FinancialIntelligence() {
           roles: ['CEO', 'COO'],
           description: 'Nómina estimada + carga social',
         },
+        // Scale-A (23 abr 2026) — KPI: Costo por Promesa (CPP)
+        ...(cppKpi > 0 ? [{
+          id: 'cpp',
+          title: 'Costo por Promesa',
+          value: fmtCOP(Math.round(cppKpi)),
+          numericValue: cppKpi,
+          change: cppKpi <= 25_000 ? (cppKpi <= 15_000 ? -10 : -2) : 5,
+          changeLabel: cppKpi <= 15_000 ? '✅ Óptimo (<$15K)' : cppKpi <= 25_000 ? '⚠️ Aceptable ($15-25K)' : '🔴 Alto (>$25K)',
+          vsIndustry: cppKpi <= 25_000 ? -1 : 1,
+          sparkline: Array(7).fill(cppKpi / 1_000),
+          invertColor: true,
+          roles: ['CEO', 'COO'],
+          description: 'Costo operativo por promesa de pago. Benchmark industria: COP $15,000–$25,000',
+        }] : []),
+        // Scale-A (23 abr 2026) — KPI: ROI de Operación
+        ...(roiKpi > 0 ? [{
+          id: 'roi_op',
+          title: 'ROI Operación',
+          value: `${roiKpi.toFixed(1)}x`,
+          numericValue: roiKpi,
+          change: roiKpi > 3 ? 10 : roiKpi > 1 ? 2 : -5,
+          changeLabel: roiKpi > 3 ? '✅ Excelente (>3x)' : roiKpi > 1 ? '⚠️ Positivo (1-3x)' : '🔴 Negativo (<1x)',
+          vsIndustry: roiKpi > 1 ? 1 : -1,
+          sparkline: Array(7).fill(roiKpi),
+          roles: ['CEO', 'COO'],
+          description: 'Recaudo estimado / Costo operativo. >1x = operación rentable. Basado en PTP real.',
+        }] : []),
       ];
       // Filtrar KPIs según industria — fintech no muestra recaudo/cobranza
       const industry = clientConfig?.industry;
       const filteredKpis = industry === 'fintech_pagos'
-        ? kpisBuilt.filter(k => !['recaudo_mes', 'margen_op'].includes(k.id))
+        ? kpisBuilt.filter(k => !['recaudo_mes', 'margen_op', 'cpp', 'roi_op'].includes(k.id))
         : kpisBuilt;
       setKpis(filteredKpis);
 
@@ -624,13 +763,18 @@ export default function FinancialIntelligence() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">¿Cuánto está generando tu operación hoy?</p>
         </div>
-        {/* Badge estimativos — minimalista, no dominante */}
-        {!hasRealData && (
+        {/* Scale-A (23 abr 2026) — Banner dinámico fuente de datos */}
+        {hasPtpData ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-400 self-start">
+            <CheckCircle2 className="h-3 w-3" />
+            PTP real disponible
+          </span>
+        ) : !hasRealData ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-medium text-blue-400 self-start">
             <AlertTriangle className="h-3 w-3" />
             Estimativos CDR
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* ── Executive Brief ─────────────────────────────────────────────────── */}
@@ -644,6 +788,10 @@ export default function FinancialIntelligence() {
         mesLabel={currentMesLabel}
         industry={clientConfig?.industry}
         costoOpMes={costoOpMes}
+        hasPtpData={hasPtpData}
+        mesPtpContacts={mesPtpContacts}
+        todayPtpContacts={todayPtpContacts}
+        roiValue={roiValue}
       />
 
       {/* ── KPI Cards con sparklines ─────────────────────────────────────── */}
