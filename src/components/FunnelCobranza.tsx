@@ -203,30 +203,41 @@ export function FunnelCobranza({
           })}
         </div>
 
-        {/* Histórico — columna derecha, mismo nivel que el funnel */}
-        <div className="flex-[4] flex flex-col divide-y divide-border">
+        {/* Histórico — columna derecha, mismo estilo visual que KPI cards principales */}
+        <div className="flex-[4] flex flex-col gap-3 p-4">
           {pStats.map((p, i) => (
-            <div key={i} className="flex-1 px-4 py-4 flex flex-col justify-center">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+            <div key={i} className="flex-1 rounded-xl border border-border bg-card px-4 py-4 flex flex-col justify-center min-h-0">
+              {/* Título */}
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">
                 {p.label}
               </p>
+
               {p.vol != null ? (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">Vol/día</span>
-                    <span className="text-[13px] font-bold text-foreground">{p.vol.toLocaleString('es-CO')}</span>
+                <>
+                  {/* Número grande — Vol/día como métrica principal */}
+                  <p className="text-[28px] font-black text-foreground leading-tight tracking-tight">
+                    {p.vol.toLocaleString('es-CO')}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mb-2">llamadas / día</p>
+
+                  {/* Métricas secundarias */}
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground">RPC</span>
+                      <span className="text-[15px] font-bold text-violet-400">{p.rpc}%</span>
+                    </div>
+                    <div className="w-px h-6 bg-border" />
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground">PTP</span>
+                      <span className="text-[15px] font-bold text-emerald-400">{p.ptp}%</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">RPC</span>
-                    <span className="text-[13px] font-bold text-violet-400">{p.rpc}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">PTP</span>
-                    <span className="text-[13px] font-bold text-emerald-400">{p.ptp}%</span>
-                  </div>
-                </div>
+                </>
               ) : (
-                <p className="text-[11px] text-muted-foreground/40 italic">Sin datos</p>
+                <>
+                  <p className="text-[28px] font-black text-muted-foreground/20 leading-tight">—</p>
+                  <p className="text-[11px] text-muted-foreground/40 italic mt-1">Sin datos</p>
+                </>
               )}
             </div>
           ))}
