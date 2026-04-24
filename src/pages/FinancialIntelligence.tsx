@@ -182,7 +182,7 @@ function ExecutiveBrief({
   const tcVsBm     = tasaContacto - BM_TASA_CONTACTO_PCT;
   const tendOk     = tendenciaPct >= 0;
 
-  const statusColor = margenOk ? 'text-emerald-400' : 'text-orange-400';
+  const statusColor = margenOk ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-400';
   const statusText  = margenOk ? 'Costo CC dentro de benchmark' : 'Costo CC supera benchmark';
 
   return (
@@ -203,7 +203,7 @@ function ExecutiveBrief({
       <p className="text-sm text-muted-foreground leading-relaxed">
         En <span className="text-foreground font-medium">{mesLabel}</span> la operación{' '}
         {tendOk
-          ? <>muestra una tendencia <span className="text-emerald-400 font-semibold">positiva de +{tendenciaPct.toFixed(1)}%</span> vs. el mes anterior.</>
+          ? <>muestra una tendencia <span className="text-emerald-700 dark:text-emerald-300 font-semibold">positiva de +{tendenciaPct.toFixed(1)}%</span> vs. el mes anterior.</>
           : <>registra una caída de <span className="text-red-400 font-semibold">{tendenciaPct.toFixed(1)}%</span> vs. el mes anterior.</>
         }{' '}
         {isFintech ? (
@@ -212,8 +212,8 @@ function ExecutiveBrief({
             <span className="text-foreground font-semibold">{tasaContacto.toFixed(1)}%</span>.{' '}
             La tasa de contacto{' '}
             {tcVsBm >= 0
-              ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
-              : <><span className="text-orange-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+              ? <><span className="text-green-700 dark:text-green-300 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+              : <><span className="text-amber-700 dark:text-amber-300 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
             }{' '}
             Proyección diaria: <span className="text-foreground font-semibold">{(13059/30).toFixed(0)} llamadas</span> estimadas hoy.
           </>
@@ -223,12 +223,12 @@ function ExecutiveBrief({
             {hasPtpData && mesPtpContacts > 0 ? (
               <>
                 Hoy: <span className="text-foreground font-semibold">{todayPtpContacts.toLocaleString('es-CO')} promesas de pago</span>{' '}
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400 uppercase tracking-wide">PTP real</span>.{' '}
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-500 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide">PTP real</span>.{' '}
                 Recaudo estimado mes:{' '}
                 <span className="text-foreground font-semibold">{fmtCOP(recaudoMes)}</span>
-                {roiValue > 0 && <>{'. '}ROI operación:{' '}<span className={`font-semibold ${roiValue > 3 ? 'text-emerald-400' : roiValue > 1 ? 'text-yellow-400' : 'text-red-400'}`}>{roiValue.toFixed(1)}x</span></>}.{' '}
+                {roiValue > 0 && <>{'. '}ROI operación:{' '}<span className={`font-semibold ${roiValue > 3 ? 'text-emerald-700 dark:text-emerald-300' : roiValue > 1 ? 'text-yellow-700 dark:text-yellow-300' : 'text-red-600 dark:text-red-400'}`}>{roiValue.toFixed(1)}x</span></>}.{' '}
                 El costo CC representa{' '}
-                <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-orange-400'}`}>
+                <span className={`font-semibold ${margenOk ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-400'}`}>
                   {costoPct.toFixed(1)}% del recaudo
                 </span>{' '}
                 {margenOk ? `(benchmark: ≤${BM_COSTO_CC_PCT}%).` : `— por encima del benchmark de ≤${BM_COSTO_CC_PCT}%.`}
@@ -242,7 +242,7 @@ function ExecutiveBrief({
                 <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoMes, 'COP'))}</span>{' '}
                 <span className="text-muted-foreground/60 text-[11px]">≈ {fmtCOP(recaudoMes)} COP</span>.
                 El costo del contact center representa{' '}
-                <span className={`font-semibold ${margenOk ? 'text-emerald-400' : 'text-orange-400'}`}>
+                <span className={`font-semibold ${margenOk ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-400'}`}>
                   {costoPct.toFixed(1)}% del recaudo
                 </span>{' '}
                 {margenOk
@@ -251,8 +251,8 @@ function ExecutiveBrief({
                 }{' '}
                 La tasa de contacto{' '}
                 {tcVsBm >= 0
-                  ? <><span className="text-emerald-400 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
-                  : <><span className="text-orange-400 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+                  ? <><span className="text-green-700 dark:text-green-300 font-semibold">supera el benchmark</span> en +{tcVsBm.toFixed(1)}pp ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
+                  : <><span className="text-amber-700 dark:text-amber-300 font-semibold">está {Math.abs(tcVsBm).toFixed(1)}pp por debajo</span> del benchmark ({tasaContacto.toFixed(1)}% vs {BM_TASA_CONTACTO_PCT}% COPC LATAM).</>
                 }{' '}
                 Proyección diaria: <span className="text-foreground font-semibold">{fmtUSD(toUSD(recaudoHoy, 'COP'))}</span> de recaudo hoy.
               </>
@@ -266,7 +266,7 @@ function ExecutiveBrief({
         {isFintech
           ? <span className="text-muted-foreground/50">Datos basados en CDR histórico del cliente. Tasa de contacto = llamadas completadas / total llamadas.</span>
           : hasPtpData
-            ? <span className="text-emerald-400/70">✅ Basado en tipificación real del agente (PTP). Recaudo proyectado, no confirmado.</span>
+            ? <span className="text-muted-foreground">✅ Basado en tipificación real del agente (PTP). Recaudo proyectado, no confirmado.</span>
             : <span className="text-muted-foreground/50">⚠️ Estimativo — sin datos de tipificación para este período. Basado en contactos efectivos.</span>
         }
       </p>
@@ -274,7 +274,7 @@ function ExecutiveBrief({
       {!margenOk && !isFintech && (
         <div className="mt-3 flex items-start gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 p-3">
           <Zap className="h-3.5 w-3.5 text-orange-400 mt-0.5 shrink-0" />
-          <p className="text-xs text-orange-300 leading-relaxed">
+          <p className="text-xs text-amber-900 dark:text-amber-100 leading-relaxed">
             <strong>Atención:</strong> El costo del CC supera el benchmark de ≤{BM_COSTO_CC_PCT}%. Conectar datos reales de recaudo para diagnóstico preciso.
           </p>
         </div>
@@ -820,6 +820,11 @@ export default function FinancialIntelligence() {
             </span>
           )}
         </div>
+        {monthlyData.length === 0 ? (
+          <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">
+            Sin datos CDR disponibles para este cliente
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
             <defs>
@@ -837,6 +842,7 @@ export default function FinancialIntelligence() {
             <Line type="monotone" dataKey="costoOp" name="Costo op." stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="5 3" />
           </ComposedChart>
         </ResponsiveContainer>
+        )}
       </div></> }
 
       {clientConfig?.industry !== 'fintech_pagos' && <>{/* ── Margen mensual + Tabla campañas ─────────────────────────────────── */}
