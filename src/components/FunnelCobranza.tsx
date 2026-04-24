@@ -158,114 +158,80 @@ export function FunnelCobranza({
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
-      {/* Caption histórico */}
       {isHistoric && (
-        <p className="text-[10px] text-muted-foreground/40 text-center px-4 pt-3">
+        <p className="text-[10px] text-muted-foreground/40 text-center px-4 pt-3 -mb-1">
           Promedio 30 días · actualiza al cargar CDR con tipificaciones
         </p>
       )}
 
-      {/* Funnel — centrado, sin panel lateral */}
-      <div className="p-6 flex flex-col items-center justify-center gap-0">
-        {layers.map((layer) => {
-          // botInsetPct: how much each side narrows at the bottom, as % of this layer's own width
-          const botInsetPct =
-            ((layer.topW - layer.botW) / layer.topW / 2) * 100;
-          const clipPath = `polygon(0% 0%, 100% 0%, ${100 - botInsetPct}% 100%, ${botInsetPct}% 100%)`;
+      {/* Grid: funnel izquierda (60%) + histórico derecha (40%) */}
+      <div className="flex divide-x divide-border">
 
-          return (
-            <div
-              key={layer.key}
-              className="relative"
-              style={{
-                width: `${layer.topW}%`,
-                height: `${layer.height}px`,
-              }}
-            >
-              {/* Gradient background — shape via clip-path */}
+        {/* Funnel — columna izquierda */}
+        <div className="flex-[6] p-5 flex flex-col items-center justify-center gap-0">
+          {layers.map((layer) => {
+            const botInsetPct = ((layer.topW - layer.botW) / layer.topW / 2) * 100;
+            const clipPath = `polygon(0% 0%, 100% 0%, ${100 - botInsetPct}% 100%, ${botInsetPct}% 100%)`;
+            const shrinkPct = ((layer.topW - layer.botW) / 2 / layer.topW) * 100;
+            const padPct = shrinkPct + 5;
+            return (
               <div
-                className={`absolute inset-0 bg-gradient-to-b ${layer.gradient}`}
-                style={{ clipPath }}
-              />
+                key={layer.key}
+                className="relative w-full"
+                style={{ height: `${layer.height}px` }}
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-b ${layer.gradient}`}
+                  style={{ clipPath }}
+                />
+                <div
+                  className="relative z-10 flex flex-col items-center justify-center h-full gap-0.5 text-center"
+                  style={{ paddingLeft: `${padPct}%`, paddingRight: `${padPct}%` }}
+                >
+                  <span className="text-white/80 text-[11px] font-semibold leading-tight">
+                    {layer.label}
+                  </span>
+                  <span className="text-white font-black text-[28px] leading-none drop-shadow-lg">
+                    {layer.value}
+                  </span>
+                  <span className="text-white font-bold text-[17px] leading-none opacity-90">
+                    {layer.pct}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-              {/* Content — z-10, lives inside the visual trapezoid.
-                  Horizontal padding must account for the trapezoid narrowing.
-                  At the midpoint of the layer the usable width ≈ avg(topW, botW).
-                  We add 6% extra inset so text never touches the slanted edges. */}
-              {/* Contenido centrado dentro del trapezoid */}
-              {(() => {
-                const shrinkPct = ((layer.topW - layer.botW) / 2 / layer.topW) * 100;
-                const padPct = shrinkPct + 5;
-                return (
-                  <div
-                    className="relative z-10 flex flex-col items-center justify-center h-full gap-1 text-center"
-                    style={{ paddingLeft: `${padPct}%`, paddingRight: `${padPct}%` }}
-                  >
-                    {/* Nombre completo de la métrica */}
-                    <span className="text-white/80 text-[11px] font-semibold leading-tight">
-                      {layer.label}
-                    </span>
-
-                    {/* Número grande */}
-                    <span className="text-white font-black text-[32px] leading-none drop-shadow-lg">
-                      {layer.value}
-                    </span>
-
-                    {/* Porcentaje grande */}
-                    <span className="text-white font-bold text-[20px] leading-none opacity-90">
-                      {layer.pct}
-                    </span>
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Histórico 3 períodos */}
-      <div className="border-t border-border bg-secondary/20">
-        <div className="grid grid-cols-3 divide-x divide-border">
+        {/* Histórico — columna derecha, mismo nivel que el funnel */}
+        <div className="flex-[4] flex flex-col divide-y divide-border">
           {pStats.map((p, i) => (
-            <div key={i} className="px-5 py-4">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            <div key={i} className="flex-1 px-4 py-4 flex flex-col justify-center">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
                 {p.label}
               </p>
               {p.vol != null ? (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">
-                      Vol/día
-                    </span>
-                    <span className="text-[13px] font-bold text-foreground">
-                      {p.vol.toLocaleString('es-CO')}
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">Vol/día</span>
+                    <span className="text-[13px] font-bold text-foreground">{p.vol.toLocaleString('es-CO')}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">
-                      RPC
-                    </span>
-                    <span className="text-[13px] font-bold text-violet-400">
-                      {p.rpc}%
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">RPC</span>
+                    <span className="text-[13px] font-bold text-violet-400">{p.rpc}%</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground">
-                      PTP
-                    </span>
-                    <span className="text-[13px] font-bold text-emerald-400">
-                      {p.ptp}%
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">PTP</span>
+                    <span className="text-[13px] font-bold text-emerald-400">{p.ptp}%</span>
                   </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-muted-foreground/40 italic">
-                  Sin datos
-                </p>
+                <p className="text-[11px] text-muted-foreground/40 italic">Sin datos</p>
               )}
             </div>
           ))}
         </div>
+
       </div>
     </div>
   );
