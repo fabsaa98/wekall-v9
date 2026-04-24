@@ -38,8 +38,8 @@ const TICKET_PROMEDIO_COP = 160_000;
 const TASA_CUMPLIMIENTO   = 0.60;
 const TASA_PROMESA        = 0.40;
 // Defaults — se sobreescriben con datos reales de client_labor_costs
-const DEFAULT_costoAgenteMes = 3_000_000; // COP — solo para Crediminuto
-const DEFAULT_agentesActivos  = 0;          // 0 = sin datos configurados
+const DEFAULT_costoAgenteMes = 3_000_000; // COP — fallback cuando no hay client_labor_costs
+const DEFAULT_agentesActivos  = 81;         // fallback cuando no hay client_labor_costs
 const DIAS_LABORALES_MES  = 22;
 
 // Benchmarks industria cobranzas LATAM (COPC 2024)
@@ -306,8 +306,8 @@ export default function FinancialIntelligence() {
   const [campaigns,         setCampaigns]         = useState<CampaignRow[]>([]);
   const [kpis,              setKpis]              = useState<KPIData[]>([]);
   const [avgTasaContacto,   setAvgTasaContacto]   = useState(0);
-  const [costoAgenteMes,    setCostoAgenteMes]    = useState(0);  // desde client_labor_costs
-  const [agentesActivos,    setAgentesActivos]    = useState(0);  // desde client_labor_costs
+  const [costoAgenteMes,    setCostoAgenteMes]    = useState(DEFAULT_costoAgenteMes);  // desde client_labor_costs
+  const [agentesActivos,    setAgentesActivos]    = useState(DEFAULT_agentesActivos);  // desde client_labor_costs
   const costoOpMes = costoAgenteMes * agentesActivos; // calculado dinámico
 
   // Upload state
