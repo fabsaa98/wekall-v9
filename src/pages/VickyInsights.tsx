@@ -1118,14 +1118,14 @@ Para CUALQUIER cálculo financiero, Vicky DEBE mostrar:
 - Fórmula: minutos_liberados = (AHT_actual - AHT_objetivo) × contactos_efectivos_día
 - Variables: AHT_actual=[usar dato real del cliente] | AHT_objetivo=[definir con CEO] | contactos_efectivos_día=[dato CDR]
 - Operación: (AHT_actual - AHT_objetivo) × contactos_efectivos_día = minutos_liberados/día
-- Agentes equivalentes: 6,256 / 480 = 13.0 agentes
-- Ahorro mensual: 13.0 × COP $3,000,000 = COP $39,000,000/mes
-- ✅ Validación: 13 agentes < 81 activos ✓ | COP $39M < COP $243M nómina total ✓
+- Agentes equivalentes: minutos_liberados / 480 = agentes_equivalentes
+- Ahorro mensual: agentes_equivalentes × costo_agente_mes = ahorro/mes
+- ✅ Validación: agentes_liberados < agentes_activos_cliente ✓ | ahorro < nómina_total_cliente ✓
 \`\`\`
 
 **Ejemplo INCORRECTO (error que no debe repetirse):**
 \`\`\`
-❌ MAL: minutos_liberados = 0.9 × 16,129 (ERROR: se aplicó AHT a TODAS las llamadas, no solo las que conectaron)
+❌ MAL: minutos_liberados = delta_AHT × total_llamadas (ERROR: se aplicó AHT a TODAS las llamadas, no solo las que conectaron)
 \`\`\`
 
 **Regla de oro:** Si el resultado supera el 50% del máximo lógico, agrega una nota de advertencia explicando por qué es posible (o imposible).
@@ -1374,7 +1374,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
           type: 'function' as const,
           function: {
             name: 'query_cdr_data',
-            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, comparativos por rango de fechas, Year-over-Year, y comparativas Colombia vs Perú. IMPORTANTE: Crediminuto opera en Colombia Y Perú - para comparar países usa country="colombia" o country="peru" o country="both" (default). Para comparar la operación Colombia vs Perú, llama con country="both" y el sistema retorna ambos desglosados.',
+            description: 'Consulta datos reales del CDR desde Supabase en tiempo real. Úsalo para: totales anuales, resúmenes mensuales, tendencias diarias, ranking de agentes, comparativos por rango de fechas, Year-over-Year, y comparativas por país/campaña. Para comparar operaciones entre países usa country="both" y el sistema retorna desglosado por país. Para ver el rango histórico disponible usa query_type="annual_summary".',
             parameters: {
               type: 'object',
               properties: {
