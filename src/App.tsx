@@ -31,6 +31,7 @@ import SearchView from '@/pages/SearchView';
 import SpeechAnalytics from '@/pages/SpeechAnalytics';
 import ForecastView from '@/pages/ForecastView';
 import FinancialIntelligence from '@/pages/FinancialIntelligence';
+import FinancialConfig from '@/pages/FinancialConfig';
 // Scale-G (21 abr 2026): ChatRAG, AlertsView, IntegrationsView, SettingsView y Dashboard
 // son páginas huérfanas — NO se enrutan. Funcionalidad cubierta por VickyInsights y Alertas.
 // Se mantienen en el repo pero sin ruta activa para evitar fragmentación de UX.
@@ -132,6 +133,7 @@ export default function App() {
                 <Route path="/speech-analytics" element={<ErrorBoundary><SpeechAnalytics /></ErrorBoundary>} />
                 <Route path="/forecast" element={<ErrorBoundary><ForecastView /></ErrorBoundary>} />
                 <Route path="/financial" element={<ErrorBoundary><FinancialIntelligence /></ErrorBoundary>} />
+                <Route path="/financial-config" element={<ErrorBoundary><FinancialConfig /></ErrorBoundary>} />
               </Route>
 
               {/* Fallback */}
