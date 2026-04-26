@@ -6,7 +6,6 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { RecaudoDoD, RecaudoMoM, RecaudoYoY, RecaudoQoQ } from '@/types/financial-executive';
 
 interface ComparativesGridProps {
-  dod: RecaudoDoD | null;
   mom: RecaudoMoM[];
   yoy: RecaudoYoY[];
   qoq: RecaudoQoQ[];
@@ -65,13 +64,13 @@ function MetricBox({ title, value, change, changeLabel, note }: MetricBoxProps) 
   );
 }
 
-export function ComparativesGrid({ dod, mom, yoy, qoq, loading = false }: ComparativesGridProps) {
+export function ComparativesGrid({ mom, yoy, qoq, loading = false }: ComparativesGridProps) {
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
         <h3 className="text-sm font-semibold text-muted-foreground mb-4">Comparativas</h3>
-        <div className="grid grid-cols-2 gap-3 animate-pulse">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-pulse">
+          {[...Array(3)].map((_, i) => (
             <div key={i} className="h-24 bg-secondary/50 rounded" />
           ))}
         </div>
@@ -79,7 +78,6 @@ export function ComparativesGrid({ dod, mom, yoy, qoq, loading = false }: Compar
     );
   }
 
-  const dodData = dod && dod.es_ayer ? dod : null;
   const momCurrent = mom.find(m => m.es_mes_actual);
   const yoyCurrent = yoy.find(y => y.es_year_actual);
   const qoqCurrent = qoq.find(q => q.es_quarter_actual);
@@ -91,15 +89,7 @@ export function ComparativesGrid({ dod, mom, yoy, qoq, loading = false }: Compar
         Comparativas
       </h3>
 
-      <div className="grid grid-cols-2 gap-3">
-        {/* DoD - Day-over-Day */}
-        <MetricBox
-          title="DoD (Ayer)"
-          value={dodData ? fmtCOP(dodData.recaudo_cop) : 'N/D'}
-          change={dodData?.dod_pct ?? 0}
-          changeLabel="vs ant."
-        />
-
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* MoM - Month-over-Month */}
         <MetricBox
           title="MoM (Mes actual)"

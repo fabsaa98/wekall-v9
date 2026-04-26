@@ -27,7 +27,6 @@ import { ExecutiveSummary } from '@/components/financial/ExecutiveSummary';
 import type {
   RecaudoHoy,
   RecaudoMTD,
-  RecaudoDoD,
   RecaudoMoM,
   RecaudoYoY,
   RecaudoQoQ,
@@ -173,11 +172,11 @@ export default function FinancialIntelligence() {
   // Scale-A Fase 2: Executive Metrics
   const [todayData,   setTodayData]   = useState<RecaudoHoy | null>(null);
   const [mtdData,     setMtdData]     = useState<RecaudoMTD | null>(null);
-  const [dodData,     setDodData]     = useState<RecaudoDoD | null>(null);
   const [momData,     setMomData]     = useState<RecaudoMoM[]>([]);
   const [yoyData,     setYoyData]     = useState<RecaudoYoY[]>([]);
   const [qoqData,     setQoqData]     = useState<RecaudoQoQ[]>([]);
   const [sparkData,   setSparkData]   = useState<RecaudoSparkline[]>([]);
+  const [lastDataDate, setLastDataDate] = useState<string | null>(null);
 
   // Legacy state (mantener para gráficos)
   const [monthlyData,       setMonthlyData]       = useState<MonthlyFinancial[]>([]);
@@ -236,19 +235,15 @@ export default function FinancialIntelligence() {
         }
       } catch { setHasRealData(false); }
 
-      // 2. Scale-A Fase 2: Load executive queries in parallel
+      // 2. Scale-A Fase 2: Load executive queries in parallel (sin DoD)
       try {
-        const [hoy, mtd, dod, mom, yoy, qoq, spark] = await Promise.all([
+        const [hoy, mtd, mom, yoy, qoq, spark] = await Promise.all([
           proxyQuery<RecaudoHoy[]>({
             rpc: 'get_recaudo_hoy',
             params: { p_client_id: clientId },
           }),
           proxyQuery<RecaudoMTD[]>({
             rpc: 'get_recaudo_mtd',
-            params: { p_client_id: clientId },
-          }),
-          proxyQuery<RecaudoDoD[]>({
-            rpc: 'get_recaudo_dod',
             params: { p_client_id: clientId },
           }),
           proxyQuery<RecaudoMoM[]>({
@@ -271,11 +266,16 @@ export default function FinancialIntelligence() {
 
         setTodayData(Array.isArray(hoy) && hoy.length > 0 ? hoy[0] : null);
         setMtdData(Array.isArray(mtd) && mtd.length > 0 ? mtd[0] : null);
-        setDodData(Array.isArray(dod) && dod.length > 0 ? dod.find(d => d.es_ayer) || null : null);
         setMomData(Array.isArray(mom) ? mom : []);
         setYoyData(Array.isArray(yoy) ? yoy : []);
         setQoqData(Array.isArray(qoq) ? qoq : []);
         setSparkData(Array.isArray(spark) ? spark : []);
+
+        // Detectar última fecha con datos reales
+        if (realRows.length > 0) {
+          const lastDate = realRows[realRows.length - 1].fecha;
+          setLastDataDate(lastDate);
+        }
       } catch (e) {
         console.error('Error loading executive queries:', e);
         // Continue with legacy CDR data
@@ -549,25 +549,39 @@ export default function FinancialIntelligence() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Métricas ejecutivas · Recaudo en tiempo real</p>
         </div>
-        {hasRealData && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-400 self-start">
-            <CheckCircle2 className="h-3 w-3" />
-            Datos reales disponibles
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {hasRealData && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-400">
+              <CheckCircle2 className="h-3 w-3" />
+              Datos reales disponibles
+            </span>
+          )}
+          {lastDataDate && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-medium text-blue-400">
+              <Info className="h-3 w-3" />
+              Última actualización: {new Date(lastDataDate).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* ── Scale-A Fase 2: Executive Metrics Grid 2×2 ────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RealTimeCard data={todayData} loading={loading} />
-        <MTDCard data={mtdData} loading={loading} />
+      {/* ── Scale-A Fase 2: Executive Metrics Grid ────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4">
+        {/* Primera fila: HOY + MTD */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <RealTimeCard data={todayData} loading={loading} />
+          <MTDCard data={mtdData} loading={loading} />
+        </div>
+        
+        {/* Segunda fila: Comparativas (3 columnas) */}
         <ComparativesGrid 
-          dod={dodData} 
           mom={momData} 
           yoy={yoyData} 
           qoq={qoqData} 
           loading={loading} 
         />
+        
+        {/* Tercera fila: Sparkline (ancho completo) */}
         <SparklineTrend data={sparkData} loading={loading} />
       </div>
 
