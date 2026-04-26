@@ -335,10 +335,12 @@ export default function FinancialIntelligence() {
         const agentesUnicosSet = new Set(agentsMonth.map(a => a.agent_id));
         const agentesPromedioMes = agentesUnicosSet.size > 0 ? agentesUnicosSet.size : agentesActivos;
         
-        // Costo proporcional a días con datos Y agentes promedio
-        const costoOpMesProporcional = Math.round(
-          (costoAgenteMes * agentesPromedioMes * Math.min(diasConDatos, DIAS_LABORALES_MES)) / DIAS_LABORALES_MES
-        );
+        // Costo proporcional SOLO a días (sin agentes si no hay datos de agents_performance)
+        // Esto evita que se multiplique por 81 agentes cuando no tenemos datos reales
+        const diasProporcional = Math.min(diasConDatos, DIAS_LABORALES_MES) / DIAS_LABORALES_MES;
+        const costoOpMesProporcional = agentesUnicosSet.size > 0
+          ? Math.round(costoAgenteMes * agentesPromedioMes * diasProporcional)
+          : Math.round(costoOpMes * diasProporcional);
 
         if (realRows.length > 0) {
           const mReal = realRows.filter(r => r.fecha.slice(0, 7) === ym);
