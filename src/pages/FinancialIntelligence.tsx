@@ -299,6 +299,14 @@ export default function FinancialIntelligence() {
         return;
       }
 
+      // 3b. Load agent counts per month for cost calculation
+      const agentsData = await proxyQuery<Array<{fecha: string; agent_id: string}>>({
+        table: 'agents_performance',
+        select: 'fecha,agent_id',
+        filters: { 'client_id': `eq.${clientId}`, 'fecha': `gte.${fmt(hace400)}` },
+        limit: 10000,
+      }).catch(() => []);
+
       // 4. Group by month for legacy charts
       const byMonth: Record<string, { llamadas: number; contactos: number }> = {};
       for (const row of cdrData) {
@@ -319,8 +327,18 @@ export default function FinancialIntelligence() {
 
         // Calcular días laborables reales del mes (usando CDR data)
         const diasConDatos = cdrData.filter(r => r.fecha.slice(0, 7) === ym).length;
-        // Costo proporcional a días con datos (máximo 22 días laborables)
-        const costoOpMesProporcional = Math.round((costoOpMes / DIAS_LABORALES_MES) * Math.min(diasConDatos, DIAS_LABORALES_MES));
+        
+        // Calcular agentes promedio del mes (count distinct agent_id)
+        const agentsMonth = Array.isArray(agentsData) 
+          ? agentsData.filter(a => a.fecha.slice(0, 7) === ym)
+          : [];
+        const agentesUnicosSet = new Set(agentsMonth.map(a => a.agent_id));
+        const agentesPromedioMes = agentesUnicosSet.size > 0 ? agentesUnicosSet.size : agentesActivos;
+        
+        // Costo proporcional a días con datos Y agentes promedio
+        const costoOpMesProporcional = Math.round(
+          (costoAgenteMes * agentesPromedioMes * Math.min(diasConDatos, DIAS_LABORALES_MES)) / DIAS_LABORALES_MES
+        );
 
         if (realRows.length > 0) {
           const mReal = realRows.filter(r => r.fecha.slice(0, 7) === ym);
@@ -554,11 +572,17 @@ export default function FinancialIntelligence() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Métricas ejecutivas · Recaudo en tiempo real</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {hasRealData && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-400">
               <CheckCircle2 className="h-3 w-3" />
               Datos reales disponibles
+            </span>
+          )}
+          {!hasRealData && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 text-[11px] font-medium text-yellow-400">
+              <AlertTriangle className="h-3 w-3" />
+              Datos estimados
             </span>
           )}
           {lastDataDate && (
