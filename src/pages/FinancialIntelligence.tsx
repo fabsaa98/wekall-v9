@@ -317,13 +317,18 @@ export default function FinancialIntelligence() {
         const promesas = Math.round(m.contactos * TASA_PROMESA);
         let recaudo = Math.round(Math.round(m.contactos * COBRANZA_PCT * TASA_PROMESA) * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
 
+        // Calcular días laborables reales del mes (usando CDR data)
+        const diasConDatos = cdrData.filter(r => r.fecha.slice(0, 7) === ym).length;
+        // Costo proporcional a días con datos (máximo 22 días laborables)
+        const costoOpMesProporcional = Math.round((costoOpMes / DIAS_LABORALES_MES) * Math.min(diasConDatos, DIAS_LABORALES_MES));
+
         if (realRows.length > 0) {
           const mReal = realRows.filter(r => r.fecha.slice(0, 7) === ym);
           if (mReal.length > 0) recaudo = mReal.reduce((s, r) => s + r.monto_recaudado_cop, 0);
         }
 
-        const margen = recaudo - costoOpMes;
-        const margenPctRaw = recaudo > 0 ? (costoOpMes / recaudo) * 100 : 0;
+        const margen = recaudo - costoOpMesProporcional;
+        const margenPctRaw = recaudo > 0 ? (costoOpMesProporcional / recaudo) * 100 : 0;
         const margenPct = Math.min(margenPctRaw, 200);
         const tasaContacto = m.llamadas > 0 ? (m.contactos / m.llamadas) * 100 : 0;
 
@@ -331,7 +336,7 @@ export default function FinancialIntelligence() {
           mes: ym,
           mesLabel: mesLabel(ym),
           recaudo,
-          costoOp: costoOpMes,
+          costoOp: costoOpMesProporcional,
           margen,
           margenPct,
           promesas,
