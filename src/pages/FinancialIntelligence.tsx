@@ -337,14 +337,24 @@ export default function FinancialIntelligence() {
           ? diasLaborables.reduce((s, d) => s + d.total_llamadas, 0) / diasLaborables.length
           : 0;
         
-        // Contar días laborables + fines de semana con volumen significativo (≥30% promedio)
-        const diasLaborablesReales = diasMes.filter(d => {
+        // Contar días laborables reales (lun-vie + sáb/dom con ≥30% volumen)
+        const diasReales = diasMes.filter(d => {
           const dow = new Date(d.fecha).getDay();
           const isWeekday = dow >= 1 && dow <= 5;
           const isWeekendWithVolume = (dow === 0 || dow === 6) && 
             d.total_llamadas >= (volumenPromedioSemanal * 0.30);
           return isWeekday || isWeekendWithVolume;
+        });
+        const diasLaborablesReales = diasReales.length;
+        
+        // Calcular denominador dinámico (días esperados del mes)
+        // Base: 22 días (lun-vie estándar)
+        // + fines de semana con alto volumen en el mes completo
+        const finesSemanaAltoVolumen = diasMes.filter(d => {
+          const dow = new Date(d.fecha).getDay();
+          return (dow === 0 || dow === 6) && d.total_llamadas >= (volumenPromedioSemanal * 0.30);
         }).length;
+        const diasEsperadosMes = DIAS_LABORALES_MES + finesSemanaAltoVolumen;
         
         // Calcular agentes promedio del mes (count distinct agent_id)
         const agentsMonth = Array.isArray(agentsData) 
@@ -353,8 +363,8 @@ export default function FinancialIntelligence() {
         const agentesUnicosSet = new Set(agentsMonth.map(a => a.agent_id));
         const agentesPromedioMes = agentesUnicosSet.size > 0 ? agentesUnicosSet.size : agentesActivos;
         
-        // Costo proporcional a días laborables reales
-        const diasProporcional = Math.min(diasLaborablesReales, DIAS_LABORALES_MES) / DIAS_LABORALES_MES;
+        // Costo proporcional a días laborables reales vs esperados
+        const diasProporcional = diasLaborablesReales / Math.max(diasEsperadosMes, 1);
         const costoOpMesProporcional = agentesUnicosSet.size > 0
           ? Math.round(costoAgenteMes * agentesPromedioMes * diasProporcional)
           : Math.round(costoOpMes * diasProporcional);
