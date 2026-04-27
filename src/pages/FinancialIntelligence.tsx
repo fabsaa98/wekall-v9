@@ -325,8 +325,26 @@ export default function FinancialIntelligence() {
         const promesas = Math.round(m.contactos * TASA_PROMESA);
         let recaudo = Math.round(Math.round(m.contactos * COBRANZA_PCT * TASA_PROMESA) * TICKET_PROMEDIO_COP * TASA_CUMPLIMIENTO);
 
-        // Calcular días laborables reales del mes (usando CDR data)
-        const diasConDatos = cdrData.filter(r => r.fecha.slice(0, 7) === ym).length;
+        // Calcular días laborables reales del mes
+        const diasMes = cdrData.filter(r => r.fecha.slice(0, 7) === ym);
+        
+        // Calcular volumen promedio semanal (solo lun-vie)
+        const diasLaborables = diasMes.filter(d => {
+          const dow = new Date(d.fecha).getDay(); // 0=dom, 6=sab
+          return dow >= 1 && dow <= 5;
+        });
+        const volumenPromedioSemanal = diasLaborables.length > 0
+          ? diasLaborables.reduce((s, d) => s + d.total_llamadas, 0) / diasLaborables.length
+          : 0;
+        
+        // Contar días laborables + fines de semana con volumen significativo (≥30% promedio)
+        const diasLaborablesReales = diasMes.filter(d => {
+          const dow = new Date(d.fecha).getDay();
+          const isWeekday = dow >= 1 && dow <= 5;
+          const isWeekendWithVolume = (dow === 0 || dow === 6) && 
+            d.total_llamadas >= (volumenPromedioSemanal * 0.30);
+          return isWeekday || isWeekendWithVolume;
+        }).length;
         
         // Calcular agentes promedio del mes (count distinct agent_id)
         const agentsMonth = Array.isArray(agentsData) 
@@ -335,9 +353,8 @@ export default function FinancialIntelligence() {
         const agentesUnicosSet = new Set(agentsMonth.map(a => a.agent_id));
         const agentesPromedioMes = agentesUnicosSet.size > 0 ? agentesUnicosSet.size : agentesActivos;
         
-        // Costo proporcional SOLO a días (sin agentes si no hay datos de agents_performance)
-        // Esto evita que se multiplique por 81 agentes cuando no tenemos datos reales
-        const diasProporcional = Math.min(diasConDatos, DIAS_LABORALES_MES) / DIAS_LABORALES_MES;
+        // Costo proporcional a días laborables reales
+        const diasProporcional = Math.min(diasLaborablesReales, DIAS_LABORALES_MES) / DIAS_LABORALES_MES;
         const costoOpMesProporcional = agentesUnicosSet.size > 0
           ? Math.round(costoAgenteMes * agentesPromedioMes * diasProporcional)
           : Math.round(costoOpMes * diasProporcional);
