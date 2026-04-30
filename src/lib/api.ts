@@ -59,19 +59,25 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 // ─── API client ───────────────────────────────────────────────────────────
 
 export const api = {
-  // Transcriptions
+  // Transcriptions - NOW USING REAL API
   getTranscriptions: (params: TranscriptionsParams = {}) => {
+    const url = new URL(window.location.href);
+    const client_id = url.searchParams.get('client_id') || 'credismart';
     const qs = new URLSearchParams({
+      client_id,
       page: String(params.page ?? 1),
       limit: String(params.limit ?? 20),
       search: params.search ?? '',
       sentiment: params.sentiment ?? '',
     });
-    return apiFetch<PaginatedResponse<Transcription>>(`/transcriptions?${qs}`);
+    return apiFetch<PaginatedResponse<Transcription>>(`/transcriptions/list?${qs}`);
   },
 
-  getTranscription: (id: string) =>
-    apiFetch<Transcription>(`/transcriptions/${id}`),
+  getTranscription: (id: string) => {
+    const url = new URL(window.location.href);
+    const client_id = url.searchParams.get('client_id') || 'credismart';
+    return apiFetch<Transcription>(`/transcriptions/${id}?client_id=${client_id}`);
+  },
   updateTranscription: (id: string, body: { agentName?: string; clientName?: string; clientPhone?: string }) =>
     apiFetch<Transcription>(`/transcriptions/${id}`, {
       method: 'PATCH',
@@ -116,12 +122,19 @@ export const api = {
   getAIInsights: () =>
     apiFetch<AIInsight[]>('/dashboard/ai-insights'),
 
-  // Chat
-  sendMessage: (body: { conversationId?: string; message: string }) =>
-    apiFetch<ChatSendResponse>('/chat', {
+  // Chat - Vicky AI
+  sendMessage: (body: { conversationId?: string; message: string; question?: string }) => {
+    const url = new URL(window.location.href);
+    const client_id = url.searchParams.get('client_id') || 'credismart';
+    return apiFetch<any>('/vicky/chat', {
       method: 'POST',
-      body: JSON.stringify(body),
-    }),
+      body: JSON.stringify({
+        question: body.question || body.message,
+        client_id,
+        conversation_id: body.conversationId,
+      }),
+    });
+  },
 
   getConversations: () =>
     apiFetch<ChatConversation[]>('/chat/conversations'),
