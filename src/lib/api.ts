@@ -39,7 +39,13 @@ export interface ChatSendResponse {
 // ─── Base fetch ────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  // Use full URL in production (Pages Functions are at /api)
+  // In development, proxy via vite.config or use full URL
+  const baseUrl = import.meta.env.PROD 
+    ? '' // Production: relative paths work with Pages Functions
+    : (import.meta.env.VITE_API_URL || ''); // Dev: optional proxy
+  
+  const res = await fetch(`${baseUrl}/api${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
   });
@@ -84,18 +90,28 @@ export const api = {
       method: 'DELETE',
     }),
 
-  // Dashboard
-  getDashboardKPIs: () =>
-    apiFetch<DashboardKPIs>('/dashboard/kpis'),
+  // Dashboard - NOW USING REAL API
+  getDashboardKPIs: async (): Promise<any> => {
+    // Call real API endpoint
+    const url = new URL(window.location.href);
+    const client_id = url.searchParams.get('client_id') || 'credismart';
+    return apiFetch(`/dashboard/kpis?client_id=${client_id}`);
+  },
 
-  getCallsPerDay: () =>
-    apiFetch<CallsPerDay[]>('/dashboard/calls-per-day'),
+  getCallsPerDay: async (): Promise<CallsPerDay[]> => {
+    const url = new URL(window.location.href);
+    const client_id = url.searchParams.get('client_id') || 'credismart';
+    return apiFetch(`/dashboard/calls-per-day?client_id=${client_id}`);
+  },
 
   getSentimentDistribution: () =>
     apiFetch<SentimentDistribution[]>('/dashboard/sentiment-distribution'),
 
-  getAgentStats: () =>
-    apiFetch<AgentStats[]>('/dashboard/agent-stats'),
+  getAgentStats: async (): Promise<AgentStats[]> => {
+    const url = new URL(window.location.href);
+    const client_id = url.searchParams.get('client_id') || 'credismart';
+    return apiFetch(`/agents/stats?client_id=${client_id}`);
+  },
 
   getAIInsights: () =>
     apiFetch<AIInsight[]>('/dashboard/ai-insights'),
