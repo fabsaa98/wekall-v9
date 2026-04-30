@@ -232,3 +232,4 @@ npx wrangler pages deploy dist
 ---
 
 _Built with ❤️ by GlorIA — 30 Apr 2026_
+# Deploy trigger para activar env vars - Thu Apr 30 15:28:22 -05 2026
