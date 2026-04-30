@@ -20,8 +20,8 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        table: 'cdr_daily_metrics',
-        select: 'fecha,total_llamadas,llamadas_entrantes,llamadas_salientes,total_contactos,total_promesas,duracion_promedio_seg,tasa_contacto_pct,tasa_promesa_pct,csat_promedio',
+        table: 'agents_performance',
+        select: 'fecha,llamadas_total,contactos,promesas,tasa_contacto,tasa_promesa,csat,fcr,aht_segundos',
         filters: { client_id: `eq.${client_id}` },
         order: 'fecha.desc',
         limit: 1,

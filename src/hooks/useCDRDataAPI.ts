@@ -121,17 +121,16 @@ export function useCDRDataAPI(): CDRState {
   useEffect(() => {
     async function load() {
       try {
-        const [metricsRes, latestRes] = await Promise.all([
-          fetch(`/api/cdr/metrics?client_id=${clientId}&days=30`),
-          fetch(`/api/cdr/latest?client_id=${clientId}`),
-        ]);
-
-        if (!metricsRes.ok || !latestRes.ok) {
+        const metricsRes = await fetch(`/api/cdr/daily-aggregated?client_id=${clientId}&days=60`);
+        
+        if (!metricsRes.ok) {
           throw new Error('Error cargando datos del API');
         }
 
         const last30Days: CDRDayMetric[] = await metricsRes.json();
-        const latestDay: CDRDayMetric | null = await latestRes.json();
+        const latestDay: CDRDayMetric | null = last30Days.length > 0 ? last30Days[last30Days.length - 1] : null;
+
+
 
         const last7 = last30Days.slice(-7);
         const promedio7d = last7.length > 0 
