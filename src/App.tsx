@@ -117,8 +117,8 @@ export default function App() {
                   </AuthGuard>
                 }
               >
-                <Route path="/" element={<ErrorBoundary><DashboardAPI /></ErrorBoundary>} />
-                <Route path="/overview" element={<ErrorBoundary><Overview /></ErrorBoundary>} />
+                <Route path="/" element={<ErrorBoundary><Overview /></ErrorBoundary>} />
+                <Route path="/dashboard-api" element={<ErrorBoundary><DashboardAPI /></ErrorBoundary>} />
                 <Route path="/vicky" element={<ErrorBoundary><VickyInsights /></ErrorBoundary>} />
                 <Route path="/document-analysis" element={<ErrorBoundary><DocumentAnalysis /></ErrorBoundary>} />
                 <Route path="/alertas" element={<ErrorBoundary><Alertas /></ErrorBoundary>} />
