@@ -4,8 +4,9 @@
 > Plataforma multi-tenant de inteligencia operativa para contact centers — datos reales, análisis en lenguaje natural, alertas proactivas.
 
 **Producción:** https://wekall-intelligence.pages.dev  
-**Versión actual:** V22.1.0  
-**Stack:** React 18 + TypeScript + Vite + Supabase + Cloudflare Pages/Workers
+**Versión actual:** V23 (Scale-A Fase 2)  
+**Stack:** React 18 + TypeScript + Vite + Supabase + Cloudflare Pages/Workers  
+**Proyecto:** WeIntelligence (anteriormente wekall-v9)
 
 ---
 
