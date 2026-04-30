@@ -10,6 +10,7 @@ const queryClient = new QueryClient({
 import { TooltipProvider } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/AppLayout';
 import Overview from '@/pages/Overview';
+import { DashboardAPI } from '@/pages/DashboardAPI';
 import VickyInsights from '@/pages/VickyInsights';
 import Alertas from '@/pages/Alertas';
 import Equipos from '@/pages/Equipos';
@@ -116,7 +117,8 @@ export default function App() {
                   </AuthGuard>
                 }
               >
-                <Route path="/" element={<ErrorBoundary><Overview /></ErrorBoundary>} />
+                <Route path="/" element={<ErrorBoundary><DashboardAPI /></ErrorBoundary>} />
+                <Route path="/overview" element={<ErrorBoundary><Overview /></ErrorBoundary>} />
                 <Route path="/vicky" element={<ErrorBoundary><VickyInsights /></ErrorBoundary>} />
                 <Route path="/document-analysis" element={<ErrorBoundary><DocumentAnalysis /></ErrorBoundary>} />
                 <Route path="/alertas" element={<ErrorBoundary><Alertas /></ErrorBoundary>} />
