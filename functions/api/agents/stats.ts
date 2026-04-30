@@ -4,11 +4,8 @@
  * Returns top agents by performance metrics
  */
 
-import { createClient } from '@supabase/supabase-js';
-
 interface Env {
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_KEY: string;
+  WORKER_PROXY_URL?: string;
 }
 
 interface AgentStat {
@@ -35,22 +32,27 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = context.env;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const WORKER_PROXY_URL = context.env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
 
     const url = new URL(context.request.url);
     const client_id = url.searchParams.get('client_id') || 'credismart';
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
     const sortBy = url.searchParams.get('sort_by') || 'llamadas_total';
 
-    const { data, error } = await supabase
-      .from('agents_performance')
-      .select('agent_name, llamadas_total, contactos, promesas, tasa_contacto, tasa_promesa, csat, fcr, aht_segundos')
-      .eq('client_id', client_id)
-      .order(sortBy, { ascending: false })
-      .limit(500); // Get all, aggregate client-side
-
-    if (error) throw error;
+    const res = await fetch(`${WORKER_PROXY_URL}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table: 'agents_performance',
+        select: 'agent_name,llamadas_total,contactos,promesas,tasa_contacto,tasa_promesa,csat,fcr,aht_segundos',
+        filters: { client_id: `eq.${client_id}` },
+        order: `${sortBy}.desc`,
+        limit: 500,
+      }),
+    });
+    
+    if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
+    const data = await res.json();
 
     // Aggregate by agent
     const agentMap = new Map<string, AgentStat>();

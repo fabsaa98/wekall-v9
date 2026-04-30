@@ -4,11 +4,8 @@
  * Returns daily call volume trend (last 7 days)
  */
 
-import { createClient } from '@supabase/supabase-js';
-
 interface Env {
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_KEY: string;
+  WORKER_PROXY_URL?: string;
 }
 
 export const onRequest: PagesFunction<Env> = async (context) => {
@@ -23,8 +20,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = context.env;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const WORKER_PROXY_URL = context.env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
 
     const url = new URL(context.request.url);
     const client_id = url.searchParams.get('client_id') || 'credismart';
@@ -34,14 +30,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
 
-    const { data, error } = await supabase
-      .from('agents_performance')
-      .select('fecha, llamadas_total')
-      .eq('client_id', client_id)
-      .gte('fecha', sevenDaysAgo.toISOString().split('T')[0])
-      .order('fecha', { ascending: true });
-
-    if (error) throw error;
+    const res = await fetch(`${WORKER_PROXY_URL}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table: 'agents_performance',
+        select: 'fecha,llamadas_total',
+        filters: {
+          client_id: `eq.${client_id}`,
+          fecha: `gte.${sevenDaysAgo.toISOString().split('T')[0]}`,
+        },
+        order: 'fecha.asc',
+      }),
+    });
+    
+    if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
+    const data = await res.json();
 
     // Aggregate by date
     const byDate = new Map<string, number>();

@@ -8,11 +8,8 @@
  * Best practice: Centralized data fetching, type-safe, cacheable
  */
 
-import { createClient } from '@supabase/supabase-js';
-
 interface Env {
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_KEY: string;
+  WORKER_PROXY_URL?: string;
 }
 
 interface KPIResponse {
@@ -42,34 +39,44 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = context.env;
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      throw new Error('Missing Supabase configuration');
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const WORKER_PROXY_URL = context.env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
+    
+    // Helper to query via Worker proxy
+    const queryWorker = async (body: any) => {
+      const res = await fetch(`${WORKER_PROXY_URL}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
+      return res.json();
+    };
 
     // Extract client_id from query params or auth
     const url = new URL(context.request.url);
     const client_id = url.searchParams.get('client_id') || 'credismart';
 
-    // Fetch all KPIs in parallel
+    // Fetch all KPIs in parallel via Worker proxy
     const [
-      { data: recaudoHoy },
-      { data: recaudoMtd },
-      { data: mom },
-      { data: agentsData },
+      recaudoHoyData,
+      recaudoMtdData,
+      momData,
+      agentsData,
     ] = await Promise.all([
-      supabase.rpc('get_recaudo_hoy', { p_client_id: client_id }),
-      supabase.rpc('get_recaudo_mtd', { p_client_id: client_id }),
-      supabase.rpc('get_recaudo_mom', { p_client_id: client_id }),
-      supabase
-        .from('agents_performance')
-        .select('csat, fcr, escalaciones, tasa_contacto, tasa_promesa')
-        .eq('client_id', client_id)
-        .limit(100),
+      queryWorker({ rpc: 'get_recaudo_hoy', params: { p_client_id: client_id } }),
+      queryWorker({ rpc: 'get_recaudo_mtd', params: { p_client_id: client_id } }),
+      queryWorker({ rpc: 'get_recaudo_mom', params: { p_client_id: client_id } }),
+      queryWorker({
+        table: 'agents_performance',
+        select: 'csat,fcr,escalaciones,tasa_contacto,tasa_promesa',
+        filters: { client_id: `eq.${client_id}` },
+        limit: 100,
+      }),
     ]);
+    
+    const recaudoHoy = recaudoHoyData?.[0]?.recaudo_cop || null;
+    const recaudoMtd = recaudoMtdData?.[0]?.recaudo_cop || null;
+    const mom = momData?.[0]?.mom_pct || null;
 
     // Aggregate agent metrics
     let avgCsat = null;
