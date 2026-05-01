@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   Upload, FileAudio, FileText, FileSpreadsheet, Image as ImageIcon,
-  Loader2, Zap, CheckCircle, AlertCircle, X, Brain, MessageCircle,
+  Loader2, Zap, CheckCircle, AlertCircle, X, Brain, MessageCircle, HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
@@ -112,7 +112,11 @@ async function extractExcelCSV(file: File): Promise<string> {
 async function extractPDF(file: File): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf') as any;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+  // Worker local bundleado (UAT Mejora #2 - elimina dependencia CDN)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/legacy/build/pdf.worker.min.js',
+    import.meta.url
+  ).toString();
   const buffer = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ data: buffer });
   const pdf = await loadingTask.promise;
@@ -484,19 +488,69 @@ export default function DocumentAnalysis() {
             )}
           </div>
 
-          {/* Supported formats */}
+          {/* Supported formats con tooltips (UAT Mejora #5) */}
           <div className="px-4 pb-4">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Formatos soportados</p>
+            <div className="flex items-center gap-1.5 mb-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Formatos soportados</p>
+              <div className="group relative">
+                <HelpCircle size={12} className="text-muted-foreground/60 cursor-help" />
+                <div className="hidden group-hover:block absolute left-0 top-full mt-1 z-50 w-64 rounded-lg border border-border bg-card p-3 shadow-xl">
+                  <p className="text-xs font-semibold text-foreground mb-1.5">ℹ️ Información</p>
+                  <div className="space-y-1 text-[10px] text-muted-foreground">
+                    <p>🎵 Audio: Máx 25 MB</p>
+                    <p>📝 PDF: Máx 20 páginas</p>
+                    <p>🖼️ Imagen: Máx 10 MB</p>
+                    <p>💬 WhatsApp: Formato [DD/MM/YY, HH:MM:SS]</p>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="space-y-1.5">
               {[
-                { icon: <FileAudio size={13} className="text-blue-400" />, label: 'Audio', desc: 'MP3, WAV, M4A → Whisper AI', available: true },
-                { icon: <FileText size={13} className="text-red-400" />, label: 'PDF', desc: 'Extracción automática de texto', available: true },
-                { icon: <FileSpreadsheet size={13} className="text-green-400" />, label: 'Excel / CSV', desc: 'Análisis de datos y tablas', available: true },
-                { icon: <FileText size={13} className="text-blue-500" />, label: 'Word', desc: 'Documentos .docx', available: true },
-                { icon: <ImageIcon size={13} className="text-sky-600" />, label: 'Imágenes', desc: 'JPG, PNG → GPT-4o Vision', available: true },
-                { icon: <MessageCircle size={13} className="text-green-500" />, label: 'Chat WhatsApp', desc: 'Exportación .txt de conversaciones', available: true },
-              ].map(({ icon, label, desc, available }) => (
-                <div key={label} className="flex items-center gap-2">
+                { 
+                  icon: <FileAudio size={13} className="text-blue-400" />, 
+                  label: 'Audio', 
+                  desc: 'MP3, WAV, M4A → Whisper AI', 
+                  available: true,
+                  tooltip: 'Máximo 25 MB. Transcripción automática en español.'
+                },
+                { 
+                  icon: <FileText size={13} className="text-red-400" />, 
+                  label: 'PDF', 
+                  desc: 'Extracción automática de texto', 
+                  available: true,
+                  tooltip: 'Máximo 20 páginas, 15k caracteres.'
+                },
+                { 
+                  icon: <FileSpreadsheet size={13} className="text-green-400" />, 
+                  label: 'Excel / CSV', 
+                  desc: 'Análisis de datos y tablas', 
+                  available: true,
+                  tooltip: 'Lee todas las hojas. Máximo 15k caracteres.'
+                },
+                { 
+                  icon: <FileText size={13} className="text-blue-500" />, 
+                  label: 'Word', 
+                  desc: 'Documentos .docx', 
+                  available: true,
+                  tooltip: 'Recomendado: Convertir a PDF para mejores resultados.'
+                },
+                { 
+                  icon: <ImageIcon size={13} className="text-sky-600" />, 
+                  label: 'Imágenes', 
+                  desc: 'JPG, PNG → GPT-4o Vision', 
+                  available: true,
+                  tooltip: 'Máximo 10 MB. Análisis visual con IA.'
+                },
+                { 
+                  icon: <MessageCircle size={13} className="text-green-500" />, 
+                  label: 'Chat WhatsApp', 
+                  desc: 'Exportación .txt de conversaciones', 
+                  available: true,
+                  tooltip: 'Formato: [DD/MM/YY, HH:MM:SS] Nombre: Mensaje'
+                },
+              ].map(({ icon, label, desc, available, tooltip }) => (
+                <div key={label} className="group/item relative flex items-center gap-2">
                   <span className="shrink-0">{icon}</span>
                   <div className="flex-1">
                     <span className="text-[11px] font-semibold text-foreground">{label}: </span>
@@ -507,6 +561,10 @@ export default function DocumentAnalysis() {
                       DISPONIBLE
                     </span>
                   )}
+                  {/* Tooltip hover */}
+                  <div className="hidden group-hover/item:block absolute left-0 top-full mt-1 z-50 w-56 rounded-lg border border-border bg-card p-2 shadow-xl">
+                    <p className="text-[10px] text-foreground">{tooltip}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -572,24 +630,45 @@ export default function DocumentAnalysis() {
 
           {isProcessing && (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20">
+              {/* Indicador de progreso mejorado (UAT Mejora #3) */}
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 relative">
                 <Loader2 size={28} className="text-primary animate-spin" />
+                {/* Pulse ring animation */}
+                <div className="absolute inset-0 rounded-2xl border-2 border-primary/30 animate-ping" />
               </div>
-              <div className="text-center">
+              <div className="text-center max-w-md">
                 <p className="text-base font-semibold text-foreground">
                   {status === 'extracting' ? '🔍 Extrayendo contenido del documento...' : '🧠 Vicky cruzando con datos del CDR...'}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">{currentFile}</p>
+                <p className="text-sm text-muted-foreground mt-1 truncate px-4">{currentFile}</p>
+                {/* Descripción del paso actual */}
+                <p className="text-xs text-muted-foreground/80 mt-2 leading-relaxed">
+                  {status === 'extracting' 
+                    ? 'Procesando archivo y extrayendo texto...'
+                    : 'Analizando contenido con GPT-4o e integrando datos del CDR...'}
+                </p>
               </div>
-              <div className="flex gap-2">
-                {(['Extracción', 'Análisis CDR', 'Insights'] as const).map((step, i) => (
-                  <div key={step} className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                    (i === 0 && status === 'extracting') || (i === 1 && status === 'analyzing')
-                      ? 'border-primary bg-primary/10 text-primary'
+              {/* Progress steps con iconos */}
+              <div className="flex gap-3">
+                {[
+                  { label: 'Extracción', active: status === 'extracting', icon: '📝' },
+                  { label: 'Análisis CDR', active: status === 'analyzing', icon: '📊' },
+                  { label: 'Insights', active: false, icon: '✨' },
+                ].map((step, i) => (
+                  <div key={step.label} className={cn(
+                    'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all',
+                    step.active
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm scale-105'
+                      : i < (['extracting', 'analyzing'].indexOf(status) + 1)
+                      ? 'border-green-500/30 bg-green-500/10 text-green-400'
                       : 'border-border text-muted-foreground',
                   )}>
-                    {step}
+                    <span>{step.icon}</span>
+                    <span>{step.label}</span>
+                    {step.active && <Loader2 size={12} className="animate-spin ml-1" />}
+                    {!step.active && i < (['extracting', 'analyzing'].indexOf(status) + 1) && (
+                      <CheckCircle size={12} className="text-green-400 ml-1" />
+                    )}
                   </div>
                 ))}
               </div>
