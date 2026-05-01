@@ -209,7 +209,29 @@ ${cdrContext}
 
 ${benchmarkCtx}
 ${whatsappExtra}
-INSTRUCCIONES:
+⚠️ REGLA CRÍTICA DE RELEVANCIA:
+ANTES de analizar, VALIDA que el documento tenga relación directa con:
+- Operación de contact center (llamadas, agentes, campañas, KPIs)
+- Industria del cliente (${clientIndustry}): cobranzas, ventas, servicio al cliente, gestión de cartera
+- Procesos de negocio: CX, productividad, análisis de conversaciones, estrategia comercial
+- Datos relevantes: transcripciones, reportes, métricas, análisis de objeciones, scripts
+
+SI EL DOCUMENTO NO TIENE RELACIÓN (ej: exámenes médicos, recetas, trámites personales, documentos ajenos al negocio):
+Responde EXACTAMENTE:
+"❌ Este documento no tiene relación con la operación del contact center ni con el negocio de ${clientName}.
+
+Vicky Insights analiza únicamente documentos relacionados con:
+• Operación de contact center (llamadas, agentes, campañas)
+• Industria ${clientIndustry}
+• Procesos de CX, ventas, cobranzas o servicio
+
+Por favor, sube un documento relacionado con tu operación para que pueda cruzarlo con los datos del CDR y generar insights accionables."
+
+NO intentes forzar análisis de documentos irrelevantes. Rechaza educadamente.
+
+---
+
+SI EL DOCUMENTO SÍ ES RELEVANTE:
 1. Analiza el contenido del documento adjunto
 2. Identifica elementos relevantes para la operación de cobranzas o servicio
 3. Cruza hallazgos del documento con los datos del CDR
@@ -576,23 +598,36 @@ export default function DocumentAnalysis() {
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Analizados</p>
               <div className="space-y-1.5">
                 {docs.map((doc, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedDoc(doc)}
-                    className={cn(
-                      'w-full flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all',
-                      selectedDoc === doc
-                        ? 'border-primary/40 bg-primary/10'
-                        : 'border-border hover:border-primary/20 hover:bg-secondary/50',
-                    )}
-                  >
-                    {fileTypeIcon(doc.fileType)}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-foreground truncate">{doc.fileName}</p>
-                      <p className="text-[10px] text-muted-foreground">{fileTypeLabel(doc.fileType)}</p>
-                    </div>
-                    <CheckCircle size={12} className="text-green-400 shrink-0" />
-                  </button>
+                  <div key={i} className="relative group">
+                    <button
+                      onClick={() => setSelectedDoc(doc)}
+                      className={cn(
+                        'w-full flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all',
+                        selectedDoc === doc
+                          ? 'border-primary/40 bg-primary/10'
+                          : 'border-border hover:border-primary/20 hover:bg-secondary/50',
+                      )}
+                    >
+                      {fileTypeIcon(doc.fileType)}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{doc.fileName}</p>
+                        <p className="text-[10px] text-muted-foreground">{fileTypeLabel(doc.fileType)}</p>
+                      </div>
+                      <CheckCircle size={12} className="text-green-400 shrink-0" />
+                    </button>
+                    {/* Botón eliminar (visible on hover) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDocs(prev => prev.filter((_, idx) => idx !== i));
+                        if (selectedDoc === doc) setSelectedDoc(null);
+                      }}
+                      className="absolute top-1/2 -translate-y-1/2 right-2 hidden group-hover:flex items-center justify-center w-6 h-6 rounded-full bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 transition-all"
+                      title="Eliminar documento"
+                    >
+                      <X size={12} className="text-destructive" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
