@@ -228,49 +228,40 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Cargar config y branding cuando cambia el clientId
+  // Cargar config y branding cuando cambia el clientId — USA API BACKEND
   useEffect(() => {
+    if (!clientId) {
+      setLoading(false);
+      return;
+    }
+
     async function loadClientData() {
       setLoading(true);
-      const PROXY = (import.meta.env.VITE_PROXY_URL || '').replace(/\/$/, '');
-
-      async function proxyFetch<T>(table: string): Promise<T | null> {
-        if (!PROXY) return null;
-        try {
-          const r = await fetch(`${PROXY}/query`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ table, select: '*', filters: { client_id: `eq.${clientId}` }, limit: 1 }),
-          });
-          if (!r.ok) return null;
-          const data = await r.json() as T[];
-          return Array.isArray(data) ? (data[0] ?? null) : null;
-        } catch { return null; }
-      }
 
       try {
-        // Intentar primero via proxy (funciona en todos los networks)
-        const [configProxy, brandingProxy] = await Promise.all([
-          proxyFetch<ClientConfig>('client_config'),
-          proxyFetch<ClientBranding>('client_branding'),
-        ]);
-
-        if (configProxy || brandingProxy) {
-          setClientConfig(configProxy);
-          setClientBranding(brandingProxy);
-          setLoading(false);
-          return;
+        // Usar API backend en vez de Supabase directo
+        const configRes = await fetch(`/api/client/config?client_id=${clientId}`);
+        
+        if (configRes.ok) {
+          const config = await configRes.json();
+          setClientConfig(config);
+          
+          // Branding puede estar en el mismo config o en endpoint separado
+          // Por ahora usar campos de config (logo_url, primary_color, etc.)
+          setClientBranding({
+            client_id: config.client_id,
+            logo_url: config.logo_url,
+            primary_color: config.primary_color,
+            company_name: config.client_name,
+            tagline: config.tagline,
+          });
+        } else {
+          console.warn(`[ClientContext] API /client/config falló: ${configRes.status}`);
+          setClientConfig(null);
+          setClientBranding(null);
         }
-
-        // Fallback: directo a Supabase
-        const [configRes, brandingRes] = await Promise.all([
-          supabase.from('client_config').select('*').eq('client_id', clientId).maybeSingle(),
-          supabase.from('client_branding').select('*').eq('client_id', clientId).maybeSingle(),
-        ]);
-
-        setClientConfig(configRes.data as ClientConfig | null);
-        setClientBranding(brandingRes.data as ClientBranding | null);
-      } catch {
+      } catch (err) {
+        console.error('[ClientContext] Error cargando client data:', err);
         setClientConfig(null);
         setClientBranding(null);
       } finally {
