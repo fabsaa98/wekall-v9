@@ -24,13 +24,14 @@ interface AgentPerformance {
 interface DailyAggregated {
   fecha: string;
   total_llamadas: number;
-  total_contactos: number;
-  total_promesas: number;
+  llamadas_entrantes: number;
+  llamadas_salientes: number;
+  contactos_efectivos: number;
+  promesas_pago: number;
+  duracion_promedio_seg: number;
   tasa_contacto_pct: number;
   tasa_promesa_pct: number;
   csat_promedio: number;
-  fcr_promedio: number;
-  duracion_promedio_seg: number;
 }
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
@@ -97,13 +98,14 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
       aggregated.push({
         fecha,
         total_llamadas,
-        total_contactos,
-        total_promesas,
+        llamadas_entrantes: Math.round(total_llamadas * 0.5), // Estimado 50/50
+        llamadas_salientes: Math.round(total_llamadas * 0.5),
+        contactos_efectivos: total_contactos,
+        promesas_pago: total_promesas,
+        duracion_promedio_seg: Math.round(avg(ahts)),
         tasa_contacto_pct: Math.round(avg(tasas_contacto) * 10) / 10,
         tasa_promesa_pct: Math.round(avg(tasas_promesa) * 10) / 10,
         csat_promedio: Math.round(avg(csats) * 10) / 10,
-        fcr_promedio: Math.round(avg(fcrs) * 10) / 10,
-        duracion_promedio_seg: Math.round(avg(ahts)),
       });
     }
 

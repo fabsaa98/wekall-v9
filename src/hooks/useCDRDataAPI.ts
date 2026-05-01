@@ -10,8 +10,8 @@ export interface CDRDayMetric {
   total_llamadas: number;
   llamadas_entrantes: number;
   llamadas_salientes: number;
-  total_contactos: number;
-  total_promesas: number;
+  contactos_efectivos: number;
+  promesas_pago: number;
   duracion_promedio_seg: number;
   tasa_contacto_pct: number;
   tasa_promesa_pct: number;
