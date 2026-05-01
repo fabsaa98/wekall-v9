@@ -36,6 +36,16 @@ export interface ChatSendResponse {
   conversationId: string;
 }
 
+// ─── Client ID normalization ──────────────────────────────────────────────
+
+function normalizeClientId(clientId: string): string {
+  const mapping: Record<string, string> = {
+    'credismart': 'crediminuto',
+    'credi': 'crediminuto',
+  };
+  return mapping[clientId.toLowerCase()] || clientId;
+}
+
 // ─── Base fetch ────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -62,7 +72,8 @@ export const api = {
   // Transcriptions - NOW USING REAL API
   getTranscriptions: (params: TranscriptionsParams = {}) => {
     const url = new URL(window.location.href);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
+    const rawClientId = url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
     const qs = new URLSearchParams({
       client_id,
       page: String(params.page ?? 1),
@@ -75,7 +86,8 @@ export const api = {
 
   getTranscription: (id: string) => {
     const url = new URL(window.location.href);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
+    const rawClientId = url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
     return apiFetch<Transcription>(`/transcriptions/${id}?client_id=${client_id}`);
   },
   updateTranscription: (id: string, body: { agentName?: string; clientName?: string; clientPhone?: string }) =>
@@ -96,17 +108,27 @@ export const api = {
       method: 'DELETE',
     }),
 
+  // Client Config
+  getClientConfig: async (clientId?: string): Promise<any> => {
+    const url = new URL(window.location.href);
+    const rawClientId = clientId || url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
+    return apiFetch(`/client/config?client_id=${client_id}`);
+  },
+
   // Dashboard - NOW USING REAL API
   getDashboardKPIs: async (): Promise<any> => {
     // Call real API endpoint
     const url = new URL(window.location.href);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
+    const rawClientId = url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
     return apiFetch(`/dashboard/kpis?client_id=${client_id}`);
   },
 
   getCallsPerDay: async (): Promise<CallsPerDay[]> => {
     const url = new URL(window.location.href);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
+    const rawClientId = url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
     return apiFetch(`/dashboard/calls-per-day?client_id=${client_id}`);
   },
 
@@ -115,7 +137,8 @@ export const api = {
 
   getAgentStats: async (): Promise<AgentStats[]> => {
     const url = new URL(window.location.href);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
+    const rawClientId = url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
     return apiFetch(`/agents/stats?client_id=${client_id}`);
   },
 
@@ -125,7 +148,8 @@ export const api = {
   // Chat - Vicky AI
   sendMessage: (body: { conversationId?: string; message: string; question?: string }) => {
     const url = new URL(window.location.href);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
+    const rawClientId = url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
     return apiFetch<any>('/vicky/chat', {
       method: 'POST',
       body: JSON.stringify({

@@ -100,8 +100,17 @@ function generateForecast(last30Days: CDRDayMetric[]): ForecastPoint[] {
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
+function normalizeClientId(clientId: string): string {
+  const mapping: Record<string, string> = {
+    'credismart': 'crediminuto',
+    'credi': 'crediminuto',
+  };
+  return mapping[clientId.toLowerCase()] || clientId;
+}
+
 export function useCDRDataAPI(): CDRState {
-  const { clientId } = useClient();
+  const { clientId: rawClientId } = useClient();
+  const clientId = normalizeClientId(rawClientId);
 
   const [state, setState] = useState<CDRState>({
     loading: true,
