@@ -239,25 +239,25 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       setLoading(true);
 
       try {
-        // Usar API backend en vez de Supabase directo
-        const configRes = await fetch(`/api/client/config?client_id=${clientId}`);
+        // Fetch config y branding en paralelo
+        const [configRes, brandingRes] = await Promise.all([
+          fetch(`/api/client/config?client_id=${clientId}`),
+          fetch(`/api/client/branding?client_id=${clientId}`),
+        ]);
         
         if (configRes.ok) {
           const config = await configRes.json();
           setClientConfig(config);
-          
-          // Branding puede estar en el mismo config o en endpoint separado
-          // Por ahora usar campos de config (logo_url, primary_color, etc.)
-          setClientBranding({
-            client_id: config.client_id,
-            logo_url: config.logo_url,
-            primary_color: config.primary_color,
-            company_name: config.client_name,
-            tagline: config.tagline,
-          });
         } else {
           console.warn(`[ClientContext] API /client/config falló: ${configRes.status}`);
           setClientConfig(null);
+        }
+
+        if (brandingRes.ok) {
+          const branding = await brandingRes.json();
+          setClientBranding(branding);
+        } else {
+          console.warn(`[ClientContext] API /client/branding falló: ${brandingRes.status}`);
           setClientBranding(null);
         }
       } catch (err) {
