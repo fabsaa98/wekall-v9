@@ -21,11 +21,11 @@ const navGroups = [
   {
     label: 'Análisis',
     items: [
+      { label: 'Executive Insights', path: '/document-analysis', icon: TrendingUp },
       // Speech Analytics, Transcripciones y Búsqueda unificados bajo "Análisis de Llamadas"
       { label: 'Speech Analytics', path: '/speech-analytics', icon: Mic },
       { label: 'Transcripciones', path: '/transcriptions', icon: FileAudio },
       { label: 'Búsqueda', path: '/search', icon: Search },
-      { label: 'Executive Insights', path: '/document-analysis', icon: TrendingUp },
       // Badge "Estimado" manejado en la página. Nombre completo visible.
       { label: 'Financial Intelligence', path: '/financial', icon: DollarSign, badge: 'Estimado' },
       { label: 'Forecast', path: '/forecast', icon: TrendingUp, badge: 'Estimado' },
