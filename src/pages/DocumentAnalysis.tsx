@@ -316,7 +316,20 @@ export default function DocumentAnalysis() {
     let extractedText = '';
     let whatsappMeta: WhatsAppMeta | undefined;
 
+    // Validaciones de tamaño frontend (UAT Mejora #1)
+    const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25 MB
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+
     try {
+      // Validar tamaño antes de procesar
+      if (fileType === 'audio' && file.size > MAX_AUDIO_SIZE) {
+        throw new Error('El archivo de audio supera el límite de 25 MB. Por favor, comprime el archivo o sube uno más pequeño.');
+      }
+      
+      if (fileType === 'image' && file.size > MAX_IMAGE_SIZE) {
+        throw new Error('La imagen supera el límite de 10 MB. Por favor, reduce la resolución o comprime el archivo.');
+      }
+
       switch (fileType) {
         case 'audio':
           extractedText = await extractAudio(file);
@@ -341,9 +354,16 @@ export default function DocumentAnalysis() {
             extractedText = parsed.parsed;
             whatsappMeta = { participants: parsed.participants, messageCount: parsed.messageCount };
           } else {
-            // Plain text file, not a WhatsApp chat — treat as generic text
-            fileType = 'unknown';
-            extractedText = rawText.slice(0, 15000);
+            // Validación mejorada para WhatsApp (UAT Mejora #4)
+            throw new Error(
+              'El archivo TXT no tiene formato de chat WhatsApp válido.\n\n' +
+              'Para exportar un chat:\n' +
+              '1. Abre WhatsApp > Chat deseado\n' +
+              '2. Toca los 3 puntos (Menú) > Más > Exportar chat\n' +
+              '3. Selecciona "Sin multimedia"\n' +
+              '4. Guarda el archivo .txt y súbelo aquí\n\n' +
+              'Formato esperado: [DD/MM/YY, HH:MM:SS] Nombre: Mensaje'
+            );
           }
           break;
         }

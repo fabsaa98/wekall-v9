@@ -1,0 +1,8 @@
+[1/5/26, 13:35:22] Cliente BOLD: Hola, necesito consultar el estado de mi crédito
+[1/5/26, 13:35:45] Agente Ana: Hola! Con gusto te ayudo. ¿Me compartes tu número de cédula?
+[1/5/26, 13:36:02] Cliente BOLD: 1234567890
+[1/5/26, 13:36:30] Agente Ana: Perfecto, veo que tu crédito fue aprobado por $5,000,000 COP
+[1/5/26, 13:36:50] Cliente BOLD: Excelente! ¿Cuándo hacen el desembolso?
+[1/5/26, 13:37:10] Agente Ana: En máximo 24 horas hábiles quedará en tu cuenta
+[1/5/26, 13:37:25] Cliente BOLD: Muchas gracias!
+[1/5/26, 13:37:30] Agente Ana: Para servirte! Cualquier duda estamos disponibles 24/7
