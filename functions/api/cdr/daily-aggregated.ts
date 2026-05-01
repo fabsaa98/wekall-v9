@@ -44,14 +44,15 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
     startDate.setDate(today.getDate() - days);
     const startDateStr = startDate.toISOString().split('T')[0];
 
-    // Get cdr_daily_metrics
+    // Get cdr_daily_metrics (ordenar por fecha desc para tener datos recientes primero)
     const res = await fetch(`${WORKER_PROXY_URL}/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         table: 'cdr_daily_metrics',
         select: '*',
-        limit: 1000,
+        order: 'fecha.desc',
+        limit: 2000,
       }),
     });
 
@@ -59,10 +60,10 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
       throw new Error(`Worker query failed: ${res.status}`);
     }
 
-    const allMetrics: CDRDailyMetric[] = await res.json();
+    const allMetrics: any[] = await res.json();
     
     // Filter client-side (Worker proxy bug workaround) + date range
-    const filtered = allMetrics.filter(m => 
+    const filtered = allMetrics.filter((m: any) => 
       m.client_id === client_id && 
       m.fecha >= startDateStr
     );
