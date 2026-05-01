@@ -98,24 +98,40 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   }, [clientId]);
 
   async function handleSwitchCC(targetClientId: string) {
-    if (targetClientId === clientId || switching) return;
+    console.log('[CC Switcher] Cambio solicitado:', { from: clientId, to: targetClientId, switching });
+    
+    if (targetClientId === clientId) {
+      console.log('[CC Switcher] Ya est\u00e1 en esta instancia');
+      setSwitcherOpen(false);
+      return;
+    }
+    
+    if (switching) {
+      console.log('[CC Switcher] Cambio en progreso, ignorando');
+      return;
+    }
+    
     setSwitching(true);
     setSwitcherOpen(false);
+    console.log('[CC Switcher] Iniciando cambio...');
     
     // Actualizar en Supabase Auth user_metadata (persistencia)
     try {
       await supabase.auth.updateUser({
         data: { client_id: targetClientId }
       });
-    } catch {
-      // Fallback: solo localStorage
+      console.log('[CC Switcher] Auth actualizado');
+    } catch (err) {
+      console.warn('[CC Switcher] Error al actualizar Auth:', err);
     }
     
     // Actualizar client_id en estado local y localStorage
     setClientId(targetClientId);
     localStorage.setItem('wki_client_id', targetClientId);
+    console.log('[CC Switcher] localStorage actualizado');
     
     // Hard reload para que todo el contexto cargue limpio
+    console.log('[CC Switcher] Realizando hard reload...');
     window.location.href = '/';
   }
 
@@ -303,13 +319,18 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                   {ccOptions.map(opt => (
                     <button
                       key={opt.client_id}
-                      onClick={() => handleSwitchCC(opt.client_id)}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSwitchCC(opt.client_id);
+                      }}
                       disabled={switching}
                       className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors ${
                         opt.client_id === clientId
                           ? 'bg-primary/10 text-primary font-semibold'
                           : 'text-foreground hover:bg-secondary'
-                      }`}
+                      } ${switching ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       <div className={`w-2 h-2 rounded-full shrink-0 ${opt.client_id === clientId ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
                       <span className="truncate">{opt.name}</span>
