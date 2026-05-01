@@ -374,7 +374,7 @@ const ACCEPTED_TYPES = [
 export default function DocumentAnalysis() {
   const { clientConfig } = useClient();
   const cdr = useCDRData();
-  const clientName = clientConfig?.client_name || 'WeKall Intelligence';
+  const clientName = clientConfig?.client_name || clientConfig?.client_id || 'tu empresa';
   const clientIndustry = clientConfig?.industry || 'cobranzas';
   const clientCountry = clientConfig?.country || 'colombia';
 
