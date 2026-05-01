@@ -116,6 +116,14 @@ export const api = {
     return apiFetch(`/client/config?client_id=${client_id}`);
   },
 
+  // Client Campaigns
+  getClientCampaigns: async (clientId?: string, days = 7): Promise<any> => {
+    const url = new URL(window.location.href);
+    const rawClientId = clientId || url.searchParams.get('client_id') || 'credismart';
+    const client_id = normalizeClientId(rawClientId);
+    return apiFetch(`/client/campaigns?client_id=${client_id}&days=${days}`);
+  },
+
   // Dashboard - NOW USING REAL API
   getDashboardKPIs: async (): Promise<any> => {
     // Call real API endpoint
