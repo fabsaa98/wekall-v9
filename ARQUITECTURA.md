@@ -226,7 +226,7 @@ WeIntelligence/
 
 **Production:**
 ```bash
-SUPABASE_URL=https://mdkefdhqhmmrbcczrszt.supabase.co
+SUPABASE_URL=https://iszodrpublcnsyvtgjcg.supabase.co
 SUPABASE_SERVICE_KEY=eyJ... (Service Role)
 ```
 

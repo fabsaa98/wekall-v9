@@ -79,6 +79,8 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               const resp = await fetch(`/api/client/config?client_id=${id}`);
               if (!resp.ok) return null;
               const data = await resp.json();
+              // Filtro: solo instancias con nombre real (client_name != client_id)
+              if (data.client_name === id) return null;
               return { client_id: id, name: data.client_name || id };
             } catch {
               return null;

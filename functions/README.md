@@ -126,7 +126,7 @@ Cloudflare Pages requiere estas variables en **Settings → Environment variable
 
 ```bash
 # Production
-SUPABASE_URL=https://mdkefdhqhmmrbcczrszt.supabase.co
+SUPABASE_URL=https://iszodrpublcnsyvtgjcg.supabase.co
 SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Preview (optional)
