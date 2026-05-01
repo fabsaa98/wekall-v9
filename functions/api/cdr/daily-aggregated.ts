@@ -1,43 +1,39 @@
 /**
  * GET /api/cdr/daily-aggregated?client_id=credismart&days=30
  * 
- * Agrega agents_performance por fecha (suma llamadas, promedio tasas)
- * Alternativa a cdr_daily_metrics que no existe
+ * Retorna métricas diarias desde cdr_daily_metrics
+ * Incluye RPC/PTP para clientes de cobranza
  */
 
 interface Env {
   WORKER_PROXY_URL?: string;
 }
 
-interface AgentPerformance {
-  fecha: string;
-  llamadas_total: number;
-  contactos: number;
-  promesas: number;
-  tasa_contacto: number;
-  tasa_promesa: number;
-  csat: number;
-  fcr: number;
-  aht_segundos: number;
+function normalizeClientId(clientId: string): string {
+  const mapping: Record<string, string> = {
+    'credismart': 'crediminuto',
+    'credi': 'crediminuto',
+  };
+  return mapping[clientId.toLowerCase()] || clientId;
 }
 
-interface DailyAggregated {
+interface CDRDailyMetric {
   fecha: string;
   total_llamadas: number;
-  llamadas_entrantes: number;
-  llamadas_salientes: number;
   contactos_efectivos: number;
-  promesas_pago: number;
-  duracion_promedio_seg: number;
   tasa_contacto_pct: number;
-  tasa_promesa_pct: number;
-  csat_promedio: number;
+  rpc_contactos: number | null;
+  rpc_rate_pct: number | null;
+  ptp_contactos: number | null;
+  ptp_rate_pct: number | null;
+  aht_minutos: number | null;
 }
 
 export async function onRequestGet(context: { request: Request; env: Env }) {
   const { request, env } = context;
   const url = new URL(request.url);
-  const client_id = url.searchParams.get('client_id') || 'credismart';
+  const rawClientId = url.searchParams.get('client_id') || 'credismart';
+  const client_id = normalizeClientId(rawClientId);
   const days = parseInt(url.searchParams.get('days') || '30', 10);
 
   const WORKER_PROXY_URL = env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
@@ -48,19 +44,14 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
     startDate.setDate(today.getDate() - days);
     const startDateStr = startDate.toISOString().split('T')[0];
 
-    // Get all agent performance records
+    // Get cdr_daily_metrics
     const res = await fetch(`${WORKER_PROXY_URL}/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        table: 'agents_performance',
-        select: 'fecha,llamadas_total,contactos,promesas,tasa_contacto,tasa_promesa,csat,fcr,aht_segundos',
-        filters: {
-          client_id: `eq.${client_id}`,
-          fecha: `gte.${startDateStr}`,
-        },
-        order: 'fecha.asc',
-        limit: 5000,
+        table: 'cdr_daily_metrics',
+        select: '*',
+        limit: 1000,
       }),
     });
 
@@ -68,51 +59,18 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
       throw new Error(`Worker query failed: ${res.status}`);
     }
 
-    const rawData: AgentPerformance[] = await res.json();
-
-    // Aggregate by date
-    const byDate = new Map<string, AgentPerformance[]>();
+    const allMetrics: CDRDailyMetric[] = await res.json();
     
-    for (const row of rawData) {
-      if (!byDate.has(row.fecha)) {
-        byDate.set(row.fecha, []);
-      }
-      byDate.get(row.fecha)!.push(row);
-    }
-
-    const aggregated: DailyAggregated[] = [];
-
-    for (const [fecha, agents] of byDate.entries()) {
-      const total_llamadas = agents.reduce((sum, a) => sum + (a.llamadas_total || 0), 0);
-      const total_contactos = agents.reduce((sum, a) => sum + (a.contactos || 0), 0);
-      const total_promesas = agents.reduce((sum, a) => sum + (a.promesas || 0), 0);
-      
-      const tasas_contacto = agents.map(a => a.tasa_contacto || 0).filter(t => t > 0);
-      const tasas_promesa = agents.map(a => a.tasa_promesa || 0).filter(t => t > 0);
-      const csats = agents.map(a => a.csat || 0).filter(c => c > 0);
-      const fcrs = agents.map(a => a.fcr || 0).filter(f => f > 0);
-      const ahts = agents.map(a => a.aht_segundos || 0).filter(a => a > 0);
-
-      const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
-
-      aggregated.push({
-        fecha,
-        total_llamadas,
-        llamadas_entrantes: Math.round(total_llamadas * 0.5), // Estimado 50/50
-        llamadas_salientes: Math.round(total_llamadas * 0.5),
-        contactos_efectivos: total_contactos,
-        promesas_pago: total_promesas,
-        duracion_promedio_seg: Math.round(avg(ahts)),
-        tasa_contacto_pct: Math.round(avg(tasas_contacto) * 10) / 10,
-        tasa_promesa_pct: Math.round(avg(tasas_promesa) * 10) / 10,
-        csat_promedio: Math.round(avg(csats) * 10) / 10,
-      });
-    }
+    // Filter client-side (Worker proxy bug workaround) + date range
+    const filtered = allMetrics.filter(m => 
+      m.client_id === client_id && 
+      m.fecha >= startDateStr
+    );
 
     // Sort by date ascending
-    aggregated.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const sorted = filtered.sort((a, b) => a.fecha.localeCompare(b.fecha));
 
-    return new Response(JSON.stringify(aggregated), {
+    return new Response(JSON.stringify(sorted), {
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=300',

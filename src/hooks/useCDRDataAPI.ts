@@ -8,14 +8,20 @@ import { useClient } from '@/contexts/ClientContext';
 export interface CDRDayMetric {
   fecha: string;
   total_llamadas: number;
-  llamadas_entrantes: number;
-  llamadas_salientes: number;
+  llamadas_entrantes?: number;
+  llamadas_salientes?: number;
   contactos_efectivos: number;
-  promesas_pago: number;
-  duracion_promedio_seg: number;
+  promesas_pago?: number;
+  duracion_promedio_seg?: number;
   tasa_contacto_pct: number;
-  tasa_promesa_pct: number;
-  csat_promedio: number | null;
+  tasa_promesa_pct?: number;
+  csat_promedio?: number | null;
+  // Campos cobranza (opcionales, solo para clientes collections)
+  rpc_contactos?: number | null;
+  rpc_rate_pct?: number | null;
+  ptp_contactos?: number | null;
+  ptp_rate_pct?: number | null;
+  aht_minutos?: number | null;
 }
 
 export interface AnomalyResult {
