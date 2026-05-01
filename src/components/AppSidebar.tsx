@@ -59,59 +59,60 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
 
   const initials = role.split(' ').map(w => w[0]).join('').slice(0, 2);
 
-  // ─── CC Switcher ────────────────────────────────────────────────────────────
+  // ─── CC Switcher — V29 API Backend (01 may 2026) ───────────────────────────
   const [ccOptions, setCcOptions] = useState<Array<{ client_id: string; name: string }>>([]);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     async function loadCCOptions() {
-      if (!currentUser?.email) return;
+      if (!clientId) return;
       try {
-        const PROXY = (import.meta.env.VITE_PROXY_URL || '').replace(/\/$/, '');
-        const resp = await fetch(`${PROXY}/query`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            table: 'app_users',
-            select: 'client_id',
-            filters: { email: `eq.${currentUser.email}` },
-            limit: 10,
-          }),
-        });
-        if (!resp.ok) return;
-        const rows = await resp.json() as Array<{ client_id: string }>;
-        if (rows.length > 1) {
-          // Cargar nombres de client_config
-          const names: Array<{ client_id: string; name: string }> = [];
-          for (const row of rows) {
-            const r2 = await fetch(`${PROXY}/query`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                table: 'client_branding',
-                select: 'client_id,company_name',
-                filters: { client_id: `eq.${row.client_id}` },
-                limit: 1,
-              }),
-            });
-            const d = await r2.json() as Array<{ client_id: string; company_name?: string }>;
-            names.push({ client_id: row.client_id, name: d[0]?.company_name || row.client_id });
-          }
-          setCcOptions(names);
+        // Detectar base client_id (ej: "bold" de "bold2")
+        const baseId = clientId.replace(/\d+$/, '');
+        const candidates = [baseId, `${baseId}2`, `${baseId}3`, `${baseId}4`];
+        
+        // Consultar instancias en paralelo usando API backend
+        const results = await Promise.all(
+          candidates.map(async (id) => {
+            try {
+              const resp = await fetch(`/api/client/config?client_id=${id}`);
+              if (!resp.ok) return null;
+              const data = await resp.json();
+              return { client_id: id, name: data.client_name || id };
+            } catch {
+              return null;
+            }
+          })
+        );
+        
+        const valid = results.filter(r => r !== null) as Array<{ client_id: string; name: string }>;
+        if (valid.length > 1) {
+          setCcOptions(valid);
         }
       } catch { /* silencioso */ }
     }
     loadCCOptions();
-  }, [currentUser?.email]);
+  }, [clientId]);
 
   async function handleSwitchCC(targetClientId: string) {
     if (targetClientId === clientId || switching) return;
     setSwitching(true);
     setSwitcherOpen(false);
+    
+    // Actualizar en Supabase Auth user_metadata (persistencia)
+    try {
+      await supabase.auth.updateUser({
+        data: { client_id: targetClientId }
+      });
+    } catch {
+      // Fallback: solo localStorage
+    }
+    
     // Actualizar client_id en estado local y localStorage
     setClientId(targetClientId);
     localStorage.setItem('wki_client_id', targetClientId);
+    
     // Hard reload para que todo el contexto cargue limpio
     window.location.href = '/';
   }
