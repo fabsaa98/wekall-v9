@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
   Upload, FileAudio, FileText, FileSpreadsheet, Image as ImageIcon,
   Loader2, Zap, CheckCircle, AlertCircle, X, Brain, MessageCircle, HelpCircle,
+  TrendingUp, Lightbulb, Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
@@ -511,7 +512,7 @@ export default function DocumentAnalysis() {
           <Brain size={18} className="text-primary" />
         </div>
         <div>
-          <h1 className="text-base font-bold text-foreground">Análisis de Documentos</h1>
+          <h1 className="text-base font-bold text-foreground">Executive Insights</h1>
           <p className="text-xs text-muted-foreground">Vicky cruza tu documento con los datos del CDR para análisis estratégico integrado</p>
         </div>
       </div>
@@ -705,28 +706,54 @@ export default function DocumentAnalysis() {
         {/* Right: Analysis panel */}
         <div className="flex-1 overflow-y-auto p-6">
           {!selectedDoc && !isProcessing && (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-4">
+            <div className="flex flex-col items-center justify-center h-full text-center gap-6 px-6">
+              {/* Hero Section */}
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20">
-                <Zap size={28} className="text-primary" />
+                <Brain size={32} className="text-primary" />
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-foreground">Vicky Document Intelligence</h2>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                  Sube cualquier documento — Vicky extrae el contenido y lo cruza con los datos del CDR para análisis estratégico integrado.
+              <div className="max-w-2xl">
+                <h2 className="text-2xl font-bold text-foreground">Executive Insights</h2>
+                <p className="text-base text-muted-foreground mt-2 leading-relaxed">
+                  Sube documentos estratégicos. Vicky cruza con tus datos del CDR y genera insights accionables para decisiones de negocio.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3 mt-2 max-w-sm w-full">
+
+              {/* Value Props */}
+              <div className="grid grid-cols-3 gap-4 mt-2 max-w-3xl w-full">
                 {[
-                  { emoji: '🎧', text: 'Audio de llamada → Vicky analiza objeciones vs. tu CDR' },
-                  { emoji: '📊', text: 'Reporte Excel → Vicky cruza con tus KPIs operativos' },
-                  { emoji: '📄', text: 'PDF de estrategia → Vicky extrae insights accionables' },
-                  { emoji: '🖼️', text: 'Captura de pantalla → GPT-4o Vision lee y analiza' },
-                ].map(({ emoji, text }) => (
-                  <div key={emoji} className="flex items-start gap-2 rounded-lg border border-border bg-card p-3">
-                    <span className="text-lg shrink-0">{emoji}</span>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>
+                  { icon: TrendingUp, title: 'Compara vs Benchmarks', desc: 'Identifica gaps y oportunidades vs industria' },
+                  { icon: Lightbulb, title: 'Insights Accionables', desc: 'Recomendaciones concretas, no solo data' },
+                  { icon: Target, title: 'ROI Estimado', desc: 'Impacto financiero proyectado' },
+                ].map(({ icon: Icon, title, desc }) => (
+                  <div key={title} className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4">
+                    <Icon size={24} className="text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+                    <p className="text-xs text-muted-foreground text-center leading-relaxed">{desc}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* Document Types */}
+              <div className="max-w-4xl w-full mt-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Documentos que puedes analizar:</h3>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { icon: '📊', label: 'Frameworks', examples: 'SWOT, Canvas, OKRs' },
+                    { icon: '📈', label: 'Benchmarks', examples: 'Gartner, Forrester, McKinsey' },
+                    { icon: '💰', label: 'Financieros', examples: 'P&L, ROI, presupuestos' },
+                    { icon: '🔍', label: 'Mercado', examples: 'Competencia, tendencias' },
+                    { icon: '📑', label: 'Contratos', examples: 'SLAs, acuerdos clave' },
+                    { icon: '🎯', label: 'Estrategias', examples: 'Go-to-market, roadmaps' },
+                    { icon: '✨', label: 'Best Practices', examples: 'Case studies, white papers' },
+                    { icon: '🎤', label: 'Transcripciones', examples: 'Keynotes, webinars' },
+                  ].map(({ icon, label, examples }) => (
+                    <div key={label} className="flex flex-col items-center gap-1.5 rounded-lg border border-border bg-card p-3 hover:border-primary/30 transition-colors">
+                      <span className="text-2xl">{icon}</span>
+                      <h4 className="text-xs font-semibold text-foreground">{label}</h4>
+                      <p className="text-[10px] text-muted-foreground text-center">{examples}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
