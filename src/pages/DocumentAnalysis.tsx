@@ -211,19 +211,87 @@ ${benchmarkCtx}
 ${whatsappExtra}
 ⚠️ REGLA CRÍTICA DE RELEVANCIA:
 ANTES de analizar, VALIDA que el documento tenga relación directa con:
-- Operación de contact center (llamadas, agentes, campañas, KPIs)
-- Industria del cliente (${clientIndustry}): cobranzas, ventas, servicio al cliente, gestión de cartera
-- Procesos de negocio: CX, productividad, análisis de conversaciones, estrategia comercial
-- Datos relevantes: transcripciones, reportes, métricas, análisis de objeciones, scripts
 
-SI EL DOCUMENTO NO TIENE RELACIÓN (ej: exámenes médicos, recetas, trámites personales, documentos ajenos al negocio):
+✅ DOCUMENTOS ACEPTADOS (Categorías amplias):
+
+1. OPERACIÓN DE CONTACT CENTER:
+   - Transcripciones de llamadas, grabaciones, análisis de voz
+   - Reportes de KPIs: AHT, FCR, CSAT, NPS, tasa de contacto, conversión
+   - Métricas de agentes: productividad, performance, rankings
+   - Campañas: cobranzas, ventas, retención, outbound/inbound
+   - Scripts, objeciones, argumentarios, playbooks
+   - Análisis de conversaciones, sentiment analysis
+
+2. ESTRATEGIA Y NEGOCIO:
+   - Frameworks estratégicos (SWOT, Canvas, OKRs, Balanced Scorecard)
+   - Planes comerciales, estrategias de go-to-market
+   - Business cases, ROI analysis, propuestas de valor
+   - Informes ejecutivos, presentaciones para junta directiva
+   - Roadmaps de producto/servicio
+
+3. BENCHMARKS E INDUSTRIA:
+   - Benchmarks de industria (contact center, BPO, ${clientIndustry})
+   - Estudios de mercado, análisis competitivo
+   - Best practices de CX, ventas, cobranzas
+   - White papers, case studies, research reports
+   - Tendencias de industria, innovación en CC
+
+4. FINANCIERO Y OPERATIVO:
+   - Informes financieros: P&L, balance, flujo de caja
+   - Presupuestos, forecasts, proyecciones
+   - Análisis de costos operativos (costo por llamada, CAC, LTV)
+   - Reportes de eficiencia, utilización de recursos
+   - Business intelligence dashboards
+
+5. TECNOLOGÍA Y HERRAMIENTAS:
+   - Documentación de CRM, telephony, omnicanalidad
+   - Manuales de herramientas (Salesforce, Genesys, Five9, etc.)
+   - Arquitectura de soluciones, integraciones
+   - Reportes de IA/automatización (chatbots, voicebots)
+   - Data analytics, BI tools
+
+6. PROCESOS Y CALIDAD:
+   - Manuales de procesos, SOPs, workflows
+   - Quality assurance reports, auditorías
+   - Compliance, regulaciones (GDPR, PCI-DSS, etc.)
+   - Training materials, onboarding guides
+   - Políticas de servicio al cliente
+
+7. RECURSOS HUMANOS:
+   - Evaluaciones de desempeño de agentes
+   - Planes de capacitación, desarrollo de talento
+   - Org charts, estructura de equipos
+   - Engagement surveys, clima laboral
+   - Compensation & benefits (si relacionado con performance)
+
+8. CLIENTES Y MERCADO:
+   - Customer journey maps, voice of customer
+   - Análisis de churn, retención, lifetime value
+   - Segmentación de clientes, personas
+   - Net Promoter Score (NPS) reports
+   - Feedback de clientes, encuestas
+
+❌ DOCUMENTOS RECHAZADOS (Ejemplos):
+- Exámenes médicos, recetas, historias clínicas
+- Facturas/gastos personales del CEO
+- Trámites legales/notariales personales
+- Documentos familiares, escolares (hijos)
+- Contenido de entretenimiento sin relación laboral
+- Manuales de productos no relacionados con CC
+
+SI EL DOCUMENTO NO TIENE RELACIÓN:
 Responde EXACTAMENTE:
 "❌ Este documento no tiene relación con la operación del contact center ni con el negocio de ${clientName}.
 
-Vicky Insights analiza únicamente documentos relacionados con:
-• Operación de contact center (llamadas, agentes, campañas)
-• Industria ${clientIndustry}
-• Procesos de CX, ventas, cobranzas o servicio
+Vicky Insights analiza documentos estratégicos y operativos como:
+• Operación de CC (KPIs, transcripciones, campañas)
+• Estrategia y frameworks (SWOT, OKRs, business cases)
+• Benchmarks e industria (${clientIndustry}, best practices)
+• Informes financieros (P&L, ROI, costos operativos)
+• Tecnología y herramientas (CRM, IA, analytics)
+• Procesos y calidad (SOPs, QA, compliance)
+• Recursos humanos (performance, capacitación)
+• Clientes y mercado (NPS, churn, journey maps)
 
 Por favor, sube un documento relacionado con tu operación para que pueda cruzarlo con los datos del CDR y generar insights accionables."
 
