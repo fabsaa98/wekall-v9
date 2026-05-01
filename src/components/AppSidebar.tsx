@@ -283,7 +283,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         </nav>
 
         {/* Footer — Logo cliente + rol */}
-        <div className="border-t border-border px-3 py-3 space-y-2">
+        <div className="border-t border-border px-3 py-3 space-y-2 mt-auto shrink-0">
           {/* Logo cliente */}
           {!collapsed && (
             <div className="flex items-center justify-center px-2 py-1.5 rounded-lg bg-secondary/50">
