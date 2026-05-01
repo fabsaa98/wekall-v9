@@ -25,7 +25,7 @@ const navGroups = [
       { label: 'Speech Analytics', path: '/speech-analytics', icon: Mic },
       { label: 'Transcripciones', path: '/transcriptions', icon: FileAudio },
       { label: 'Búsqueda', path: '/search', icon: Search },
-      { label: 'Análisis Docs', path: '/document-analysis', icon: Brain },
+      { label: 'Subir y Analizar', path: '/document-analysis', icon: Upload },
       // Badge "Estimado" manejado en la página. Nombre completo visible.
       { label: 'Financial Intelligence', path: '/financial', icon: DollarSign, badge: 'Estimado' },
       { label: 'Forecast', path: '/forecast', icon: TrendingUp, badge: 'Estimado' },
@@ -40,9 +40,8 @@ const navGroups = [
   },
 ];
 
-// Acción de ingesta — botón flotante dentro de Transcripciones o modal
-// (ya no ocupa ítem de menú de primer nivel)
-const ingestAction = { label: 'Subir grabación', path: '/upload', icon: Upload };
+// ELIMINADO: "Subir grabación" (duplicado de "Subir y Analizar")
+// La funcionalidad de ingesta ahora está unificada en /document-analysis
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -233,34 +232,6 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               </div>
             </div>
           ))}
-
-          {/* Acción de ingesta — separada del nav principal */}
-          {(() => {
-            const isActive = location.pathname === ingestAction.path;
-            const Icon = ingestAction.icon;
-            return (
-              <div className="pt-1 border-t border-border/50">
-                {!collapsed && (
-                  <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                    Acciones
-                  </p>
-                )}
-                <NavLink
-                  to={ingestAction.path}
-                  onClick={onMobileClose}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-primary/10 text-primary border border-primary/20'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent'
-                  }`}
-                  title={collapsed ? ingestAction.label : undefined}
-                >
-                  <Icon size={18} className="shrink-0" />
-                  {!collapsed && <span className="truncate">{ingestAction.label}</span>}
-                </NavLink>
-              </div>
-            );
-          })()}
 
           {/* Admin — solo para role admin */}
           {currentUser?.role === 'admin' && (() => {
