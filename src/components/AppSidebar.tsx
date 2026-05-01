@@ -172,58 +172,6 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           </button>
         </div>
 
-        {/* Usuario + CC Switcher — Siempre visible (top sidebar) */}
-        <div className="border-b border-border px-3 py-3">
-          <div className="relative">
-            <div
-              className={`flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors ${
-                ccOptions.length > 1
-                  ? 'cursor-pointer hover:bg-secondary/60'
-                  : 'bg-secondary/30'
-              }`}
-              onClick={() => ccOptions.length > 1 && setSwitcherOpen(v => !v)}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary border border-primary/20">
-                {initials}
-              </div>
-              {!collapsed && (
-                <div className="overflow-hidden flex-1">
-                  <p className="text-sm font-semibold text-foreground truncate">{role}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{clientDisplayName}</p>
-                </div>
-              )}
-              {!collapsed && ccOptions.length > 1 && (
-                <ChevronDown size={14} className={`text-muted-foreground shrink-0 transition-transform ${switcherOpen ? 'rotate-180' : ''}`} />
-              )}
-            </div>
-
-            {/* Dropdown switcher */}
-            {switcherOpen && ccOptions.length > 1 && (
-              <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50">
-                <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-b border-border bg-secondary/30">
-                  <Building2 size={10} className="inline mr-1" />Cambiar contact center
-                </p>
-                {ccOptions.map(opt => (
-                  <button
-                    key={opt.client_id}
-                    onClick={() => handleSwitchCC(opt.client_id)}
-                    disabled={switching}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors ${
-                      opt.client_id === clientId
-                        ? 'bg-primary/10 text-primary font-semibold'
-                        : 'text-foreground hover:bg-secondary'
-                    }`}
-                  >
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${opt.client_id === clientId ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
-                    <span className="truncate">{opt.name}</span>
-                    {opt.client_id === clientId && <span className="ml-auto text-[10px] text-primary/60">activo</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Nav agrupado — Scale-G UX Refactor */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
           {navGroups.map(group => (
@@ -320,6 +268,58 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               </div>
             );
           })()}
+
+          {/* Usuario + CC Switcher — Antes de Cerrar sesión */}
+          <div className="border-t border-border/50 pt-3 pb-2">
+            <div className="relative px-0.5">
+              <div
+                className={`flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors ${
+                  ccOptions.length > 1
+                    ? 'cursor-pointer hover:bg-secondary/60'
+                    : 'bg-secondary/30'
+                }`}
+                onClick={() => ccOptions.length > 1 && setSwitcherOpen(v => !v)}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary border border-primary/20">
+                  {initials}
+                </div>
+                {!collapsed && (
+                  <div className="overflow-hidden flex-1">
+                    <p className="text-sm font-semibold text-foreground truncate">{role}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{clientDisplayName}</p>
+                  </div>
+                )}
+                {!collapsed && ccOptions.length > 1 && (
+                  <ChevronDown size={14} className={`text-muted-foreground shrink-0 transition-transform ${switcherOpen ? 'rotate-180' : ''}`} />
+                )}
+              </div>
+
+              {/* Dropdown switcher */}
+              {switcherOpen && ccOptions.length > 1 && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50">
+                  <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-b border-border bg-secondary/30">
+                    <Building2 size={10} className="inline mr-1" />Cambiar contact center
+                  </p>
+                  {ccOptions.map(opt => (
+                    <button
+                      key={opt.client_id}
+                      onClick={() => handleSwitchCC(opt.client_id)}
+                      disabled={switching}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors ${
+                        opt.client_id === clientId
+                          ? 'bg-primary/10 text-primary font-semibold'
+                          : 'text-foreground hover:bg-secondary'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${opt.client_id === clientId ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                      <span className="truncate">{opt.name}</span>
+                      {opt.client_id === clientId && <span className="ml-auto text-[10px] text-primary/60">activo</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Cerrar sesión — visible en el scroll del nav en móvil */}
           <div className="border-t border-border/50 pt-1 lg:hidden">
