@@ -26,14 +26,14 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
   const WORKER_PROXY_URL = env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
 
   try {
+    // Get all configs and filter client-side (Worker proxy filter bug workaround)
     const res = await fetch(`${WORKER_PROXY_URL}/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         table: 'client_config',
         select: '*',
-        filters: { client_id: `eq.${client_id}` },
-        limit: 1,
+        limit: 20,
       }),
     });
 
@@ -41,8 +41,8 @@ export async function onRequestGet(context: { request: Request; env: Env }) {
       throw new Error(`Worker query failed: ${res.status}`);
     }
 
-    const data = await res.json();
-    const config = data?.[0] || null;
+    const allConfigs = await res.json();
+    const config = allConfigs.find((c: any) => c.client_id === client_id) || null;
 
     if (!config) {
       // Return default config if not found
