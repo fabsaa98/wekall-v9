@@ -782,11 +782,55 @@ export default function DocumentAnalysis() {
             return (
               <div className="px-4 pb-4 border-t border-border pt-4">
                 {/* Header con count + filtro */}
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                    Analizados ({filtered.length})
-                  </p>
-                  {/* TODO: Filtro por tipo (dropdown) */}
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                      Analizados ({filtered.length})
+                    </p>
+                    {docs.length > 5 && (
+                      <button
+                        onClick={() => setFileTypeFilter('all')}
+                        className="text-[9px] text-primary hover:underline"
+                      >
+                        Limpiar filtro
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Filtro por tipo */}
+                  {docs.length > 3 && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        onClick={() => setFileTypeFilter('all')}
+                        className={cn(
+                          'px-2 py-1 rounded text-[9px] font-medium transition-colors',
+                          fileTypeFilter === 'all'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                        )}
+                      >
+                        Todos
+                      </button>
+                      {['audio', 'pdf', 'excel', 'word', 'image', 'whatsapp'].map((type) => {
+                        const count = docs.filter(d => d.fileType === type).length;
+                        if (count === 0) return null;
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => setFileTypeFilter(type as FileType)}
+                            className={cn(
+                              'px-2 py-1 rounded text-[9px] font-medium transition-colors',
+                              fileTypeFilter === type
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                            )}
+                          >
+                            {fileTypeLabel(type as FileType)} ({count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Grupos por fecha */}
@@ -819,7 +863,14 @@ export default function DocumentAnalysis() {
                                     {doc.createdAt && formatRelativeTime(doc.createdAt)}
                                   </p>
                                 </div>
-                                <CheckCircle size={12} className="text-green-400 shrink-0" />
+                                {/* US-EI-007: Badge Aprobado/Rechazado */}
+                                {doc.analysis.startsWith('❌') ? (
+                                  <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
+                                    Rechazado
+                                  </span>
+                                ) : (
+                                  <CheckCircle size={12} className="text-green-400 shrink-0" />
+                                )}
                               </button>
                               {/* Botón eliminar (visible on hover) */}
                               <button
