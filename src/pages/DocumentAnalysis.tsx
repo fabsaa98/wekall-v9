@@ -413,7 +413,7 @@ SI EL DOCUMENTO SÍ ES RELEVANTE:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }, 60000, abortControllerRef.current?.signal); // 60s timeout + cancelación manual
+  }, 60000, abortSignal); // 60s timeout + cancelación manual (signal viene como parámetro)
 
   if (!res.ok) {
     const err = await res.text();
