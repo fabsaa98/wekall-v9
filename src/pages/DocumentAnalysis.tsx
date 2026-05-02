@@ -406,7 +406,7 @@ SI EL DOCUMENTO SÍ ES RELEVANTE:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }, 90000);
+  }, 150000); // 2.5 min para PDFs grandes
 
   if (!res.ok) {
     const err = await res.text();
