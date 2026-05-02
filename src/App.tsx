@@ -16,6 +16,7 @@ import Alertas from '@/pages/Alertas';
 import Equipos from '@/pages/Equipos';
 import Configuracion from '@/pages/Configuracion';
 import DocumentAnalysis from '@/pages/DocumentAnalysis';
+import ExecutiveInsightsHistory from '@/pages/ExecutiveInsightsHistory';
 import Login from '@/pages/Login';
 import Admin from '@/pages/Admin';
 import { supabase } from '@/lib/supabase';
@@ -121,6 +122,7 @@ export default function App() {
                 <Route path="/dashboard-api" element={<ErrorBoundary><DashboardAPI /></ErrorBoundary>} />
                 <Route path="/vicky" element={<ErrorBoundary><VickyInsights /></ErrorBoundary>} />
                 <Route path="/document-analysis" element={<ErrorBoundary><DocumentAnalysis /></ErrorBoundary>} />
+                <Route path="/executive-insights/history" element={<ErrorBoundary><ExecutiveInsightsHistory /></ErrorBoundary>} />
                 <Route path="/alertas" element={<ErrorBoundary><Alertas /></ErrorBoundary>} />
                 <Route path="/equipos" element={<ErrorBoundary><Equipos /></ErrorBoundary>} />
                 <Route path="/config" element={<ErrorBoundary><Configuracion /></ErrorBoundary>} />

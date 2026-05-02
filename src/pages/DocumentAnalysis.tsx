@@ -914,14 +914,24 @@ export default function DocumentAnalysis() {
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
                       Analizados ({filtered.length})
                     </p>
-                    {docs.length > 5 && (
-                      <button
-                        onClick={() => setFileTypeFilter('all')}
-                        className="text-[9px] text-primary hover:underline"
-                      >
-                        Limpiar filtro
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {docs.length > 5 && fileTypeFilter !== 'all' && (
+                        <button
+                          onClick={() => setFileTypeFilter('all')}
+                          className="text-[9px] text-primary hover:underline"
+                        >
+                          Limpiar
+                        </button>
+                      )}
+                      {docs.length > 10 && (
+                        <button
+                          onClick={() => window.location.href = '/executive-insights/history'}
+                          className="text-[9px] text-primary hover:underline font-semibold"
+                        >
+                          Ver todos →
+                        </button>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Filtro por tipo */}
