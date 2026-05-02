@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Upload, FileAudio, FileText, FileSpreadsheet, Image as ImageIcon,
   Loader2, Zap, CheckCircle, AlertCircle, X, Brain, MessageCircle, HelpCircle,
-  TrendingUp, Lightbulb, Target,
+  TrendingUp, Lightbulb, Target, Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
@@ -1256,13 +1256,34 @@ export default function DocumentAnalysis() {
                 </details>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
                 >
                   <Upload size={15} />
                   Analizar otro documento
+                </button>
+                <button
+                  onClick={() => {
+                    if (!selectedDoc) return;
+                    import('@/lib/exportPDF').then(({ exportToPDF }) => {
+                      exportToPDF({
+                        fileName: selectedDoc.fileName,
+                        fileType: selectedDoc.fileType,
+                        clientName: clientName,
+                        executiveBrief: selectedDoc.executiveBrief,
+                        analysis: selectedDoc.analysis,
+                        benchmarks: selectedDoc.benchmarks,
+                        sources: selectedDoc.sources,
+                        createdAt: selectedDoc.createdAt || new Date().toISOString(),
+                      });
+                    });
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <Download size={15} />
+                  Exportar PDF
                 </button>
                 <button
                   onClick={() => { setSelectedDoc(null); setStatus('idle'); }}
