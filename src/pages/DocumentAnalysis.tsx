@@ -161,14 +161,14 @@ async function extractPDF(file: File): Promise<string> {
   const loadingTask = pdfjsLib.getDocument({ data: buffer });
   const pdf = await loadingTask.promise;
   const textParts: string[] = [];
-  for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
+  for (let i = 1; i <= Math.min(pdf.numPages, 30); i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pageText = content.items.map((item: any) => (item.str as string) || '').join(' ');
     textParts.push(`[Página ${i}]\n${pageText}`);
   }
-  return textParts.join('\n\n').slice(0, 15000);
+  return textParts.join('\n\n').slice(0, 20000);
 }
 
 async function extractWord(file: File): Promise<string> {
@@ -406,7 +406,7 @@ SI EL DOCUMENTO SÍ ES RELEVANTE:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }, 150000); // 2.5 min para PDFs grandes
+  }, 180000); // 3 min para PDFs grandes (hasta 30 páginas)
 
   if (!res.ok) {
     const err = await res.text();
@@ -678,6 +678,7 @@ export default function DocumentAnalysis() {
     // Validaciones de tamaño frontend (UAT Mejora #1)
     const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25 MB
     const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+    const MAX_PDF_SIZE = 15 * 1024 * 1024; // 15 MB (procesamos hasta 30 páginas)
 
     try {
       // Validar tamaño antes de procesar
@@ -687,6 +688,10 @@ export default function DocumentAnalysis() {
       
       if (fileType === 'image' && file.size > MAX_IMAGE_SIZE) {
         throw new Error('La imagen supera el límite de 10 MB. Por favor, reduce la resolución o comprime el archivo.');
+      }
+
+      if (fileType === 'pdf' && file.size > MAX_PDF_SIZE) {
+        throw new Error(`El PDF es muy grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Límite: 15 MB.\n\nPara PDFs grandes:\n• Dividir en secciones más pequeñas\n• Comprimir con Adobe Acrobat\n• Subir solo las páginas relevantes\n\nNOTA: Procesamos hasta 30 páginas por archivo.`);
       }
 
       switch (fileType) {
