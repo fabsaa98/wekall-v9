@@ -1,0 +1,18 @@
+# Cloudflare Worker - Executive Insights Job Processor
+name = "wekall-jobs-worker"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# Cron: cada 10 segundos
+[triggers]
+crons = ["*/10 * * * *"]
+
+# Variables de entorno
+[vars]
+SUPABASE_URL = "https://iszodrpublcnsyvtgjcg.supabase.co"
+PROXY_URL = "https://wekall-vicky-proxy.fabsaa98.workers.dev"
+
+# Secrets (configurar con wrangler secret put)
+# SUPABASE_SERVICE_KEY
+# UPSTASH_REDIS_REST_URL
+# UPSTASH_REDIS_REST_TOKEN
