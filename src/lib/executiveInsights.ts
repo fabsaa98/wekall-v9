@@ -15,6 +15,12 @@ export interface BenchmarkMetric {
   position?: 'above' | 'below' | 'inline';
 }
 
+export interface Comment {
+  author: string;
+  text: string;
+  created_at: string;
+}
+
 export interface ExecutiveInsight {
   id: string;
   client_id: string;
@@ -25,6 +31,7 @@ export interface ExecutiveInsight {
   analysis: string;
   executive_brief?: string;
   benchmarks?: { metrics: BenchmarkMetric[] }; // US-EI-009: Benchmarks JSONB
+  comments?: { notes: Comment[] }; // US-EI-013: Comments JSONB
   whatsapp_participants?: string[];
   whatsapp_message_count?: number;
   sources?: string[];
@@ -139,5 +146,54 @@ export async function getExecutiveInsight(id: string): Promise<ExecutiveInsight 
   } catch (err) {
     console.error('[ExecutiveInsights] Exception fetching single:', err);
     return null;
+  }
+}
+
+/**
+ * Agregar comentario a un análisis ejecutivo
+ */
+export async function addCommentToInsight(
+  id: string,
+  author: string,
+  text: string
+): Promise<boolean> {
+  try {
+    // Fetch current comments
+    const { data: current, error: fetchError } = await supabase
+      .from('executive_insights')
+      .select('comments')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('[ExecutiveInsights] Error fetching for comment:', fetchError);
+      return false;
+    }
+
+    const currentComments = (current?.comments as { notes: Comment[] }) || { notes: [] };
+    const newComment: Comment = {
+      author,
+      text,
+      created_at: new Date().toISOString(),
+    };
+
+    const updatedComments = {
+      notes: [...currentComments.notes, newComment],
+    };
+
+    const { error: updateError } = await supabase
+      .from('executive_insights')
+      .update({ comments: updatedComments })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('[ExecutiveInsights] Error adding comment:', updateError);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[ExecutiveInsights] Exception adding comment:', err);
+    return false;
   }
 }

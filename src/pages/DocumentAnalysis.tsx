@@ -8,9 +8,10 @@ import { cn } from '@/lib/utils';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
 import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
-import { saveExecutiveInsight, getExecutiveInsights, deleteExecutiveInsight, type ExecutiveInsight } from '@/lib/executiveInsights';
+import { saveExecutiveInsight, getExecutiveInsights, deleteExecutiveInsight, type ExecutiveInsight, type Comment } from '@/lib/executiveInsights';
 import { formatRelativeTime, groupByDate, getDateGroupLabel, type DateGroup } from '@/lib/dateUtils';
 import { BenchmarkCard } from '@/components/BenchmarkCard';
+import { CommentSection } from '@/components/CommentSection';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
@@ -43,6 +44,7 @@ interface ProcessedDoc {
   executiveBrief?: string; // US-EI-004: Executive Brief (100 palabras)
   sources?: string[];
   benchmarks?: BenchmarkMetric[]; // US-EI-009: Benchmarks extraídos
+  comments?: { notes: Comment[] }; // US-EI-013: Comentarios
   error?: string;
   whatsappMeta?: WhatsAppMeta;
   createdAt?: string; // US-EI-006: Timestamp de creación
@@ -592,6 +594,7 @@ export default function DocumentAnalysis() {
         executiveBrief: insight.executive_brief,
         sources: insight.sources,
         benchmarks: insight.benchmarks?.metrics, // US-EI-009
+        comments: insight.comments, // US-EI-013
         whatsappMeta: insight.whatsapp_participants ? {
           participants: insight.whatsapp_participants,
           messageCount: insight.whatsapp_message_count || 0,
@@ -1310,6 +1313,20 @@ export default function DocumentAnalysis() {
                   Limpiar
                 </button>
               </div>
+
+              {/* US-EI-013: Comments section */}
+              {selectedDoc.id && (
+                <CommentSection
+                  docId={selectedDoc.id}
+                  comments={selectedDoc.comments}
+                  currentUser={clientConfig?.uploaded_by || 'CEO'}
+                  onCommentAdded={(newComments) => {
+                    setSelectedDoc({ ...selectedDoc, comments: newComments });
+                    setDocs(prev => prev.map(d => d.id === selectedDoc.id ? { ...d, comments: newComments } : d));
+                  }}
+                />
+              )}
+
               <input
                 ref={fileInputRef}
                 type="file"
