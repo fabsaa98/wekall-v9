@@ -577,36 +577,59 @@ export default function DocumentAnalysis() {
 
   // US-EI-006: Cargar historial desde Supabase al montar
   useEffect(() => {
+    let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
     const loadHistory = async () => {
       if (!clientConfig?.client_id) {
-        setLoading(false);
+        // Timeout de seguridad: si después de 3s no hay clientConfig, dejar de esperar
+        timeoutId = setTimeout(() => {
+          if (mounted) {
+            console.warn('[DocumentAnalysis] Timeout cargando clientConfig — modo sin historial');
+            setLoading(false);
+          }
+        }, 3000);
         return;
       }
 
-      const insights = await getExecutiveInsights(clientConfig.client_id);
-      
-      const loadedDocs: ProcessedDoc[] = insights.map((insight) => ({
-        id: insight.id,
-        fileName: insight.file_name,
-        fileType: insight.file_type as FileType,
-        extractedText: insight.extracted_text || '',
-        analysis: insight.analysis,
-        executiveBrief: insight.executive_brief,
-        sources: insight.sources,
-        benchmarks: insight.benchmarks?.metrics, // US-EI-009
-        comments: insight.comments, // US-EI-013
-        whatsappMeta: insight.whatsapp_participants ? {
-          participants: insight.whatsapp_participants,
-          messageCount: insight.whatsapp_message_count || 0,
-        } : undefined,
-        createdAt: insight.created_at,
-      }));
+      clearTimeout(timeoutId);
 
-      setDocs(loadedDocs);
-      setLoading(false);
+      try {
+        const insights = await getExecutiveInsights(clientConfig.client_id);
+        
+        if (!mounted) return;
+
+        const loadedDocs: ProcessedDoc[] = insights.map((insight) => ({
+          id: insight.id,
+          fileName: insight.file_name,
+          fileType: insight.file_type as FileType,
+          extractedText: insight.extracted_text || '',
+          analysis: insight.analysis,
+          executiveBrief: insight.executive_brief,
+          sources: insight.sources,
+          benchmarks: insight.benchmarks?.metrics, // US-EI-009
+          comments: insight.comments, // US-EI-013
+          whatsappMeta: insight.whatsapp_participants ? {
+            participants: insight.whatsapp_participants,
+            messageCount: insight.whatsapp_message_count || 0,
+          } : undefined,
+          createdAt: insight.created_at,
+        }));
+
+        setDocs(loadedDocs);
+        setLoading(false);
+      } catch (err) {
+        console.error('[DocumentAnalysis] Error cargando historial:', err);
+        if (mounted) setLoading(false);
+      }
     };
 
     loadHistory();
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [clientConfig?.client_id]);
 
   const processFile = useCallback(async (file: File) => {
