@@ -406,7 +406,7 @@ SI EL DOCUMENTO SÍ ES RELEVANTE:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }, 180000); // 3 min para PDFs grandes (hasta 30 páginas)
+  }, 60000); // 60s timeout — si tarda más, algo está mal
 
   if (!res.ok) {
     const err = await res.text();
@@ -494,7 +494,7 @@ ${extractedContent.slice(0, 4000)}`;
           max_tokens: 500,
           temperature: 0.1,
         }),
-      }, 30000);
+      }, 20000); // 20s timeout
 
       if (benchmarkRes.ok) {
         const benchmarkData = await benchmarkRes.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -588,6 +588,7 @@ export default function DocumentAnalysis() {
   const [currentFile, setCurrentFile] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [pendingFile, setPendingFile] = useState<File | null>(null); // Archivo cargado pero no analizado
+  const [elapsedTime, setElapsedTime] = useState<number>(0); // Tiempo transcurrido en segundos
   const [docs, setDocs] = useState<ProcessedDoc[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<ProcessedDoc | null>(null);
   const [error, setError] = useState<string>('');
@@ -676,6 +677,13 @@ export default function DocumentAnalysis() {
     setStatus('extracting');
     setCurrentFile(file.name);
     setError('');
+    setElapsedTime(0);
+    
+    // Timer visual
+    const startTime = Date.now();
+    const timerInterval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
 
     let fileType = detectFileType(file);
     let extractedText = '';
@@ -778,10 +786,12 @@ export default function DocumentAnalysis() {
       setDocs(prev => [doc, ...prev]);
       setSelectedDoc(doc);
       setStatus('done');
+      clearInterval(timerInterval);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       setError(msg);
       setStatus('error');
+      clearInterval(timerInterval);
     }
   }, [CDR_CONTEXT, clientName, clientIndustry, clientCountry]);
 
@@ -917,6 +927,9 @@ export default function DocumentAnalysis() {
                       {status === 'extracting' ? '📄 Extrayendo contenido...' : '🧠 Vicky analizando...'}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">{currentFile}</p>
+                    <p className="text-xs font-mono text-primary mt-1">
+                      {elapsedTime}s {elapsedTime > 45 ? '(casi listo...)' : ''}
+                    </p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); cancelAnalysis(); }}
