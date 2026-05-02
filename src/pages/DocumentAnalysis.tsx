@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Upload, FileAudio, FileText, FileSpreadsheet, Image as ImageIcon,
   Loader2, Zap, CheckCircle, AlertCircle, X, Brain, MessageCircle, HelpCircle,
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/data/benchmarks';
 import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
+import { saveExecutiveInsight, getExecutiveInsights, deleteExecutiveInsight, type ExecutiveInsight } from '@/lib/executiveInsights';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
@@ -20,6 +21,7 @@ interface WhatsAppMeta {
 }
 
 interface ProcessedDoc {
+  id?: string; // US-EI-006: Supabase ID (si está guardado)
   fileName: string;
   fileType: FileType;
   extractedText: string;
@@ -28,6 +30,7 @@ interface ProcessedDoc {
   sources?: string[];
   error?: string;
   whatsappMeta?: WhatsAppMeta;
+  createdAt?: string; // US-EI-006: Timestamp de creación
 }
 
 function detectFileType(file: File): FileType {
@@ -441,7 +444,40 @@ export default function DocumentAnalysis() {
   const [docs, setDocs] = useState<ProcessedDoc[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<ProcessedDoc | null>(null);
   const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // US-EI-006: Cargar historial desde Supabase al montar
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!clientConfig?.client_id) {
+        setLoading(false);
+        return;
+      }
+
+      const insights = await getExecutiveInsights(clientConfig.client_id);
+      
+      const loadedDocs: ProcessedDoc[] = insights.map((insight) => ({
+        id: insight.id,
+        fileName: insight.file_name,
+        fileType: insight.file_type as FileType,
+        extractedText: insight.extracted_text || '',
+        analysis: insight.analysis,
+        executiveBrief: insight.executive_brief,
+        sources: insight.sources,
+        whatsappMeta: insight.whatsapp_participants ? {
+          participants: insight.whatsapp_participants,
+          messageCount: insight.whatsapp_message_count || 0,
+        } : undefined,
+        createdAt: insight.created_at,
+      }));
+
+      setDocs(loadedDocs);
+      setLoading(false);
+    };
+
+    loadHistory();
+  }, [clientConfig?.client_id]);
 
   const processFile = useCallback(async (file: File) => {
     setStatus('extracting');
@@ -510,7 +546,25 @@ export default function DocumentAnalysis() {
       setStatus('analyzing');
       const { analysis, executiveBrief, sources } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, whatsappMeta);
 
+      // US-EI-006: Guardar en Supabase
+      let savedInsight: ExecutiveInsight | null = null;
+      if (clientConfig?.client_id && !analysis.startsWith('❌')) {
+        savedInsight = await saveExecutiveInsight({
+          client_id: clientConfig.client_id,
+          file_name: file.name,
+          file_type: fileType,
+          file_size_bytes: file.size,
+          extracted_text: fileType === 'image' ? '[Imagen procesada por GPT-4o Vision]' : extractedText,
+          analysis,
+          executive_brief: executiveBrief,
+          whatsapp_participants: whatsappMeta?.participants,
+          whatsapp_message_count: whatsappMeta?.messageCount,
+          sources,
+        });
+      }
+
       const doc: ProcessedDoc = {
+        id: savedInsight?.id,
         fileName: file.name,
         fileType,
         extractedText: fileType === 'image' ? '[Imagen procesada por GPT-4o Vision]' : extractedText,
@@ -518,6 +572,7 @@ export default function DocumentAnalysis() {
         executiveBrief,
         sources,
         whatsappMeta,
+        createdAt: savedInsight?.created_at || new Date().toISOString(),
       };
 
       setDocs(prev => [doc, ...prev]);
@@ -704,9 +759,17 @@ export default function DocumentAnalysis() {
           </div>
 
           {/* History */}
-          {docs.length > 0 && (
+          {loading && (
             <div className="px-4 pb-4 border-t border-border pt-4">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Analizados</p>
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Loader2 size={14} className="animate-spin text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground">Cargando historial...</p>
+              </div>
+            </div>
+          )}
+          {!loading && docs.length > 0 && (
+            <div className="px-4 pb-4 border-t border-border pt-4">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Analizados ({docs.length})</p>
               <div className="space-y-1.5">
                 {docs.map((doc, i) => (
                   <div key={i} className="relative group">
@@ -728,8 +791,12 @@ export default function DocumentAnalysis() {
                     </button>
                     {/* Botón eliminar (visible on hover) */}
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
+                        // US-EI-006: Soft-delete en Supabase si tiene ID
+                        if (doc.id) {
+                          await deleteExecutiveInsight(doc.id);
+                        }
                         setDocs(prev => prev.filter((_, idx) => idx !== i));
                         if (selectedDoc === doc) setSelectedDoc(null);
                       }}
