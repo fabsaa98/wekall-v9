@@ -16,9 +16,14 @@ import { CommentSection } from '@/components/CommentSection';
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
 // Helper: fetch con timeout
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 90000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 90000, externalSignal?: AbortSignal): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Si hay un signal externo (para cancelar manualmente), escucharlo
+  if (externalSignal) {
+    externalSignal.addEventListener('abort', () => controller.abort());
+  }
 
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
@@ -27,7 +32,7 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
   } catch (err) {
     clearTimeout(timeoutId);
     if ((err as Error).name === 'AbortError') {
-      throw new Error(`Timeout: La solicitud superó ${timeoutMs / 1000}s. Intenta con un archivo más pequeño o espera un momento.`);
+      throw new Error(externalSignal?.aborted ? 'Análisis cancelado por el usuario' : `Timeout: La solicitud superó ${timeoutMs / 1000}s.`);
     }
     throw err;
   }
@@ -245,6 +250,7 @@ async function analyzeWithVicky(
   clientIndustry: string,
   clientCountry: string,
   cdrData: any,
+  abortSignal?: AbortSignal,
   whatsappMeta?: WhatsAppMeta,
 ): Promise<{ analysis: string; executiveBrief: string; sources: string[]; benchmarks?: BenchmarkMetric[] }> {
   if (!PROXY_URL) {
@@ -406,7 +412,7 @@ SI EL DOCUMENTO SÍ ES RELEVANTE:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }, 60000); // 60s timeout — si tarda más, algo está mal
+  }, 60000, abortControllerRef.current?.signal); // 60s timeout + cancelación manual
 
   if (!res.ok) {
     const err = await res.text();
@@ -445,7 +451,7 @@ ${analysis.slice(0, 2000)}`;
         max_tokens: 200,
         temperature: 0.3,
       }),
-    }, 30000);
+    }, 30000, abortSignal);
 
     if (briefRes.ok) {
       const briefData = await briefRes.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -494,7 +500,7 @@ ${extractedContent.slice(0, 4000)}`;
           max_tokens: 500,
           temperature: 0.1,
         }),
-      }, 20000); // 20s timeout
+      }, 20000, abortSignal); // 20s timeout + cancelación manual
 
       if (benchmarkRes.ok) {
         const benchmarkData = await benchmarkRes.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -750,7 +756,7 @@ export default function DocumentAnalysis() {
       }
 
       setStatus('analyzing');
-      const { analysis, executiveBrief, sources, benchmarks } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, cdr, whatsappMeta);
+      const { analysis, executiveBrief, sources, benchmarks } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, cdr, abortControllerRef.current?.signal, whatsappMeta);
 
       // US-EI-006: Guardar en Supabase
       let savedInsight: ExecutiveInsight | null = null;
