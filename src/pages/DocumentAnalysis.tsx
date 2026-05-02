@@ -578,24 +578,36 @@ export default function DocumentAnalysis() {
   // US-EI-006: Cargar historial desde Supabase al montar
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
+
+    // Timeout GLOBAL de seguridad: 5s máximo para cualquier escenario
+    const globalTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('[DocumentAnalysis] Timeout global (5s) — forzando salida de loading');
+        setLoading(false);
+      }
+    }, 5000);
 
     const loadHistory = async () => {
+      // Si no hay clientConfig, esperar un poco antes de rendirse
       if (!clientConfig?.client_id) {
-        // Timeout de seguridad: si después de 3s no hay clientConfig, dejar de esperar
-        timeoutId = setTimeout(() => {
+        const waitTimeout = setTimeout(() => {
           if (mounted) {
-            console.warn('[DocumentAnalysis] Timeout cargando clientConfig — modo sin historial');
+            console.warn('[DocumentAnalysis] No hay clientConfig después de 3s — modo sin historial');
             setLoading(false);
+            clearTimeout(globalTimeout);
           }
         }, 3000);
-        return;
+        return () => clearTimeout(waitTimeout);
       }
 
-      clearTimeout(timeoutId);
-
+      // Si hay clientConfig, cargar historial con timeout de 4s
       try {
-        const insights = await getExecutiveInsights(clientConfig.client_id);
+        const insights = await Promise.race([
+          getExecutiveInsights(clientConfig.client_id),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout API')), 4000)
+          )
+        ]);
         
         if (!mounted) return;
 
@@ -618,9 +630,13 @@ export default function DocumentAnalysis() {
 
         setDocs(loadedDocs);
         setLoading(false);
+        clearTimeout(globalTimeout);
       } catch (err) {
         console.error('[DocumentAnalysis] Error cargando historial:', err);
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          clearTimeout(globalTimeout);
+        }
       }
     };
 
@@ -628,7 +644,7 @@ export default function DocumentAnalysis() {
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      clearTimeout(globalTimeout);
     };
   }, [clientConfig?.client_id]);
 
