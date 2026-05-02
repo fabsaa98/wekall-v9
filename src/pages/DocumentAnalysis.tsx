@@ -34,7 +34,7 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
 }
 
 type FileType = 'audio' | 'pdf' | 'excel' | 'csv' | 'word' | 'image' | 'whatsapp' | 'unknown';
-type ProcessStatus = 'idle' | 'extracting' | 'analyzing' | 'done' | 'error';
+type ProcessStatus = 'idle' | 'uploading' | 'uploaded' | 'extracting' | 'analyzing' | 'done' | 'error';
 
 interface WhatsAppMeta {
   participants: string[];
@@ -586,12 +586,15 @@ export default function DocumentAnalysis() {
   const [dragging, setDragging] = useState(false);
   const [status, setStatus] = useState<ProcessStatus>('idle');
   const [currentFile, setCurrentFile] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [pendingFile, setPendingFile] = useState<File | null>(null); // Archivo cargado pero no analizado
   const [docs, setDocs] = useState<ProcessedDoc[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<ProcessedDoc | null>(null);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [fileTypeFilter, setFileTypeFilter] = useState<FileType | 'all'>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // US-EI-006: Cargar historial desde Supabase al montar
   useEffect(() => {
@@ -667,6 +670,9 @@ export default function DocumentAnalysis() {
   }, [clientConfig?.client_id]);
 
   const processFile = useCallback(async (file: File) => {
+    // Crear AbortController para poder cancelar
+    abortControllerRef.current = new AbortController();
+    
     setStatus('extracting');
     setCurrentFile(file.name);
     setError('');
@@ -779,10 +785,47 @@ export default function DocumentAnalysis() {
     }
   }, [CDR_CONTEXT, clientName, clientIndustry, clientCountry]);
 
+  // Fase 1: Upload (validar y guardar archivo, NO procesar aún)
+  const handleUpload = useCallback(async (file: File) => {
+    setStatus('uploading');
+    setError('');
+    setUploadProgress(0);
+    
+    // Simular progreso de upload (instantáneo en local, pero da feedback visual)
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + 20, 100));
+    }, 50);
+
+    setTimeout(() => {
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      setPendingFile(file);
+      setCurrentFile(file.name);
+      setStatus('uploaded');
+    }, 300);
+  }, []);
+
+  // Fase 2: Análisis (procesar el archivo ya cargado)
+  const startAnalysis = useCallback(() => {
+    if (!pendingFile) return;
+    processFile(pendingFile);
+  }, [pendingFile, processFile]);
+
+  // Botón cancelar
+  const cancelAnalysis = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setStatus('idle');
+    setPendingFile(null);
+    setCurrentFile('');
+    setError('Análisis cancelado por el usuario');
+  }, []);
+
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
-    processFile(files[0]);
-  }, [processFile]);
+    handleUpload(files[0]);
+  }, [handleUpload]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -794,6 +837,8 @@ export default function DocumentAnalysis() {
   const onDragLeave = () => setDragging(false);
 
   const isProcessing = status === 'extracting' || status === 'analyzing';
+  const isUploading = status === 'uploading';
+  const isUploaded = status === 'uploaded';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -825,15 +870,60 @@ export default function DocumentAnalysis() {
                 isProcessing && 'pointer-events-none opacity-60',
               )}
             >
-              {isProcessing ? (
+              {status === 'uploading' ? (
+                <>
+                  <Loader2 size={32} className="text-primary animate-spin" />
+                  <div className="w-full max-w-[200px]">
+                    <p className="text-sm font-semibold text-foreground mb-2">Cargando archivo...</p>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{uploadProgress}%</p>
+                  </div>
+                </>
+              ) : status === 'uploaded' ? (
+                <>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 border border-green-500/20">
+                    <CheckCircle size={22} className="text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">✅ Archivo cargado</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">{currentFile}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{pendingFile ? `${(pendingFile.size / 1024 / 1024).toFixed(1)} MB` : ''}</p>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); startAnalysis(); }}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
+                    >
+                      🧠 Analizar ahora
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPendingFile(null); setStatus('idle'); }}
+                      className="px-3 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm hover:bg-secondary/80 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </>
+              ) : isProcessing ? (
                 <>
                   <Loader2 size={32} className="text-primary animate-spin" />
                   <div>
                     <p className="text-sm font-semibold text-foreground">
-                      {status === 'extracting' ? 'Extrayendo contenido...' : 'Vicky analizando...'}
+                      {status === 'extracting' ? '📄 Extrayendo contenido...' : '🧠 Vicky analizando...'}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]">{currentFile}</p>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); cancelAnalysis(); }}
+                    className="mt-2 px-3 py-1.5 bg-destructive/10 text-destructive rounded-lg text-xs font-semibold hover:bg-destructive/20 transition-colors"
+                  >
+                    ❌ Cancelar análisis
+                  </button>
                 </>
               ) : (
                 <>
