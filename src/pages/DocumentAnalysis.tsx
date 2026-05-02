@@ -21,6 +21,18 @@ interface WhatsAppMeta {
   messageCount: number;
 }
 
+interface BenchmarkMetric {
+  metric: string;
+  benchmark_value: number;
+  benchmark_source: string;
+  top_quartile?: number;
+  bottom_quartile?: number;
+  unit: string;
+  current_value?: number;
+  gap_percent?: number;
+  position?: 'above' | 'below' | 'inline';
+}
+
 interface ProcessedDoc {
   id?: string; // US-EI-006: Supabase ID (si está guardado)
   fileName: string;
@@ -29,6 +41,7 @@ interface ProcessedDoc {
   analysis: string;
   executiveBrief?: string; // US-EI-004: Executive Brief (100 palabras)
   sources?: string[];
+  benchmarks?: BenchmarkMetric[]; // US-EI-009: Benchmarks extraídos
   error?: string;
   whatsappMeta?: WhatsAppMeta;
   createdAt?: string; // US-EI-006: Timestamp de creación

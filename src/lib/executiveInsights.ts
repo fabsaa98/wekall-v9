@@ -3,6 +3,18 @@
 
 import { supabase } from './supabase';
 
+export interface BenchmarkMetric {
+  metric: string;
+  benchmark_value: number;
+  benchmark_source: string;
+  top_quartile?: number;
+  bottom_quartile?: number;
+  unit: string;
+  current_value?: number;
+  gap_percent?: number;
+  position?: 'above' | 'below' | 'inline';
+}
+
 export interface ExecutiveInsight {
   id: string;
   client_id: string;
@@ -12,6 +24,7 @@ export interface ExecutiveInsight {
   extracted_text?: string;
   analysis: string;
   executive_brief?: string;
+  benchmarks?: { metrics: BenchmarkMetric[] }; // US-EI-009: Benchmarks JSONB
   whatsapp_participants?: string[];
   whatsapp_message_count?: number;
   sources?: string[];
@@ -29,6 +42,7 @@ export interface CreateExecutiveInsightParams {
   extracted_text?: string;
   analysis: string;
   executive_brief?: string;
+  benchmarks?: { metrics: BenchmarkMetric[] }; // US-EI-009
   whatsapp_participants?: string[];
   whatsapp_message_count?: number;
   sources?: string[];
