@@ -12,6 +12,7 @@ import { saveExecutiveInsight, getExecutiveInsights, deleteExecutiveInsight, typ
 import { formatRelativeTime, groupByDate, getDateGroupLabel, type DateGroup } from '@/lib/dateUtils';
 import { BenchmarkCard } from '@/components/BenchmarkCard';
 import { CommentSection } from '@/components/CommentSection';
+import { createAnalysisJob, pollJobUntilComplete, type JobStatus } from '@/lib/jobQueue';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
@@ -756,7 +757,71 @@ export default function DocumentAnalysis() {
       }
 
       setStatus('analyzing');
-      const { analysis, executiveBrief, sources, benchmarks } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, cdr, abortControllerRef.current?.signal, whatsappMeta);
+      
+      // V31: Usar async job queue en lugar de análisis síncrono
+      if (fileType === 'pdf' && clientConfig?.client_id) {
+        // PDFs usan job queue async
+        try {
+          const job = await createAnalysisJob(file, clientConfig.client_id);
+          console.log('Job created:', job.jobId);
+          
+          // Polling con updates de progreso
+          const finalStatus = await pollJobUntilComplete(
+            job.jobId,
+            (status: JobStatus) => {
+              // Actualizar UI con progreso
+              setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+              console.log(`Job progress: ${status.progress}% - ${status.message}`);
+            },
+            2000
+          );
+          
+          if (!finalStatus.result) {
+            throw new Error('Job completed but no result returned');
+          }
+          
+          const { analysis, executiveBrief, benchmarks } = finalStatus.result;
+          const sources: string[] = []; // Job queue no retorna sources por ahora
+          
+          // Guardar resultado
+          clearInterval(timerInterval);
+          setStatus('done');
+          setAnalysis(analysis);
+          setExecutiveBrief(executiveBrief);
+          setBenchmarks(benchmarks || []);
+          setSources(sources);
+          
+          // Guardar en Supabase
+          if (clientConfig?.client_id && !analysis.startsWith('❌')) {
+            const savedInsight = await saveExecutiveInsight({
+              client_id: clientConfig.client_id,
+              file_name: file.name,
+              file_type: fileType,
+              file_size_bytes: file.size,
+              extracted_text: extractedText,
+              analysis,
+              executive_brief: executiveBrief,
+              benchmarks,
+              sources,
+              metadata: { processingTimeMs: finalStatus.processingTimeMs }
+            });
+            
+            if (savedInsight) {
+              setHistory(prev => [savedInsight, ...prev]);
+            }
+          }
+          
+          return; // Exit early, job queue handled everything
+          
+        } catch (jobErr: any) {
+          console.error('Job queue error:', jobErr);
+          // Fallback a análisis síncrono si falla job queue
+          console.warn('Falling back to synchronous analysis...');
+        }
+      }
+      
+      // Fallback: análisis síncrono para no-PDFs o si job queue falla
+      const { analysis, executiveBrief, sources, benchmarks } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, cdr, undefined, whatsappMeta);
 
       // US-EI-006: Guardar en Supabase
       let savedInsight: ExecutiveInsight | null = null;
