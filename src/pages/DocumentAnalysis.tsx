@@ -9,6 +9,7 @@ import { detectOperationType, detectRegion, generateBenchmarkContext } from '@/d
 import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
 import { saveExecutiveInsight, getExecutiveInsights, deleteExecutiveInsight, type ExecutiveInsight } from '@/lib/executiveInsights';
+import { formatRelativeTime, groupByDate, getDateGroupLabel, type DateGroup } from '@/lib/dateUtils';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
@@ -445,6 +446,7 @@ export default function DocumentAnalysis() {
   const [selectedDoc, setSelectedDoc] = useState<ProcessedDoc | null>(null);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [fileTypeFilter, setFileTypeFilter] = useState<FileType | 'all'>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // US-EI-006: Cargar historial desde Supabase al montar
@@ -767,49 +769,84 @@ export default function DocumentAnalysis() {
               </div>
             </div>
           )}
-          {!loading && docs.length > 0 && (
-            <div className="px-4 pb-4 border-t border-border pt-4">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Analizados ({docs.length})</p>
-              <div className="space-y-1.5">
-                {docs.map((doc, i) => (
-                  <div key={i} className="relative group">
-                    <button
-                      onClick={() => setSelectedDoc(doc)}
-                      className={cn(
-                        'w-full flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all',
-                        selectedDoc === doc
-                          ? 'border-primary/40 bg-primary/10'
-                          : 'border-border hover:border-primary/20 hover:bg-secondary/50',
-                      )}
-                    >
-                      {fileTypeIcon(doc.fileType)}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground truncate">{doc.fileName}</p>
-                        <p className="text-[10px] text-muted-foreground">{fileTypeLabel(doc.fileType)}</p>
+          {!loading && docs.length > 0 && (() => {
+            // US-EI-007: Filtrar documentos
+            const filtered = fileTypeFilter === 'all' 
+              ? docs 
+              : docs.filter(d => d.fileType === fileTypeFilter);
+            
+            // US-EI-007: Agrupar por fecha
+            const grouped = groupByDate(filtered);
+            const groupOrder: DateGroup[] = ['today', 'yesterday', 'thisWeek', 'thisMonth', 'older'];
+            
+            return (
+              <div className="px-4 pb-4 border-t border-border pt-4">
+                {/* Header con count + filtro */}
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                    Analizados ({filtered.length})
+                  </p>
+                  {/* TODO: Filtro por tipo (dropdown) */}
+                </div>
+
+                {/* Grupos por fecha */}
+                <div className="space-y-4">
+                  {groupOrder.map((group) => {
+                    const groupDocs = grouped[group];
+                    if (groupDocs.length === 0) return null;
+
+                    return (
+                      <div key={group}>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                          {getDateGroupLabel(group)}
+                        </p>
+                        <div className="space-y-1.5">
+                          {groupDocs.map((doc, i) => (
+                            <div key={doc.id || i} className="relative group">
+                              <button
+                                onClick={() => setSelectedDoc(doc)}
+                                className={cn(
+                                  'w-full flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all',
+                                  selectedDoc === doc
+                                    ? 'border-primary/40 bg-primary/10'
+                                    : 'border-border hover:border-primary/20 hover:bg-secondary/50',
+                                )}
+                              >
+                                {fileTypeIcon(doc.fileType)}
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-medium text-foreground truncate">{doc.fileName}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {doc.createdAt && formatRelativeTime(doc.createdAt)}
+                                  </p>
+                                </div>
+                                <CheckCircle size={12} className="text-green-400 shrink-0" />
+                              </button>
+                              {/* Botón eliminar (visible on hover) */}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  // US-EI-006: Soft-delete en Supabase si tiene ID
+                                  if (doc.id) {
+                                    await deleteExecutiveInsight(doc.id);
+                                  }
+                                  setDocs(prev => prev.filter(d => d.id !== doc.id));
+                                  if (selectedDoc === doc) setSelectedDoc(null);
+                                }}
+                                className="absolute top-1/2 -translate-y-1/2 right-2 hidden group-hover:flex items-center justify-center w-6 h-6 rounded-full bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 transition-all"
+                                title="Eliminar documento"
+                              >
+                                <X size={12} className="text-destructive" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <CheckCircle size={12} className="text-green-400 shrink-0" />
-                    </button>
-                    {/* Botón eliminar (visible on hover) */}
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        // US-EI-006: Soft-delete en Supabase si tiene ID
-                        if (doc.id) {
-                          await deleteExecutiveInsight(doc.id);
-                        }
-                        setDocs(prev => prev.filter((_, idx) => idx !== i));
-                        if (selectedDoc === doc) setSelectedDoc(null);
-                      }}
-                      className="absolute top-1/2 -translate-y-1/2 right-2 hidden group-hover:flex items-center justify-center w-6 h-6 rounded-full bg-destructive/10 hover:bg-destructive/20 border border-destructive/30 transition-all"
-                      title="Eliminar documento"
-                    >
-                      <X size={12} className="text-destructive" />
-                    </button>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Right: Analysis panel */}
