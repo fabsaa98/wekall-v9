@@ -10,6 +10,7 @@ import { useClient } from '@/contexts/ClientContext';
 import { useCDRData } from '@/hooks/useCDRData';
 import { saveExecutiveInsight, getExecutiveInsights, deleteExecutiveInsight, type ExecutiveInsight } from '@/lib/executiveInsights';
 import { formatRelativeTime, groupByDate, getDateGroupLabel, type DateGroup } from '@/lib/dateUtils';
+import { BenchmarkCard } from '@/components/BenchmarkCard';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
@@ -193,6 +194,28 @@ async function extractImage(file: File): Promise<string> {
 // CDR_CONTEXT se construye dinámicamente dentro del componente usando datos reales de Supabase
 // Ver buildCDRContext() en el componente DocumentAnalysis
 
+// US-EI-009: Helper para obtener valor de métrica del CDR
+function getCDRMetricValue(metric: string, cdrData: any): number | null {
+  if (!cdrData?.latestDay) return null;
+  
+  const metricMap: Record<string, string> = {
+    'tasa_contacto': 'tasa_contacto_pct',
+    'aht': 'aht_minutos',
+    'fcr': 'fcr_pct',
+    'csat': 'csat_pct',
+    'nps': 'nps',
+    'abandono': 'abandono_pct',
+    'conversion': 'conversion_pct',
+    'tasa_promesa': 'tasa_promesa_pct',
+  };
+  
+  const cdrKey = metricMap[metric];
+  if (!cdrKey) return null;
+  
+  const value = cdrData.latestDay[cdrKey];
+  return typeof value === 'number' ? value : null;
+}
+
 async function analyzeWithVicky(
   extractedContent: string,
   fileType: FileType,
@@ -201,8 +224,9 @@ async function analyzeWithVicky(
   clientName: string,
   clientIndustry: string,
   clientCountry: string,
+  cdrData: any,
   whatsappMeta?: WhatsAppMeta,
-): Promise<{ analysis: string; executiveBrief: string; sources: string[] }> {
+): Promise<{ analysis: string; executiveBrief: string; sources: string[]; benchmarks?: BenchmarkMetric[] }> {
   if (!PROXY_URL) {
     return {
       analysis: 'No hay conexión con el proxy de Vicky. Configura VITE_PROXY_URL en los secrets de GitHub.',
@@ -409,10 +433,97 @@ ${analysis.slice(0, 2000)}`;
     }
   }
 
+  // US-EI-009: Extraer benchmarks del documento
+  let benchmarks: BenchmarkMetric[] = [];
+  
+  // Solo extraer benchmarks si el análisis NO es rechazo y el documento menciona métricas
+  if (!analysis.startsWith('❌') && extractedContent.length > 200) {
+    const benchmarkPrompt = `Del siguiente documento, extrae TODAS las métricas de benchmark mencionadas.
+
+Retorna un JSON válido con este formato exacto:
+{
+  "metrics": [
+    {
+      "metric": "tasa_contacto",
+      "benchmark_value": 60,
+      "benchmark_source": "promedio industria LATAM 2024",
+      "top_quartile": 75,
+      "bottom_quartile": 45,
+      "unit": "%"
+    }
+  ]
+}
+
+Métricas válidas: tasa_contacto, aht, fcr, csat, nps, abandono, conversion, tasa_promesa, costo_llamada, tco, productividad, utilizacion
+
+Si NO hay benchmarks numéricos en el documento, retorna: { "metrics": [] }
+
+Documento:
+${extractedContent.slice(0, 4000)}`;
+
+    try {
+      const benchmarkRes = await fetch(`${PROXY_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: 'Eres un extractor de métricas. Retorna solo JSON válido, sin texto adicional.' },
+            { role: 'user', content: benchmarkPrompt },
+          ],
+          max_tokens: 500,
+          temperature: 0.1,
+        }),
+      });
+
+      if (benchmarkRes.ok) {
+        const benchmarkData = await benchmarkRes.json() as { choices?: Array<{ message?: { content?: string } }> };
+        const benchmarkText = benchmarkData.choices?.[0]?.message?.content || '{}';
+        
+        // Parse JSON (puede venir con markdown fences)
+        const jsonMatch = benchmarkText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]) as { metrics: any[] };
+          
+          if (parsed.metrics && Array.isArray(parsed.metrics)) {
+            // Cruzar con CDR actual para calcular gap
+            benchmarks = parsed.metrics.map((bm: any) => {
+              const currentValue = getCDRMetricValue(bm.metric, cdrData);
+              const gap = currentValue !== null 
+                ? ((currentValue - bm.benchmark_value) / bm.benchmark_value) * 100
+                : 0;
+              const position = currentValue !== null
+                ? currentValue > bm.benchmark_value ? 'above' as const
+                  : currentValue < bm.benchmark_value ? 'below' as const
+                  : 'inline' as const
+                : 'inline' as const;
+              
+              return {
+                metric: bm.metric,
+                benchmark_value: bm.benchmark_value,
+                benchmark_source: bm.benchmark_source || 'documento',
+                top_quartile: bm.top_quartile,
+                bottom_quartile: bm.bottom_quartile,
+                unit: bm.unit,
+                current_value: currentValue || undefined,
+                gap_percent: currentValue !== null ? gap : undefined,
+                position: currentValue !== null ? position : undefined,
+              };
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Benchmarks] Error extracting:', err);
+      // No-op: benchmarks optional, analysis continues
+    }
+  }
+
   return {
     analysis,
     executiveBrief,
     sources: [`WeKall CDR · ${clientName}`, `Documento: ${fileName}`],
+    benchmarks: benchmarks.length > 0 ? benchmarks : undefined,
   };
 }
 
@@ -480,6 +591,7 @@ export default function DocumentAnalysis() {
         analysis: insight.analysis,
         executiveBrief: insight.executive_brief,
         sources: insight.sources,
+        benchmarks: insight.benchmarks?.metrics, // US-EI-009
         whatsappMeta: insight.whatsapp_participants ? {
           participants: insight.whatsapp_participants,
           messageCount: insight.whatsapp_message_count || 0,
@@ -559,7 +671,7 @@ export default function DocumentAnalysis() {
       }
 
       setStatus('analyzing');
-      const { analysis, executiveBrief, sources } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, whatsappMeta);
+      const { analysis, executiveBrief, sources, benchmarks } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, cdr, whatsappMeta);
 
       // US-EI-006: Guardar en Supabase
       let savedInsight: ExecutiveInsight | null = null;
@@ -572,6 +684,7 @@ export default function DocumentAnalysis() {
           extracted_text: fileType === 'image' ? '[Imagen procesada por GPT-4o Vision]' : extractedText,
           analysis,
           executive_brief: executiveBrief,
+          benchmarks: benchmarks && benchmarks.length > 0 ? { metrics: benchmarks } : undefined, // US-EI-009
           whatsapp_participants: whatsappMeta?.participants,
           whatsapp_message_count: whatsappMeta?.messageCount,
           sources,
@@ -586,6 +699,7 @@ export default function DocumentAnalysis() {
         analysis,
         executiveBrief,
         sources,
+        benchmarks, // US-EI-009
         whatsappMeta,
         createdAt: savedInsight?.created_at || new Date().toISOString(),
       };
@@ -1099,6 +1213,21 @@ export default function DocumentAnalysis() {
                   </div>
                 )}
               </div>
+
+              {/* US-EI-009: Benchmarks comparison */}
+              {selectedDoc.benchmarks && selectedDoc.benchmarks.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <TrendingUp className="text-primary" size={18} />
+                    Comparación vs Benchmarks
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedDoc.benchmarks.map((bm, i) => (
+                      <BenchmarkCard key={i} {...bm} />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {selectedDoc.extractedText && selectedDoc.fileType !== 'image' && (
                 <details className="rounded-xl border border-border overflow-hidden">
