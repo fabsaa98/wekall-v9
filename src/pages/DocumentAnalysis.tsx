@@ -1286,6 +1286,23 @@ export default function DocumentAnalysis() {
                   Exportar PDF
                 </button>
                 <button
+                  onClick={async () => {
+                    if (!selectedDoc?.id) return;
+                    const shareUrl = `${window.location.origin}/share/${selectedDoc.id}`;
+                    try {
+                      await navigator.clipboard.writeText(shareUrl);
+                      alert('✅ Link copiado al portapapeles\n\nPuedes compartir este análisis con cualquier persona.');
+                    } catch (err) {
+                      prompt('Copia este link:', shareUrl);
+                    }
+                  }}
+                  disabled={!selectedDoc?.id}
+                  className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <MessageCircle size={15} />
+                  Compartir
+                </button>
+                <button
                   onClick={() => { setSelectedDoc(null); setStatus('idle'); }}
                   className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                 >
