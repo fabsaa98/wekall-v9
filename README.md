@@ -569,3 +569,4 @@ const SUPABASE_ANON_KEY = 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
 > - [`docs/cloudflare-worker.md`](docs/cloudflare-worker.md) — Worker rutas y deploy
 > - [`scripts/README.md`](scripts/README.md) — Scripts de base de datos y onboarding
 # Rebuild con env vars - Sat May  2 10:46:10 -05 2026
+# Security: PRESET passwords eliminadas de Production - Sat May  2 10:49:42 -05 2026
