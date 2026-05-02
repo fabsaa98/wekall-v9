@@ -15,6 +15,24 @@ import { CommentSection } from '@/components/CommentSection';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '';
 
+// Helper: fetch con timeout
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 90000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if ((err as Error).name === 'AbortError') {
+      throw new Error(`Timeout: La solicitud superó ${timeoutMs / 1000}s. Intenta con un archivo más pequeño o espera un momento.`);
+    }
+    throw err;
+  }
+}
+
 type FileType = 'audio' | 'pdf' | 'excel' | 'csv' | 'word' | 'image' | 'whatsapp' | 'unknown';
 type ProcessStatus = 'idle' | 'extracting' | 'analyzing' | 'done' | 'error';
 
@@ -177,7 +195,7 @@ async function extractAudio(file: File): Promise<string> {
   formData.append('file', file, file.name);
   formData.append('model', 'whisper-1');
   formData.append('language', 'es');
-  const res = await fetch(`${PROXY_URL}/transcribe`, { method: 'POST', body: formData });
+  const res = await fetchWithTimeout(`${PROXY_URL}/transcribe`, { method: 'POST', body: formData }, 120000); // 2 min para audio
   if (!res.ok) throw new Error(`Error Whisper: ${res.status}`);
   const data = await res.json() as { text?: string };
   if (!data.text) throw new Error('Whisper no devolvió transcripción');
@@ -384,11 +402,11 @@ SI EL DOCUMENTO SÍ ES RELEVANTE:
     temperature: 0.4,
   };
 
-  const res = await fetch(`${PROXY_URL}/chat`, {
+  const res = await fetchWithTimeout(`${PROXY_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, 90000);
 
   if (!res.ok) {
     const err = await res.text();
@@ -415,7 +433,7 @@ Formato: Párrafo ejecutivo fluido, sin bullets. Directo, accionable, CEO-ready.
 Análisis completo:
 ${analysis.slice(0, 2000)}`;
 
-    const briefRes = await fetch(`${PROXY_URL}/chat`, {
+    const briefRes = await fetchWithTimeout(`${PROXY_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -427,7 +445,7 @@ ${analysis.slice(0, 2000)}`;
         max_tokens: 200,
         temperature: 0.3,
       }),
-    });
+    }, 30000);
 
     if (briefRes.ok) {
       const briefData = await briefRes.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -464,7 +482,7 @@ Documento:
 ${extractedContent.slice(0, 4000)}`;
 
     try {
-      const benchmarkRes = await fetch(`${PROXY_URL}/chat`, {
+      const benchmarkRes = await fetchWithTimeout(`${PROXY_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -476,7 +494,7 @@ ${extractedContent.slice(0, 4000)}`;
           max_tokens: 500,
           temperature: 0.1,
         }),
-      });
+      }, 30000);
 
       if (benchmarkRes.ok) {
         const benchmarkData = await benchmarkRes.json() as { choices?: Array<{ message?: { content?: string } }> };
