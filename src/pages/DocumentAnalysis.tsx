@@ -24,6 +24,7 @@ interface ProcessedDoc {
   fileType: FileType;
   extractedText: string;
   analysis: string;
+  executiveBrief?: string; // US-EI-004: Executive Brief (100 palabras)
   sources?: string[];
   error?: string;
   whatsappMeta?: WhatsAppMeta;
@@ -184,10 +185,11 @@ async function analyzeWithVicky(
   clientIndustry: string,
   clientCountry: string,
   whatsappMeta?: WhatsAppMeta,
-): Promise<{ analysis: string; sources: string[] }> {
+): Promise<{ analysis: string; executiveBrief: string; sources: string[] }> {
   if (!PROXY_URL) {
     return {
       analysis: 'No hay conexión con el proxy de Vicky. Configura VITE_PROXY_URL en los secrets de GitHub.',
+      executiveBrief: '',
       sources: [],
     };
   }
@@ -352,8 +354,47 @@ SI EL DOCUMENTO SÍ ES RELEVANTE:
 
   const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
   const analysis = data.choices?.[0]?.message?.content || 'Sin respuesta de Vicky.';
+
+  // US-EI-004: Generar Executive Brief (100 palabras máximo)
+  let executiveBrief = '';
+  
+  // Solo generar brief si el análisis NO es rechazo
+  if (!analysis.startsWith('❌')) {
+    const briefPrompt = `Genera un EXECUTIVE BRIEF de máximo 100 palabras que responda:
+
+1. ¿Qué documento se analizó? (tipo, fuente, fecha si aplica)
+2. ¿Cuál es el hallazgo clave? (1 insight principal)
+3. ¿Qué acción recomiendas? (1 recomendación concreta)
+4. ¿Cómo se conecta con los datos del CDR? (1 dato de contexto)
+
+Formato: Párrafo ejecutivo fluido, sin bullets. Directo, accionable, CEO-ready.
+
+Análisis completo:
+${analysis.slice(0, 2000)}`;
+
+    const briefRes = await fetch(`${PROXY_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'Eres un executive assistant que genera briefs concisos para CEOs.' },
+          { role: 'user', content: briefPrompt },
+        ],
+        max_tokens: 200,
+        temperature: 0.3,
+      }),
+    });
+
+    if (briefRes.ok) {
+      const briefData = await briefRes.json() as { choices?: Array<{ message?: { content?: string } }> };
+      executiveBrief = briefData.choices?.[0]?.message?.content || '';
+    }
+  }
+
   return {
     analysis,
+    executiveBrief,
     sources: [`WeKall CDR · ${clientName}`, `Documento: ${fileName}`],
   };
 }
@@ -467,13 +508,14 @@ export default function DocumentAnalysis() {
       }
 
       setStatus('analyzing');
-      const { analysis, sources } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, whatsappMeta);
+      const { analysis, executiveBrief, sources } = await analyzeWithVicky(extractedText, fileType, file.name, CDR_CONTEXT, clientName, clientIndustry, clientCountry, whatsappMeta);
 
       const doc: ProcessedDoc = {
         fileName: file.name,
         fileType,
         extractedText: fileType === 'image' ? '[Imagen procesada por GPT-4o Vision]' : extractedText,
         analysis,
+        executiveBrief,
         sources,
         whatsappMeta,
       };
@@ -834,6 +876,39 @@ export default function DocumentAnalysis() {
                   <div className="text-xs text-muted-foreground">
                     <span className="font-semibold text-foreground">Mensajes: </span>
                     {selectedDoc.whatsappMeta.messageCount}
+                  </div>
+                </div>
+              )}
+
+              {/* US-EI-004: Executive Brief Card */}
+              {selectedDoc.executiveBrief && (
+                <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <Brain size={14} className="text-blue-500" />
+                      </div>
+                      <span className="text-sm font-bold text-blue-500">Executive Brief</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedDoc.executiveBrief!);
+                        // TODO: Mostrar toast "Copiado"
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-colors flex items-center gap-1.5 text-xs font-medium text-blue-600"
+                      title="Copiar al portapapeles"
+                    >
+                      <CheckCircle size={12} />
+                      Copiar
+                    </button>
+                  </div>
+                  <div className="text-sm text-foreground leading-relaxed">
+                    {selectedDoc.executiveBrief}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-blue-500/15 flex items-center gap-3 text-[10px] text-muted-foreground">
+                    <span>≈ {selectedDoc.executiveBrief.split(' ').length} palabras</span>
+                    <span>•</span>
+                    <span>≈ {Math.ceil(selectedDoc.executiveBrief.split(' ').length / 200)} min lectura</span>
                   </div>
                 </div>
               )}
