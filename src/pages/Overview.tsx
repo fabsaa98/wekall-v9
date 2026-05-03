@@ -431,7 +431,7 @@ export default function Overview() {
           <div className="flex-1">
             <p className={cn(
               'text-sm font-bold',
-              anomaly.direction === 'down' ? 'text-red-400' : 'text-emerald-400',
+              anomaly.direction === 'down' ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400',
             )}>
               {anomaly.direction === 'down' ? '⚠️ Anomalía detectada' : '📈 Pico positivo detectado'}
               {' '}— Tasa de contacto {anomaly.direction === 'down' ? 'inusualmente baja' : 'inusualmente alta'}
@@ -569,7 +569,7 @@ export default function Overview() {
                     {forecastVsHoy !== null && (
                       <span className={cn(
                         'flex items-center gap-0.5 text-xs font-semibold',
-                        forecastVsHoy >= 0 ? 'text-emerald-400' : 'text-red-400',
+                        forecastVsHoy >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400',
                       )}>
                         {forecastVsHoy >= 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                         {Math.abs(forecastVsHoy)}pp
@@ -735,7 +735,7 @@ export default function Overview() {
                 <div className="rounded-lg bg-secondary/50 p-3">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Tasa de contacto</p>
                   <p className="text-2xl font-bold text-foreground">{weeklyComparison.thisWeekTasa}%</p>
-                  <span className={cn('flex items-center text-xs font-semibold mt-0.5', weeklyComparison.deltaTasa >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                  <span className={cn('flex items-center text-xs font-semibold mt-0.5', weeklyComparison.deltaTasa >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400')}>
                     {weeklyComparison.deltaTasa >= 0 ? <ArrowUp size={11}/> : <ArrowDown size={11}/>}{Math.abs(weeklyComparison.deltaTasa)}pp
                   </span>
                   <p className="text-[10px] text-muted-foreground mt-1">Sem. ant.: {weeklyComparison.prevWeekTasa}%</p>
@@ -744,7 +744,7 @@ export default function Overview() {
                 <div className="rounded-lg bg-secondary/50 p-3">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Volumen llamadas</p>
                   <p className="text-2xl font-bold text-foreground">{weeklyComparison.thisWeekVol.toLocaleString('es-CO')}</p>
-                  <span className={cn('flex items-center text-xs font-semibold mt-0.5', weeklyComparison.deltaVol >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                  <span className={cn('flex items-center text-xs font-semibold mt-0.5', weeklyComparison.deltaVol >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400')}>
                     {weeklyComparison.deltaVol >= 0 ? <ArrowUp size={11}/> : <ArrowDown size={11}/>}{Math.abs(weeklyComparison.deltaVolPct)}%
                   </span>
                   <p className="text-[10px] text-muted-foreground mt-1">Sem. ant.: {weeklyComparison.prevWeekVol.toLocaleString('es-CO')}</p>
@@ -753,7 +753,7 @@ export default function Overview() {
               {/* Mejor/Peor día en fila */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-                  <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">🏆 Mejor día</p>
+                  <p className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-1">🏆 Mejor día</p>
                   <p className="text-sm font-bold text-foreground">{weeklyComparison.bestDay.fecha.slice(5)}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{weeklyComparison.bestDay.tasa_contacto_pct}% · {weeklyComparison.bestDay.total_llamadas.toLocaleString('es-CO')} llamadas</p>
                 </div>

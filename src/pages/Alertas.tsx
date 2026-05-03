@@ -565,7 +565,7 @@ export default function Alertas() {
               className={cn(
                 'px-2.5 py-1 rounded-full text-xs border transition-all',
                 chip === 'Cliente repite llamada en 7 días'
-                  ? 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10 cursor-help'
+                  ? 'border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 cursor-help'
                   : 'border-primary/20 text-primary hover:bg-primary/10',
               )}
             >
@@ -574,7 +574,7 @@ export default function Alertas() {
           ))}
         </div>
 
-        <p className="text-[11px] text-amber-400 mt-2">
+        <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-2">
           ⚠️ Los umbrales de CSAT y FCR requieren que tu CDR incluya estos campos. Contacta a WeKall para validar tu esquema de datos.
         </p>
 
