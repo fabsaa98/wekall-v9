@@ -617,7 +617,7 @@ export default function SpeechAnalytics() {
         <div className="flex items-center gap-2">
           <span className={cn(
             "text-xs font-semibold px-3 py-1.5 rounded-full",
-            tasaExito >= 40 ? "bg-emerald-500/15 text-emerald-400" : tasaExito >= 20 ? "bg-sky-500/15 text-sky-400" : "bg-red-500/15 text-red-400"
+            tasaExito >= 40 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : tasaExito >= 20 ? "bg-sky-500/15 text-sky-700 dark:text-sky-400" : "bg-red-500/15 text-red-700 dark:text-red-400"
           )}>
             {tasaExito}% tasa de conversión
           </span>
@@ -636,9 +636,9 @@ export default function SpeechAnalytics() {
             <div className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
               weeklyTrend.delta > 0
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                 : weeklyTrend.delta < 0
-                ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400'
                 : 'border-border bg-muted/30 text-muted-foreground',
             )}>
               {weeklyTrend.delta > 0 ? <TrendingUp size={12} /> : weeklyTrend.delta < 0 ? <TrendingDown size={12} /> : null}
@@ -680,9 +680,9 @@ export default function SpeechAnalytics() {
         {/* KPIs inline */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-border/50">
           {[
-            { label: labelExito, value: nExitosas, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-            { label: 'Sin acuerdo', value: nFallidas, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
-            { label: 'No contactados', value: noContacto, icon: AlertCircle, color: 'text-slate-400', bg: 'bg-slate-500/10' },
+            { label: labelExito, value: nExitosas, icon: CheckCircle2, color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+            { label: 'Sin acuerdo', value: nFallidas, icon: XCircle, color: 'text-red-700 dark:text-red-400', bg: 'bg-red-500/10' },
+            { label: 'No contactados', value: noContacto, icon: AlertCircle, color: 'text-slate-700 dark:text-slate-400', bg: 'bg-slate-500/10' },
             { label: 'Agentes activos', value: agentes.length, icon: Users, color: 'text-muted-foreground', bg: 'bg-muted/30' },
           ].map(stat => (
             <div key={stat.label} className={cn("rounded-lg p-3 flex items-center gap-2.5", stat.bg)}>
@@ -1113,7 +1113,7 @@ export default function SpeechAnalytics() {
                   <div className="flex items-center gap-3 mb-2">
                     <span className={cn(
                       "text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0",
-                      i === 0 ? "bg-sky-500/20 text-sky-400" : i === 1 ? "bg-slate-500/20 text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-400" : "bg-muted text-muted-foreground"
+                      i === 0 ? "bg-sky-500/20 text-sky-700 dark:text-sky-400" : i === 1 ? "bg-slate-500/20 text-slate-700 dark:text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-700 dark:text-orange-400" : "bg-muted text-muted-foreground"
                     )}>{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{nombre}</p>
@@ -1165,14 +1165,14 @@ export default function SpeechAnalytics() {
                     <tr key={a.name} className={cn("hover:bg-secondary/20 transition-colors", isTop && "bg-emerald-500/3", isBottom && "bg-red-500/3")}>
                       <td className="px-4 py-3">
                         <span className={cn("text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center",
-                          i === 0 ? "bg-sky-500/20 text-sky-400" : i === 1 ? "bg-slate-500/20 text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-400" : "text-muted-foreground"
+                          i === 0 ? "bg-sky-500/20 text-sky-700 dark:text-sky-400" : i === 1 ? "bg-slate-500/20 text-slate-700 dark:text-slate-300" : i === 2 ? "bg-orange-700/20 text-orange-700 dark:text-orange-400" : "text-muted-foreground"
                         )}>{i + 1}</span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-foreground">
                         <div className="flex items-center gap-2">
                           <span className="truncate max-w-[160px]">{nombre}</span>
-                          {isTop && <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full shrink-0">TOP</span>}
-                          {isBottom && a.total >= 2 && <span className="text-[9px] bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-full shrink-0">OPORT.</span>}
+                          {isTop && <span className="text-[9px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full shrink-0">TOP</span>}
+                          {isBottom && a.total >= 2 && <span className="text-[9px] bg-red-500/15 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded-full shrink-0">OPORT.</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{a.total}</td>

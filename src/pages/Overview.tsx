@@ -450,8 +450,8 @@ export default function Overview() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-all',
                 anomaly.direction === 'down'
-                  ? 'border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20'
-                  : 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20',
+                  ? 'border-red-500/30 text-red-700 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                  : 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20',
               )}
             >
               <Zap size={13} />
@@ -1148,8 +1148,8 @@ export default function Overview() {
                 <div className={cn(
                   'rounded-lg border p-3 mb-4 text-sm',
                   anomaly.direction === 'down'
-                    ? 'border-red-500/30 bg-red-500/10 text-red-400'
-                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+                    ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400'
+                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
                 )}>
                   <strong>Anomalía detectada</strong> — z-score: {anomaly.zScore}σ
                   <p className="text-xs text-muted-foreground mt-1">

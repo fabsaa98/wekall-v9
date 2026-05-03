@@ -12,10 +12,10 @@ function Dot({ status }: { status: Status }) {
   const label = status === 'green' ? 'Óptimo' : status === 'yellow' ? 'Aceptable' : 'Bajo';
   const bg =
     status === 'green'
-      ? 'bg-emerald-500/10 text-emerald-400'
+      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
       : status === 'yellow'
-      ? 'bg-amber-500/10 text-amber-400'
-      : 'bg-red-500/10 text-red-400';
+      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+      : 'bg-red-500/10 text-red-700 dark:text-red-400';
   return (
     <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${bg}`}>
       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />

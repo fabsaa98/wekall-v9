@@ -82,19 +82,19 @@ const severityConfig = {
   critical: {
     icon: <XCircle size={16} />,
     label: 'Crítica',
-    classes: 'text-red-400 bg-red-500/10 border-red-500/20',
+    classes: 'text-red-700 dark:text-red-400 bg-red-500/10 border-red-500/20',
     dot: 'bg-red-400',
   },
   warning: {
     icon: <AlertTriangle size={16} />,
     label: 'Advertencia',
-    classes: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
+    classes: 'text-sky-700 dark:text-sky-400 bg-sky-500/10 border-sky-500/20',
     dot: 'bg-sky-400',
   },
   info: {
     icon: <Info size={16} />,
     label: 'Info',
-    classes: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    classes: 'text-blue-700 dark:text-blue-400 bg-blue-500/10 border-blue-500/20',
     dot: 'bg-blue-400',
   },
 };
@@ -465,9 +465,9 @@ export default function Alertas() {
       {fireMsg && (
         <div className={cn(
           'rounded-lg border px-4 py-2.5 text-sm font-medium animate-fade-in',
-          fireMsg.startsWith('✅') ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
-          fireMsg.startsWith('⚠️') ? 'border-sky-500/30 bg-sky-500/10 text-sky-400' :
-          'border-red-500/30 bg-red-500/10 text-red-400',
+          fireMsg.startsWith('✅') ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
+          fireMsg.startsWith('⚠️') ? 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400' :
+          'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400',
         )}>
           {fireMsg}
         </div>

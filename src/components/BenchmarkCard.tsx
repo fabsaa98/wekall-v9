@@ -39,10 +39,10 @@ export function BenchmarkCard({
           className={cn(
             'px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1',
             position === 'above'
-              ? 'bg-green-500/10 text-green-600'
+              ? 'bg-green-500/10 text-green-700 dark:text-green-400'
               : position === 'below'
-              ? 'bg-red-500/10 text-red-600'
-              : 'bg-gray-500/10 text-gray-600'
+              ? 'bg-red-500/10 text-red-700 dark:text-red-400'
+              : 'bg-gray-500/10 text-gray-700 dark:text-gray-400'
           )}
         >
           {position === 'above' ? (

@@ -104,8 +104,8 @@ export function VickyChatHistory({ sessionId, clientId, onReload }: VickyChatHis
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${
                         conv.confidence === 'Alta'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                          : 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20'
                       }`}
                     >
                       {conv.confidence}

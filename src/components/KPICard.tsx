@@ -139,15 +139,15 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
 
         {/* vs Industria badge */}
         {kpi.vsIndustry === 0 ? (
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-500/10 text-slate-400 border-slate-500/20">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20">
             N/D vs industria
           </div>
         ) : (
           <div className={cn(
             'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border',
             vsPositive
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border-red-500/20',
+              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+              : 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20',
           )}>
             {kpi.vsIndustry > 0 ? '+' : ''}{kpi.vsIndustry.toFixed(1)}pp vs industria
           </div>
