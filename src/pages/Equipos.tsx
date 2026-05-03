@@ -175,7 +175,7 @@ function VsMetaBadge({ real, meta, invertGood = false }: { real: number; meta: n
   // invertGood: lower = better (e.g. AHT, escalaciones)
   const effectivePct = invertGood ? (meta / Math.max(real, 0.01)) * 100 : pct;
   const color =
-    effectivePct >= 100 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+    effectivePct >= 100 ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
     effectivePct >= 80  ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
                           'text-red-400 bg-red-500/10 border-red-500/20';
   const label =

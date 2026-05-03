@@ -603,7 +603,7 @@ export default function FinancialIntelligence() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {hasRealData && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="h-3 w-3" />
               Datos reales disponibles
             </span>
@@ -745,7 +745,7 @@ export default function FinancialIntelligence() {
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
                           c.tipo === 'cobranza'
-                            ? 'bg-emerald-500/15 text-emerald-400'
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                             : 'bg-blue-500/15 text-blue-400'
                         }`}>{c.tipo}</span>
                         {c.campana}
@@ -800,7 +800,7 @@ export default function FinancialIntelligence() {
         {uploadResult && (
           <div className={`mt-3 rounded-lg border p-3 flex items-start gap-2 text-xs ${
             uploadResult.ok
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
               : 'border-destructive/30 bg-destructive/10 text-destructive'
           }`}>
             {uploadResult.ok

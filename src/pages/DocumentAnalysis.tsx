@@ -1113,7 +1113,7 @@ export default function DocumentAnalysis() {
                     <span className="text-[11px] text-muted-foreground">{desc}</span>
                   </div>
                   {available && (
-                    <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-500/15 text-green-500 border border-green-500/30">
+                    <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30">
                       DISPONIBLE
                     </span>
                   )}
@@ -1363,7 +1363,7 @@ export default function DocumentAnalysis() {
                     step.active
                       ? 'border-primary bg-primary/10 text-primary shadow-sm scale-105'
                       : i < (['extracting', 'analyzing'].indexOf(status) + 1)
-                      ? 'border-green-500/30 bg-green-500/10 text-green-400'
+                      ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
                       : 'border-border text-muted-foreground',
                   )}>
                     <span>{step.icon}</span>

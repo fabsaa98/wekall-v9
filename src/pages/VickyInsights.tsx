@@ -114,7 +114,7 @@ function ChatBubble({ msg, onFollowUp, onAction, clientName }: {
               <span className={cn(
                 'ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-semibold border',
                 msg.confidence === 'Alta'
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
                   : 'bg-sky-500/10 text-sky-400 border-sky-500/20',
               )}>
                 Confianza {msg.confidence}
@@ -1695,7 +1695,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
 
   const statusMap: Record<string, string> = {
     'En progreso': 'text-sky-800 bg-sky-100 border-sky-300',
-    'Completada': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    'Completada': 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     'Planificada': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     'Pendiente': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   };
@@ -2236,7 +2236,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   <Bell className="w-10 h-10 text-primary" />
                   <span className="text-sm font-semibold">Notificar al equipo</span>
                   <span className="text-xs text-muted-foreground">Enviar alerta a responsables</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">DISPONIBLE</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-300 dark:border-green-700">DISPONIBLE</span>
                 </button>
                 {/* Decision Log */}
                 <button
@@ -2250,7 +2250,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   <BookOpen className="w-10 h-10 text-emerald-500" />
                   <span className="text-sm font-semibold">Agregar a Decision Log</span>
                   <span className="text-xs text-muted-foreground">Registrar decisión + responsable</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">DISPONIBLE</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-300 dark:border-green-700">DISPONIBLE</span>
                 </button>
                 {/* Reunión */}
                 <button
@@ -2264,7 +2264,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                   <CalendarPlus className="w-10 h-10 text-blue-500" />
                   <span className="text-sm font-semibold">Agendar reunión</span>
                   <span className="text-xs text-muted-foreground">Crear evento con contexto</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">DISPONIBLE</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border border-green-300 dark:border-green-700">DISPONIBLE</span>
                 </button>
               </div>
               <div className="flex gap-2 pt-2">

@@ -127,7 +127,7 @@ export default function FinancialConfig() {
       </div>
 
       {message && (
-        <div className={`rounded-lg p-4 ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+        <div className={`rounded-lg p-4 ${message.type === 'success' ? 'bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-red-500/10 text-red-700 dark:text-red-400'}`}>
           {message.text}
         </div>
       )}

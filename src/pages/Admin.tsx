@@ -109,7 +109,7 @@ const CURRENCY_MAP: Record<string, string> = {
 const INDUSTRY_COLORS: Record<string, string> = {
   cobranzas: 'bg-red-500/15 text-red-400 border-red-500/30',
   servicio: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  ventas: 'bg-green-500/15 text-green-400 border-green-500/30',
+  ventas: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30',
   soporte: 'bg-sky-500/15 text-sky-600 border-sky-500/30',
   banca: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
   salud: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
@@ -618,7 +618,7 @@ function ClientsTab() {
                     <Badge
                       variant="outline"
                       className={client.active
-                        ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                        ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30'
                         : 'bg-secondary/50 text-muted-foreground border-border'}
                     >
                       {client.active ? 'Activo' : 'Inactivo'}
@@ -802,7 +802,7 @@ function UsersTab() {
                     <Badge
                       variant="outline"
                       className={user.active
-                        ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                        ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30'
                         : 'bg-secondary/50 text-muted-foreground border-border'}
                     >
                       {user.active ? 'Activo' : 'Inactivo'}

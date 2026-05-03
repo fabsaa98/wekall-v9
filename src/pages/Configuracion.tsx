@@ -38,7 +38,7 @@ const integrations: Integration[] = [
 
 function StatusBadge({ status }: { status: 'connected' | 'pending' | 'error' }) {
   const config = {
-    connected: { label: 'Conectado', classes: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle size={11} /> },
+    connected: { label: 'Conectado', classes: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20', icon: <CheckCircle size={11} /> },
     pending: { label: 'Pendiente', classes: 'bg-sky-500/10 text-sky-400 border-sky-500/20', icon: <AlertCircle size={11} /> },
     error: { label: 'Error', classes: 'bg-red-500/10 text-red-400 border-red-500/20', icon: <AlertCircle size={11} /> },
   }[status];
@@ -290,7 +290,7 @@ export default function Configuracion() {
                       {clientConfig?.client_id || '—'}
                     </span>
                     {currentUser?.role && (
-                      <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                         {currentUser.role}
                       </span>
                     )}
@@ -367,7 +367,7 @@ export default function Configuracion() {
               {saveMsg && (
                 <p className={cn(
                   'text-xs font-medium rounded-lg px-3 py-2 border',
-                  saveMsg.startsWith('✅') ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20',
+                  saveMsg.startsWith('✅') ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-700 dark:text-red-400 bg-red-500/10 border-red-500/20',
                 )}>
                   {saveMsg}
                 </p>
