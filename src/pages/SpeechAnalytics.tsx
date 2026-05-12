@@ -620,7 +620,7 @@ export default function SpeechAnalytics() {
           <div>
             <h1 className="text-lg font-bold text-foreground">Inteligencia Conversacional</h1>
             <p className="text-xs text-muted-foreground">
-              {total} transcripciones analizadas · {isFintech ? "Inteligencia ejecutiva para mejora de conversión" : "Inteligencia ejecutiva para recuperación de cartera"}
+              {total} transcripciones analizadas · {isSales ? "Inteligencia ejecutiva para mejora de conversión" : isCollections ? "Inteligencia ejecutiva para recuperación de cartera" : "Inteligencia ejecutiva para optimización de servicio"}
             </p>
           </div>
         </div>
@@ -919,7 +919,7 @@ export default function SpeechAnalytics() {
                       <> El patrón más consistente en los cierres exitosos es <span className="font-semibold">"{patronTop.label}"</span> — presente en el <span className="font-semibold text-emerald-700 dark:text-emerald-400">{patronTop.tasaEnExitosas}%</span> de las llamadas que cierran, {patronTop.ventaja > 0 ? <>{patronTop.ventaja}pp por encima de las que no cierran.</> : <>con baja diferenciación respecto a las fallidas — indica que el patrón es necesario pero no suficiente.</>}</>
                     )}
                     {temaTop && <> El tema dominante en conversaciones exitosas es <span className="font-semibold">"{temaTop}"</span> — los agentes que anclan la conversación en este eje tienen mayor probabilidad de cierre.</>}
-                    {' '}La recomendación operativa: estandarizar estas prácticas en todos los agentes con el volumen actual generaría un incremento estimado de <span className="font-semibold text-emerald-700 dark:text-emerald-400">+{potencialMejoraScript} {isFintech ? "ventas adicionales" : "promesas adicionales"}</span> por período.
+                    {' '}La recomendación operativa: estandarizar estas prácticas en todos los agentes con el volumen actual generaría un incremento estimado de <span className="font-semibold text-emerald-700 dark:text-emerald-400">+{potencialMejoraScript} {labelExitoPlur}</span> por período.
                   </p>
                   {fragmentosSummaryExitosos.length > 0 && (
                     <details className="mt-1">
@@ -1214,7 +1214,7 @@ export default function SpeechAnalytics() {
               <p className="text-xs text-sky-400/90">
                 <span className="font-semibold">⚡ Oportunidad de mejora:</span> Existe una brecha de <span className="font-bold">{brechaConversion}pp</span> entre los 3 mejores y los 3 de menor rendimiento.
                 Capacitar a {bottom3.map(a => a.name).join(', ')} en los patrones de conversación de{' '}
-                {top3[0].name} puede generar <span className="font-bold">+{potencialCapacitacion} {isFintech ? "ventas adicionales" : "promesas adicionales"}</span> con el volumen actual.
+                {top3[0].name} puede generar <span className="font-bold">+{potencialCapacitacion} {labelExitoPlur}</span> con el volumen actual.
               </p>
             </div>
           )}
@@ -1303,7 +1303,7 @@ export default function SpeechAnalytics() {
         <div className="flex items-center gap-2">
           <Lightbulb size={16} className="text-sky-400" />
           <h2 className="text-sm font-bold text-foreground">Recomendaciones Ejecutivas</h2>
-          <span className="text-xs text-muted-foreground">— 3 acciones con mayor impacto en {isFintech ? "conversión de ventas" : "recuperación de cartera"}</span>
+          <span className="text-xs text-muted-foreground">— 3 acciones con mayor impacto en {isSales ? "conversión de ventas" : isCollections ? "recuperación de cartera" : "atención al cliente"}</span>
         </div>
 
         <div className="space-y-3">
@@ -1323,8 +1323,8 @@ export default function SpeechAnalytics() {
                   </span>
                 </div>
                 <p className="text-xs text-foreground/70 leading-relaxed">
-                  Las llamadas que mencionan {isFintech ? "beneficios concretos o condiciones específicas" : "cuotas o alternativas de pago concretas"} muestran mayor tasa de cierre en los datos analizados.
-                  Estandarizar esta práctica en todos los agentes es una práctica recomendada en {isFintech ? "operaciones de ventas de alto rendimiento." : "operaciones de cobranza de alto rendimiento."}
+                  Las llamadas que mencionan {isSales ? "beneficios concretos o condiciones específicas" : isCollections ? "cuotas o alternativas de pago concretas" : "soluciones específicas al problema del cliente"} muestran mayor tasa de cierre en los datos analizados.
+                  Estandarizar esta práctica en todos los agentes es una práctica recomendada en {isSales ? "operaciones de ventas de alto rendimiento." : isCollections ? "operaciones de cobranza de alto rendimiento." : "operaciones de servicio de alto rendimiento."}
                 </p>
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
                   <span className="flex items-center gap-1">
@@ -1360,7 +1360,7 @@ export default function SpeechAnalytics() {
                     ? `Los agentes ${bottom3.map(a => a.name).join(', ')} tienen tasas de conversión por debajo del promedio (${tasaExito}%). Replicar los patrones del top performer `
                     : 'Estandarizar las mejores prácticas de conversación del top performer '}
                   {mejorAgente && <span>(<span className="font-semibold text-foreground">{mejorAgente.name}: {mejorAgente.tasaConversion}%</span>) </span>}
-                  puede generar <span className="font-semibold text-foreground">+{potencialCapacitacion > 0 ? potencialCapacitacion : Math.round(total * 0.08)} {isFintech ? "ventas adicionales/mes" : "promesas adicionales/mes"}</span>.
+                  puede generar <span className="font-semibold text-foreground">+{potencialCapacitacion > 0 ? potencialCapacitacion : Math.round(total * 0.08)} {labelExitoPlur}/mes</span>.
                 </p>
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1">
                   <span className="flex items-center gap-1">
