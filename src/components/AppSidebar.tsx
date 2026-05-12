@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign, ChevronDown, Building2 } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign, ChevronDown, Building2, User } from 'lucide-react'; // P3: Add User icon
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 import { useState, useEffect } from 'react';
@@ -25,6 +25,7 @@ const navGroups = [
     items: [
       // Speech Analytics, Transcripciones y Búsqueda unificados bajo "Operaciones de Llamadas"
       { label: 'Speech Analytics', path: '/speech-analytics', icon: Mic },
+      { label: 'Customer Journey', path: '/customer-journey', icon: User }, // P3
       { label: 'Transcripciones', path: '/transcriptions', icon: FileAudio },
       { label: 'Búsqueda', path: '/search', icon: Search },
       { label: 'Forecast', path: '/forecast', icon: TrendingUp, badge: 'Estimado' },

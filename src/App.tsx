@@ -32,6 +32,7 @@ import UploadRecording from '@/pages/UploadRecording';
 import SearchView from '@/pages/SearchView';
 // Feature V20: Speech Analytics
 import SpeechAnalytics from '@/pages/SpeechAnalytics';
+import CustomerJourney from '@/pages/CustomerJourney'; // P3
 import ForecastView from '@/pages/ForecastView';
 import FinancialIntelligence from '@/pages/FinancialIntelligence';
 import FinancialConfig from '@/pages/FinancialConfig';
@@ -137,6 +138,7 @@ export default function App() {
                 {/* Fix 2C: Búsqueda semántica global */}
                 <Route path="/search" element={<ErrorBoundary><SearchView /></ErrorBoundary>} />
                 <Route path="/speech-analytics" element={<ErrorBoundary><SpeechAnalytics /></ErrorBoundary>} />
+                <Route path="/customer-journey" element={<ErrorBoundary><CustomerJourney /></ErrorBoundary>} /> {/* P3 */}
                 <Route path="/forecast" element={<ErrorBoundary><ForecastView /></ErrorBoundary>} />
                 <Route path="/financial" element={<ErrorBoundary><FinancialIntelligence /></ErrorBoundary>} />
                 <Route path="/financial-config" element={<ErrorBoundary><FinancialConfig /></ErrorBoundary>} />
