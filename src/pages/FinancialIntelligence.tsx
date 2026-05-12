@@ -24,6 +24,7 @@ import { MTDCard } from '@/components/financial/MTDCard';
 import { ComparativesGrid } from '@/components/financial/ComparativesGrid';
 import { SparklineTrend } from '@/components/financial/SparklineTrend';
 import { ExecutiveSummary } from '@/components/financial/ExecutiveSummary';
+import { useBusinessProfile } from '@/hooks/useBusinessProfile';
 import type {
   RecaudoHoy,
   RecaudoMTD,
@@ -163,6 +164,7 @@ function FinancialTooltip({ active, payload, label }: {
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function FinancialIntelligence() {
   const { clientId, clientConfig } = useClient();
+  const { data: businessProfile, isLoading: profileLoading } = useBusinessProfile();
   const CAMPANAS_DIST = clientConfig?.industry === 'fintech_pagos' ? CAMPANAS_FINTECH : CAMPANAS_COBRANZA;
 
   const [loading,    setLoading]    = useState(true);
@@ -295,7 +297,7 @@ export default function FinancialIntelligence() {
       });
 
       if (!cdrData?.length) {
-        setError('Sin datos CDR disponibles para este cliente.');
+        setError(`Sin datos CDR para cliente: ${client.id}. Intenta con ceo@crediminuto.com o fabian@wekall.co`);
         return;
       }
 
@@ -651,7 +653,9 @@ export default function FinancialIntelligence() {
         yoy={yoyData}
         industry={clientConfig?.industry}
         hasRealData={hasRealData}
-        loading={loading}
+        loading={loading || profileLoading}
+        businessType={businessProfile?.business_type}
+        businessDisplayName={businessProfile?.display_name}
       />
 
       {/* ── KPI Cards con sparklines (legacy) ────────────────────────────── */}

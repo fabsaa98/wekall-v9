@@ -4,6 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Mic, Loader2, AlertTriangle, TrendingUp, TrendingDown, Users, Target, Lightbulb, CheckCircle2, XCircle, AlertCircle, ArrowUpRight, BarChart2 } from 'lucide-react';
 import { useClient } from '@/contexts/ClientContext';
+import { useBusinessProfile } from '@/hooks/useBusinessProfile';
 import { cn } from '@/lib/utils';
 import { PageSkeleton } from '@/components/PageSkeleton';
 
@@ -313,19 +314,28 @@ const OBJECIONES_VENTAS = [
 
 export default function SpeechAnalytics() {
   const { clientId, clientConfig } = useClient();
-  // Lenguaje dinámico por industria
-  const isFintech = clientConfig?.industry === 'fintech_pagos';
-  const labelExito      = isFintech ? 'Ventas cerradas'   : 'Promesas de pago';
-  const labelExitoSing  = isFintech ? 'venta cerrada'     : 'promesa de pago';
-  const labelExitoPlur  = isFintech ? 'ventas cerradas'   : 'promesas de pago';
-  const labelTasa       = isFintech ? 'tasa de conversión': 'tasa de conversión';
-  const labelCierre     = isFintech ? 'cierre de venta'   : 'acuerdo de pago';
-  // Patrones y objeciones dinámicos por industria
-  const patronesExitososDef = isFintech ? PATRONES_EXITOSOS_VENTAS : PATRONES_EXITOSOS_COBRANZA;
-  const patronesFallidosDef = isFintech ? PATRONES_FALLIDOS_VENTAS : PATRONES_FALLIDOS_COBRANZA;
-  const objecionesDef       = isFintech ? OBJECIONES_VENTAS        : OBJECIONES_COBRANZA;
-  // Señales de churn — solo aplica a clientes con servicio activo (inbound/CX), no a outbound SDR
-  const churnEnabled = !isFintech;
+  const { data: businessProfile, isLoading: profileLoading } = useBusinessProfile();
+  
+  // Lenguaje dinámico por business_type
+  const businessType = businessProfile?.business_type || 'collections';
+  const isCollections = businessType === 'collections';
+  const isSales = businessType === 'sales';
+  const isService = businessType === 'service_support';
+  const isRetention = businessType === 'retention';
+  
+  const labelExito      = isSales ? 'Ventas cerradas' : isCollections ? 'Promesas de pago' : isService ? 'Casos resueltos' : 'Retenciones exitosas';
+  const labelExitoSing  = isSales ? 'venta cerrada' : isCollections ? 'promesa de pago' : isService ? 'caso resuelto' : 'retención exitosa';
+  const labelExitoPlur  = isSales ? 'ventas cerradas' : isCollections ? 'promesas de pago' : isService ? 'casos resueltos' : 'retenciones exitosas';
+  const labelTasa       = isSales ? 'tasa de conversión' : isCollections ? 'tasa de promesa' : isService ? 'tasa de resolución' : 'tasa de retención';
+  const labelCierre     = isSales ? 'cierre de venta' : isCollections ? 'acuerdo de pago' : isService ? 'resolución exitosa' : 'cliente retenido';
+  
+  // Patrones y objeciones dinámicos por vertical
+  const patronesExitososDef = isSales ? PATRONES_EXITOSOS_VENTAS : PATRONES_EXITOSOS_COBRANZA;
+  const patronesFallidosDef = isSales ? PATRONES_FALLIDOS_VENTAS : PATRONES_FALLIDOS_COBRANZA;
+  const objecionesDef       = isSales ? OBJECIONES_VENTAS : OBJECIONES_COBRANZA;
+  
+  // Señales de churn — solo aplica a clientes con servicio activo (service_support/retention)
+  const churnEnabled = isService || isRetention;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
@@ -546,7 +556,7 @@ export default function SpeechAnalytics() {
   }, [transcriptions]);
 
   // ── Loading ────────────────────────────────────────────────────────────────
-  if (loading) {
+  if (loading || profileLoading) {
     return <PageSkeleton rows={4} />;
   }
 

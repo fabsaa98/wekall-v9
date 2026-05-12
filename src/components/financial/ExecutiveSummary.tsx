@@ -14,6 +14,8 @@ interface ExecutiveSummaryProps {
   industry?: string;
   hasRealData?: boolean;
   loading?: boolean;
+  businessType?: string; // 'collections' | 'service_support' | 'sales' | 'retention'
+  businessDisplayName?: string;
 }
 
 const BM_COSTO_CC_PCT = 15.0; // Benchmark costo CC / recaudo
@@ -32,7 +34,9 @@ export function ExecutiveSummary({
   yoy, 
   industry, 
   hasRealData = false,
-  loading = false 
+  loading = false,
+  businessType = 'collections',
+  businessDisplayName = 'Cobranzas'
 }: ExecutiveSummaryProps) {
   if (loading) {
     return (
@@ -62,6 +66,13 @@ export function ExecutiveSummary({
   const tendOk = tendenciaMom >= 0;
 
   const isFintech = industry === 'fintech_pagos';
+  const isCollections = businessType === 'collections';
+  const isService = businessType === 'service_support';
+  const isSales = businessType === 'sales';
+
+  // Labels dinámicos por vertical
+  const metricLabel = isCollections ? 'recaudo' : isSales ? 'ventas' : 'atención';
+  const successLabel = isCollections ? 'promesas cumplidas' : isSales ? 'conversiones' : 'casos resueltos';
 
   // Detectar mes parcial (< 10 días transcurridos)
   const mesParcial = mtd && mtd.dias_transcurridos < 10;
@@ -81,13 +92,13 @@ export function ExecutiveSummary({
         <div>
           <h2 className="text-sm font-semibold text-foreground">Executive Summary — {mesLabel}</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            Síntesis ejecutiva · {hasRealData ? 'Datos reales' : 'Basado en queries ejecutivas'}
+            {businessDisplayName} · {hasRealData ? 'Datos reales' : 'Basado en queries ejecutivas'}
           </p>
         </div>
       </div>
 
-      {/* Status badge */}
-      {!isFintech && costoPct > 0 && (
+      {/* Status badge (solo para cobranzas) */}
+      {isCollections && costoPct > 0 && (
         <div className="flex items-center gap-2 mb-3">
           <div className={`h-2 w-2 rounded-full ${margenOk ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
           <span className={`text-sm font-bold ${statusColor}`}>{statusText}</span>
@@ -103,13 +114,13 @@ export function ExecutiveSummary({
             {mesParcial ? (
               <>
                 la operación registra <span className="text-foreground font-semibold">{fmtCOP(mtd.recaudo_mtd_cop)}</span>{' '}
-                MTD ({mtd.dias_transcurridos} {mtd.dias_transcurridos === 1 ? 'día' : 'días'} transcurridos).{' '}
+                de {metricLabel} MTD ({mtd.dias_transcurridos} {mtd.dias_transcurridos === 1 ? 'día' : 'días'} transcurridos).{' '}
                 <span className="text-amber-700 dark:text-amber-300 font-medium">Datos parciales</span> — proyección mes:{' '}
                 <span className="text-foreground font-semibold">{fmtCOP(mtd.proyeccion_mes_cop)}</span>.
               </>
             ) : (
               <>
-                el recaudo acumulado MTD es{' '}
+                el {metricLabel} acumulado MTD es{' '}
                 <span className="text-foreground font-semibold">{fmtCOP(mtd.recaudo_mtd_cop)}</span>{' '}
                 ({mtd.dias_transcurridos} días transcurridos de {mtd.dias_totales_mes}).{' '}
                 Proyección fin de mes:{' '}
@@ -147,7 +158,7 @@ export function ExecutiveSummary({
         )}
 
         {/* Paragraph 3: ROI y costos (solo cobranza) */}
-        {!isFintech && mtd && today && (
+        {isCollections && mtd && today && (
           <p>
             ROI de operación:{' '}
             <span className={`font-semibold ${
@@ -180,7 +191,7 @@ export function ExecutiveSummary({
           <p>
             Hoy:{' '}
             <span className="text-foreground font-semibold">{fmtCOP(today.recaudo_cop)}</span>{' '}
-            ({today.promesas_cumplidas.toLocaleString('es-CO')} promesas cumplidas){' '}
+            ({today.promesas_cumplidas.toLocaleString('es-CO')} {successLabel}){' '}
             <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-500 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide">
               REAL
             </span>.
@@ -188,8 +199,8 @@ export function ExecutiveSummary({
         )}
       </div>
 
-      {/* Alert: Costo CC alto */}
-      {!isFintech && !margenOk && costoPct > 0 && (
+      {/* Alert: Costo CC alto (solo cobranzas) */}
+      {isCollections && !margenOk && costoPct > 0 && (
         <div className="mt-3 flex items-start gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 p-3">
           <Zap className="h-3.5 w-3.5 text-orange-400 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-900 dark:text-amber-100 leading-relaxed">
@@ -215,10 +226,10 @@ export function ExecutiveSummary({
 
       {/* Footer: Fuente de datos */}
       <p className="mt-3 text-[11px] leading-relaxed border-t border-border/50 pt-3 text-muted-foreground/50">
-        {isFintech
+        {isService
           ? 'Datos basados en queries ejecutivas PostgreSQL. Métricas de servicio y atención.'
           : hasRealData
-            ? '✅ Basado en datos reales de recaudo (financial_results) + queries ejecutivas.'
+            ? '✅ Basado en datos reales de ' + metricLabel + ' (financial_results) + queries ejecutivas.'
             : '⚠️ Basado en queries ejecutivas y estimativos. Conectar datos reales para mayor precisión.'
         }
       </p>
