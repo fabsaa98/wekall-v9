@@ -19,6 +19,8 @@ interface Transcription {
   transcript: string;
   campaign?: string;
   client_id?: string;
+  channel?: 'voz' | 'whatsapp' | 'email' | 'chat'; // P4: Multi-channel support
+  message_type?: 'inbound' | 'outbound'; // P4: Message direction
 }
 
 interface ParsedCall {
@@ -339,6 +341,7 @@ export default function SpeechAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [channelFilter, setChannelFilter] = useState<'todos' | 'voz' | 'whatsapp' | 'email' | 'chat'>('todos'); // P4: Channel filter
 
   useEffect(() => {
     async function load() {
@@ -350,7 +353,7 @@ export default function SpeechAnalytics() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             table: 'transcriptions',
-            select: 'id,agent_name,call_date,call_type,summary,transcript,campaign,client_id',
+            select: 'id,agent_name,call_date,call_type,summary,transcript,campaign,client_id,channel,message_type', // P4: Include channel fields
             client_id: clientId,
             limit: '200',
           }),
@@ -372,8 +375,13 @@ export default function SpeechAnalytics() {
     if (transcriptions.length === 0) return null;
     try {
 
+    // P4: Filter by channel
+    const filteredTranscriptions = channelFilter === 'todos' 
+      ? transcriptions
+      : transcriptions.filter(t => t.channel === channelFilter);
+
     // Parsear todas las llamadas
-    const calls: ParsedCall[] = transcriptions.map(t => ({
+    const calls: ParsedCall[] = filteredTranscriptions.map(t => ({
       raw: t,
       ...parseSummary(t.summary || '', t.transcript || ''),
       campanaEfectiva: t.campaign || inferirCampana(t),
@@ -524,6 +532,24 @@ export default function SpeechAnalytics() {
       .sort((a, b) => b[1] - a[1])
       .map(([tipo, count]) => ({ tipo, count, pct: totalObjecionesVentas > 0 ? Math.round((count / totalObjecionesVentas) * 100) : 0 }));
 
+    // P4: Channel analytics
+    const channelStats = ['voz', 'whatsapp', 'email', 'chat'].map(ch => {
+      const channelCalls = calls.filter(c => (c.raw.channel || 'voz') === ch);
+      const channelExitosas = channelCalls.filter(c => c.resultado === 'exitoso');
+      const channelVolumen = channelCalls.length;
+      const channelTasaExito = channelVolumen > 0 ? Math.round((channelExitosas.length / channelVolumen) * 100) : 0;
+      const channelSentimientoPromedio = channelCalls.length > 0
+        ? channelCalls.reduce((sum, c) => sum + estimarCSAT(c.tono, c.resultado), 0) / channelCalls.length
+        : 0;
+      return {
+        canal: ch,
+        volumen: channelVolumen,
+        tasaExito: channelTasaExito,
+        sentimientoPromedio: channelSentimientoPromedio,
+      };
+    }).filter(s => s.volumen > 0).sort((a, b) => b.volumen - a.volumen);
+    const mejorCanalTasa = [...channelStats].sort((a, b) => b.tasaExito - a.tasaExito)[0];
+
     return {
       total,
       exitosas: exitosas.length,
@@ -548,12 +574,14 @@ export default function SpeechAnalytics() {
       weeklyTrend,
       campanaActual,
       objecionesVentas,
+      channelStats, // P4
+      mejorCanalTasa, // P4
     };
     } catch (e) {
       console.error('[SpeechAnalytics] Error en análisis:', e);
       return null;
     }
-  }, [transcriptions]);
+  }, [transcriptions, channelFilter]); // P4: Re-analyze when channel filter changes
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading || profileLoading) {
@@ -588,7 +616,7 @@ export default function SpeechAnalytics() {
     );
   }
 
-  const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, fragmentosSummaryFallidas, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend, campanaActual, objecionesVentas } = analysis;
+  const { calls, total, exitosas: nExitosas, fallidas: nFallidas, noContacto, tasaExito, patronesExitosos, fragmentosSummaryExitosos, fragmentosSummaryFallidas, agentes, top3, bottom3, mapaObjeciones, topTemasExitosos, topTemasFallidos, potencialMejoraScript, potencialCapacitacion, minutosRecuperados, objecionMasFrecuente, weeklyTrend, campanaActual, objecionesVentas, channelStats, mejorCanalTasa } = analysis;
 
   // Fix CX3 — CSAT promedio inferido
   const csatPromedio = calls.length > 0
@@ -625,6 +653,18 @@ export default function SpeechAnalytics() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* P4: Channel Filter */}
+          <select 
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value as typeof channelFilter)}
+            className="text-xs px-3 py-1.5 rounded-lg bg-card border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            <option value="todos">📊 Todos los canales</option>
+            <option value="voz">📞 Voz</option>
+            <option value="whatsapp">💬 WhatsApp</option>
+            <option value="email">📧 Email</option>
+            <option value="chat">💻 Chat</option>
+          </select>
           <span className={cn(
             "text-xs font-semibold px-3 py-1.5 rounded-full",
             tasaExito >= 40 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : tasaExito >= 20 ? "bg-sky-500/15 text-sky-700 dark:text-sky-400" : "bg-red-500/15 text-red-700 dark:text-red-400"
@@ -1419,6 +1459,72 @@ export default function SpeechAnalytics() {
             </div>
           </div>
         </div>
+
+        {/* P4: Comparativa por Canal */}
+        {channelStats && channelStats.length > 0 && (
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <BarChart2 size={16} className="text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Comparativa por Canal</h3>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Canal</th>
+                    <th className="text-center px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Volumen</th>
+                    <th className="text-center px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Tasa éxito</th>
+                    <th className="text-center px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Sentimiento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {channelStats.map((stat, idx) => (
+                    <tr key={stat.canal} className={cn("border-b border-border/50", idx % 2 === 0 && "bg-muted/20")}>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-medium text-foreground flex items-center gap-2">
+                          {stat.canal === 'voz' && '📞 Voz'}
+                          {stat.canal === 'whatsapp' && '💬 WhatsApp'}
+                          {stat.canal === 'email' && '📧 Email'}
+                          {stat.canal === 'chat' && '💻 Chat'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm font-semibold text-foreground">{stat.volumen}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={cn(
+                          "text-sm font-semibold",
+                          stat.tasaExito >= 40 ? "text-emerald-400" : stat.tasaExito >= 20 ? "text-sky-400" : "text-red-400"
+                        )}>
+                          {stat.tasaExito}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm font-semibold text-foreground">{stat.sentimientoPromedio.toFixed(1)}/5</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {mejorCanalTasa && (
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                <p className="text-xs text-foreground flex items-center gap-2">
+                  <Lightbulb size={12} className="text-primary" />
+                  <span className="font-semibold">Insight:</span>
+                  El canal con mejor tasa de éxito es <span className="font-bold text-primary">
+                    {mejorCanalTasa.canal === 'voz' && 'Voz'}
+                    {mejorCanalTasa.canal === 'whatsapp' && 'WhatsApp'}
+                    {mejorCanalTasa.canal === 'email' && 'Email'}
+                    {mejorCanalTasa.canal === 'chat' && 'Chat'}
+                  </span> con {mejorCanalTasa.tasaExito}% de conversión.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer informativo */}
         <div className="rounded-lg border border-border/50 bg-card/30 px-4 py-3 flex items-center gap-2">

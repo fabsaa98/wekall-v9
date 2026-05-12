@@ -34,6 +34,7 @@ import {
   ForecastResult,
   ErlangResult,
 } from '@/lib/vickyCalculations';
+import { RevenueForecast } from '@/components/financial/RevenueForecast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +171,9 @@ export default function ForecastView() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+      {/* ── P5 Scale-A: Revenue Forecast ────────────────────────────────── */}
+      {clientId && <RevenueForecast clientId={clientId} horizonDays={30} />}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

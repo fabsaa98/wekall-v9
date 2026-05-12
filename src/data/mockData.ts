@@ -51,6 +51,7 @@ export interface ChartDataset {
   label: string;
   data: number[];
   color?: string;
+  unit?: string; // Permite eje Y secundario cuando difiere del unit principal
 }
 
 export interface VickyChartData {

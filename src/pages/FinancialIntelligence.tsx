@@ -24,6 +24,7 @@ import { MTDCard } from '@/components/financial/MTDCard';
 import { ComparativesGrid } from '@/components/financial/ComparativesGrid';
 import { SparklineTrend } from '@/components/financial/SparklineTrend';
 import { ExecutiveSummary } from '@/components/financial/ExecutiveSummary';
+import { ChannelCostComparison } from '@/components/financial/ChannelCostComparison';
 import { useBusinessProfile } from '@/hooks/useBusinessProfile';
 import type {
   RecaudoHoy,
@@ -657,6 +658,9 @@ export default function FinancialIntelligence() {
         businessType={businessProfile?.business_type}
         businessDisplayName={businessProfile?.display_name}
       />
+
+      {/* ── P2 Scale-A: Channel Cost Comparison ────────────────────────────── */}
+      {clientId && <ChannelCostComparison clientId={clientId} />}
 
       {/* ── KPI Cards con sparklines (legacy) ────────────────────────────── */}
       <div>

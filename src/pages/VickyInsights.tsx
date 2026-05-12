@@ -1393,7 +1393,7 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
                     limit: { type: 'number', description: 'Cantidad de agentes a retornar (default 10)' },
                     order: { type: 'string', enum: ['asc', 'desc'], description: 'Orden: desc=top performers, asc=bottom performers' },
                     days: { type: 'number', description: 'Últimos N días para daily_trend (default 30)' },
-                    country: { type: 'string', type: 'string', description: 'Filtrar por país si el cliente opera en varios países. Usar both para comparativa entre operaciones.' },
+                    country: { type: 'string', description: 'Filtrar por país si el cliente opera en varios países. Usar both para comparativa entre operaciones.' },
                   },
                 },
               },

@@ -178,43 +178,7 @@ export function VickyChart({ chartData }: VickyChartProps) {
         ) : isLine ? (
           // ── Línea (tendencia temporal) ────────────────────────────────────
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={data} margin={{ top: 5, right: 48, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-              
-              {/* Eje Y izquierdo (principal) */}
-              <YAxis yAxisId="left" tickFormatter={v => fmtValue(v, chartData.unit)}
-                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={48} />
-              
-              {/* Eje Y derecho (secundario) - para datasets con unidad diferente */}
-              {chartData.datasets.length > 1 && chartData.datasets.some(ds => ds.unit && ds.unit !== chartData.unit) && (
-                <YAxis yAxisId="right" orientation="right" 
-                  tickFormatter={v => fmtValue(v, chartData.datasets.find(ds => ds.unit && ds.unit !== chartData.unit)?.unit || '%')}
-                  tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={48} />
-              )}
-              
-              <Tooltip content={<VickyTooltip unit={chartData.unit} />} />
-              {chartData.datasets.length > 1 && <Legend formatter={v => <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{v}</span>} />}
-              {chartData.benchmark !== undefined && (
-                <ReferenceLine y={chartData.benchmark} stroke="#f59e0b" strokeDasharray="5 3" yAxisId="left"
-                  label={{ value: chartData.benchmarkLabel || `Bm ${fmtValue(chartData.benchmark, chartData.unit)}`, position: 'insideTopRight', fontSize: 9, fill: '#f59e0b' }} />
-              )}
-              {chartData.datasets.map((ds, i) => {
-                const useRightAxis = ds.unit && ds.unit !== chartData.unit;
-                return (
-                  <Line key={ds.label} type="monotone" dataKey={ds.label}
-                    yAxisId={useRightAxis ? "right" : "left"}
-                    stroke={ds.color || PALETTE[i % PALETTE.length]} strokeWidth={2.5}
-                    dot={{ r: 4, fill: ds.color || PALETTE[i % PALETTE.length], strokeWidth: 0 }}
-                    activeDot={{ r: 6, strokeWidth: 0 }} />
-                );
-              })}
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          // ── Barras Verticales (comparación) ──────────────────────────────
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data} margin={{ top: 5, right: 48, left: 0, bottom: 5 }}>
+            <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={v => fmtValue(v, chartData.unit)}
@@ -222,7 +186,29 @@ export function VickyChart({ chartData }: VickyChartProps) {
               <Tooltip content={<VickyTooltip unit={chartData.unit} />} />
               {chartData.datasets.length > 1 && <Legend formatter={v => <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{v}</span>} />}
               {chartData.benchmark !== undefined && (
-                <ReferenceLine y={chartData.benchmark} stroke="#f59e0b" strokeDasharray="5 3" yAxisId="left"
+                <ReferenceLine y={chartData.benchmark} stroke="#f59e0b" strokeDasharray="5 3"
+                  label={{ value: chartData.benchmarkLabel || `Bm ${fmtValue(chartData.benchmark, chartData.unit)}`, position: 'insideTopRight', fontSize: 9, fill: '#f59e0b' }} />
+              )}
+              {chartData.datasets.map((ds, i) => (
+                <Line key={ds.label} type="monotone" dataKey={ds.label}
+                  stroke={ds.color || PALETTE[i % PALETTE.length]} strokeWidth={2.5}
+                  dot={{ r: 4, fill: ds.color || PALETTE[i % PALETTE.length], strokeWidth: 0 }}
+                  activeDot={{ r: 6, strokeWidth: 0 }} />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          // ── Barras Verticales (comparación) ──────────────────────────────
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => fmtValue(v, chartData.unit)}
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={48} />
+              <Tooltip content={<VickyTooltip unit={chartData.unit} />} />
+              {chartData.datasets.length > 1 && <Legend formatter={v => <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{v}</span>} />}
+              {chartData.benchmark !== undefined && (
+                <ReferenceLine y={chartData.benchmark} stroke="#f59e0b" strokeDasharray="5 3"
                   label={{ value: chartData.benchmarkLabel || `Bm`, position: 'right', fontSize: 9, fill: '#f59e0b' }} />
               )}
               {chartData.datasets.map((ds, i) => (
