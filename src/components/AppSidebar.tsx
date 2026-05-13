@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign, ChevronDown, Building2, User } from 'lucide-react'; // P3: Add User icon
+import { LayoutDashboard, MessageSquareText, Bell, Users, Settings, Zap, Brain, X, Menu, ShieldCheck, Mic, FileAudio, Upload, Search, TrendingUp, LogOut, DollarSign, ChevronDown, Building2, User, TrendingDown } from 'lucide-react'; // P2, P3: Add TrendingDown, User icons
 import { useRole } from '@/contexts/RoleContext';
 import { useClient } from '@/contexts/ClientContext';
 import { useState, useEffect } from 'react';
@@ -17,6 +17,7 @@ const navGroups = [
       { label: 'Vicky Insights', path: '/vicky', icon: Zap },
       { label: 'Executive Insights', path: '/document-analysis', icon: TrendingUp },
       { label: 'Financial Intelligence', path: '/financial', icon: DollarSign, badge: 'Estimado' },
+      { label: 'Costo por Canal', path: '/channel-costs', icon: TrendingDown }, // P2
       { label: 'Alertas', path: '/alertas', icon: Bell },
     ],
   },
