@@ -22,9 +22,9 @@ const BM_COSTO_CC_PCT = 15.0; // Benchmark costo CC / recaudo
 const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 function fmtCOP(n: number): string {
-  if (Math.abs(n) >= 1_000_000_000) return `$${(n/1_000_000_000).toFixed(2)}B`;
-  if (Math.abs(n) >= 1_000_000)     return `$${(n/1_000_000).toFixed(1)}M`;
-  return `$${n.toLocaleString('es-CO')}`;
+  if (Math.abs(n) >= 1_000_000_000) return `COP $${(n/1_000_000_000).toFixed(2)}B`;
+  if (Math.abs(n) >= 1_000_000)     return `COP $${(n/1_000_000).toFixed(1)}M`;
+  return `COP $${n.toLocaleString('es-CO')}`;
 }
 
 export function ExecutiveSummary({ 

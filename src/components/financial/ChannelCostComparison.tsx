@@ -153,7 +153,7 @@ export function ChannelCostComparison({ clientId }: ChannelCostComparisonProps) 
               <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Agente Humano</span>
             </div>
             <div className="text-2xl font-bold text-slate-800">
-              ${data.costo_humano.toLocaleString('es-CO')}
+              COP ${data.costo_humano.toLocaleString('es-CO')}
             </div>
             <div className="text-xs text-slate-500 mt-1">por interacción</div>
           </div>
@@ -164,7 +164,7 @@ export function ChannelCostComparison({ clientId }: ChannelCostComparisonProps) 
               <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">Vicky IA</span>
             </div>
             <div className="text-2xl font-bold text-indigo-700">
-              ${data.costo_vicky.toLocaleString('es-CO')}
+              COP ${data.costo_vicky.toLocaleString('es-CO')}
             </div>
             <div className="text-xs text-indigo-600 mt-1">por interacción</div>
           </div>
@@ -184,7 +184,7 @@ export function ChannelCostComparison({ clientId }: ChannelCostComparisonProps) 
             <div className="text-right text-sm text-green-700">
               <div className="font-medium">Reducción de costo</div>
               <div className="text-xs text-green-600">
-                ${(data.costo_humano - data.costo_vicky).toLocaleString('es-CO')} menos
+                COP ${(data.costo_humano - data.costo_vicky).toLocaleString('es-CO')} menos
               </div>
             </div>
           </div>
@@ -231,7 +231,7 @@ export function ChannelCostComparison({ clientId }: ChannelCostComparisonProps) 
                   boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                 }}
                 formatter={(value: number, name: string) => {
-                  if (name === 'costo') return [`$${value.toLocaleString('es-CO')}`, 'Costo'];
+                  if (name === 'costo') return [`COP $${value.toLocaleString('es-CO')}`, 'Costo'];
                   if (name === 'tiempo') return [`${value}s`, 'Tiempo promedio'];
                   return [value, name];
                 }}

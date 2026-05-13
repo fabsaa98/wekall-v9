@@ -15,7 +15,7 @@ interface ComparativesGridProps {
 function fmtCOP(n: number): string {
   if (Math.abs(n) >= 1_000_000_000) return `$${(n/1_000_000_000).toFixed(2)}B`;
   if (Math.abs(n) >= 1_000_000)     return `$${(n/1_000_000).toFixed(1)}M`;
-  return `$${n.toLocaleString('es-CO')}`;
+  return `COP $${n.toLocaleString('es-CO')}`;
 }
 
 interface MetricBoxProps {
