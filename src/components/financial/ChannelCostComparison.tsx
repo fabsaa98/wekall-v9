@@ -43,10 +43,10 @@ interface ChannelCostComparisonProps {
 const PROXY_URL = (import.meta.env.VITE_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev').replace(/\/$/, '');
 
 async function proxyRPC<T>(fn: string, params: object): Promise<T> {
-  const resp = await fetch(`${PROXY_URL}/rpc`, {
+  const resp = await fetch(`${PROXY_URL}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ function: fn, params }),
+    body: JSON.stringify({ rpc: fn, params }),
   });
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({})) as Record<string, string>;
