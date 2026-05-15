@@ -272,17 +272,20 @@ export const agentsData: Agent[] = [];
 // ─── Vicky Chat — Initial messages
 // ESTIMACIÓN: mensajes estáticos de bienvenida — no vienen de Supabase ────────────────────────────────────────────
 
+// Welcome message genérico — sin rango de fechas hardcoded (que solo aplicaba a Crediminuto).
+// El rango real se puede inferir desde cdr_daily_metrics en runtime y mencionarlo en el primer
+// turno de Vicky si el componente lo desea.
 export const initialVickyMessages: ChatMessage[] = [
   {
     id: 'init-1',
     role: 'vicky',
-    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso a los datos reales de tu operación:\n- **CDR histórico enero 2024 - abril 2026**: CDR histórico del cliente.',
+    content: '**Hola. Soy Vicky Insights.**\n\nTengo acceso en tiempo real a tus CDR, performance de agentes, campañas y transcripciones de llamadas. Preguntame lo que necesites entender de tu operación.',
     timestamp: new Date(Date.now() - 60000),
-    sources: ['WeKall CDR · Supabase en tiempo real'],
+    sources: ['WeKall · Supabase en tiempo real'],
     confidence: 'Alta',
-    reasoning: 'Datos CDR históricos consultados desde Supabase en tiempo real.',
+    reasoning: 'Datos operativos consultados desde Supabase en tiempo real para el cliente activo.',
     followUps: [
-      '¿Cuál es el top 10 de agentes por volumen de llamadas?',
+      '¿Cuál es el top 10 de agentes por volumen?',
       '¿Cómo se compara la operación por campaña?',
       '¿Qué campaña tiene mejor rendimiento?',
     ],

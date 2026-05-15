@@ -39,14 +39,24 @@ interface ParsedCall {
 
 function inferirCampana(t: Transcription): string {
   const texto = ((t.summary || '') + ' ' + (t.transcript || '')).toLowerCase();
+  // Salud (EPS/IPS): priorizar antes de "servicio" porque mucha llamada de salud habla de "servicio"
+  if (
+    texto.includes('autoriz') || texto.includes('urgenc') || texto.includes('remision') ||
+    texto.includes('hospital') || texto.includes('ips') || texto.includes('eps') ||
+    texto.includes('afiliad') || texto.includes('cirug') || texto.includes('medicamento') ||
+    texto.includes('historia clinica') || texto.includes('orden medica') || texto.includes('pbs') ||
+    texto.includes('pac ') || texto.includes('paciente')
+  ) {
+    return 'Salud';
+  }
   if (texto.includes('deuda') || texto.includes('pago') || texto.includes('cobran') || texto.includes('credito')) {
     return 'Cobranzas';
   }
-  if (texto.includes('servicio') || texto.includes('soporte') || texto.includes('problema') || texto.includes('falla')) {
-    return 'Servicio';
-  }
   if (texto.includes('venta') || texto.includes('producto') || texto.includes('precio') || texto.includes('compra')) {
     return 'Ventas';
+  }
+  if (texto.includes('servicio') || texto.includes('soporte') || texto.includes('problema') || texto.includes('falla')) {
+    return 'Servicio';
   }
   return t.call_type === 'collection' ? 'Cobranzas'
        : t.call_type === 'support'    ? 'Servicio'
@@ -236,6 +246,22 @@ const PATRONES_FALLIDOS_VENTAS = [
   { id: 'sin_seguimiento', label: 'Terminó sin próximo paso', keywords: [] },
 ];
 
+// ─── Patrones servicio de salud (EPS / IPS / telemedicina) ───────────────────
+const PATRONES_EXITOSOS_SALUD = [
+  { id: 'autorizacion', label: 'Otorgó autorización clara', keywords: ['autoriz', 'aprobado', 'aprobamos', 'queda autorizado', 'procede el servicio', 'aprueba'] },
+  { id: 'cobertura', label: 'Explicó cobertura del PBS/PAC', keywords: ['cubre', 'cobertura', 'beneficio', 'incluye', 'pbs', 'pac', 'plan de beneficios'] },
+  { id: 'ruta', label: 'Indicó ruta de atención', keywords: ['ruta de atencion', 'ips asignada', 'centro de salud', 'red de prestadores', 'red preferente', 'cita asignada'] },
+  { id: 'soportes', label: 'Solicitó/recibió soportes', keywords: ['soporte', 'documento', 'historia clinica', 'orden medica', 'epicrisis', 'remision'] },
+  { id: 'empatia', label: 'Demostró empatía clínica', keywords: ['entiendo', 'lamento', 'comprendo su situacion', 'le acompañamos', 'no se preocupe'] },
+];
+const PATRONES_FALLIDOS_SALUD = [
+  { id: 'negacion_sin_explicar', label: 'Negó sin explicar el porqué', keywords: ['no se puede', 'no aplica', 'no cubre', 'negado'] },
+  { id: 'transfer_loop', label: 'Transfirió sin resolver', keywords: ['lo paso con', 'transfiero', 'comuniquese con', 'llame a otra linea'] },
+  { id: 'demora', label: 'Pidió esperar sin compromiso', keywords: ['en proceso', 'esperando respuesta', 'no le puedo dar tiempos', 'cuando este listo'] },
+  { id: 'falta_info', label: 'No conocía el caso del afiliado', keywords: ['no tengo informacion', 'no aparece en el sistema', 'no me sale', 'consulte mas tarde'] },
+  { id: 'sin_seguimiento', label: 'Cerró sin agendar seguimiento', keywords: [] },
+];
+
 // ─── Selector dinámico (se asigna en el componente según industria) ───────────
 const PATRONES_EXITOSOS = PATRONES_EXITOSOS_COBRANZA; // default — se sobreescribe
 const PATRONES_FALLIDOS = PATRONES_FALLIDOS_COBRANZA; // default — se sobreescribe
@@ -312,6 +338,40 @@ const OBJECIONES_VENTAS = [
   },
 ];
 
+// ─── Objeciones servicio de salud ────────────────────────────────────────────
+const OBJECIONES_SALUD = [
+  {
+    id: 'cobertura',
+    label: 'Servicio no cubierto / fuera de plan',
+    keywords: ['no cubre', 'fuera de cobertura', 'no aplica al plan', 'no esta en el pbs', 'no esta autorizado', 'no esta incluido'],
+    recomendacion: 'Práctica recomendada: explicar con claridad el alcance del PBS/PAC y ofrecer alternativas dentro de la cobertura. Documentar la conversación para auditoría.',
+  },
+  {
+    id: 'red',
+    label: 'Red de prestadores limitada',
+    keywords: ['no hay ips', 'no encuentro centro', 'me queda lejos', 'no atienden en mi ciudad', 'no esta en red'],
+    recomendacion: 'Práctica recomendada: validar red preferente, ofrecer IPS más cercana y traslado primario si corresponde. Escalar a Direccionamiento si la red no es suficiente.',
+  },
+  {
+    id: 'tiempos',
+    label: 'Tiempos / Demoras',
+    keywords: ['cuanto tiempo', 'cuando me autorizan', 'sigo esperando', 'lleva varios dias', 'urgente', 'no puedo esperar'],
+    recomendacion: 'Práctica recomendada: comprometer fecha específica de respuesta. Si es urgencia vital, escalar a Riesgo Vital. Confirmar tiempos de cada paso del trámite.',
+  },
+  {
+    id: 'soportes_faltantes',
+    label: 'Soportes / Documentos faltantes',
+    keywords: ['no tengo el documento', 'no me dieron la orden', 'falta soporte', 'historia clinica', 'no me dieron la epicrisis'],
+    recomendacion: 'Práctica recomendada: indicar exactamente qué soportes se requieren (orden médica, epicrisis, identificación) y dónde obtenerlos. Ofrecer canal de envío y plazo claro.',
+  },
+  {
+    id: 'desafiliacion',
+    label: 'Riesgo de cambio de EPS / desafiliación',
+    keywords: ['voy a cambiar de eps', 'me voy a otra', 'estoy mal con esta eps', 'pesimo servicio', 'pesima eps', 'no me sirven'],
+    recomendacion: 'Práctica recomendada: escuchar la causa raíz, escalar a Retención si aplica, resolver el caso puntual antes de gestionar la insatisfacción global.',
+  },
+];
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function SpeechAnalytics() {
@@ -332,9 +392,18 @@ export default function SpeechAnalytics() {
   const labelCierre     = isSales ? 'cierre de venta' : isCollections ? 'acuerdo de pago' : isService ? 'resolución exitosa' : 'cliente retenido';
   
   // Patrones y objeciones dinámicos por vertical
-  const patronesExitososDef = isSales ? PATRONES_EXITOSOS_VENTAS : PATRONES_EXITOSOS_COBRANZA;
-  const patronesFallidosDef = isSales ? PATRONES_FALLIDOS_VENTAS : PATRONES_FALLIDOS_COBRANZA;
-  const objecionesDef       = isSales ? OBJECIONES_VENTAS : OBJECIONES_COBRANZA;
+  // Salud (EPS/IPS) se detecta por industry — usa diccionario propio aunque business_type sea 'service_support'
+  const industryStr = (clientConfig?.industry || '').toLowerCase();
+  const isSalud = industryStr.startsWith('salud') || industryStr.includes('eps') || industryStr.includes('ips');
+  const patronesExitososDef = isSalud
+    ? PATRONES_EXITOSOS_SALUD
+    : isSales ? PATRONES_EXITOSOS_VENTAS : PATRONES_EXITOSOS_COBRANZA;
+  const patronesFallidosDef = isSalud
+    ? PATRONES_FALLIDOS_SALUD
+    : isSales ? PATRONES_FALLIDOS_VENTAS : PATRONES_FALLIDOS_COBRANZA;
+  const objecionesDef       = isSalud
+    ? OBJECIONES_SALUD
+    : isSales ? OBJECIONES_VENTAS : OBJECIONES_COBRANZA;
   
   // Señales de churn — solo aplica a clientes con servicio activo (service_support/retention)
   const churnEnabled = isService || isRetention;
