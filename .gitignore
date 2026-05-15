@@ -24,3 +24,14 @@ dist-ssr
 *.sw?
 .env.local
 .env
+
+# Secrets / claves / vaults (jamás commitear)
+*-keys.txt
+*-keys-*.txt
+weintelligence-keys*
+*.keys
+secrets/
+secrets-vault/
+*.secret
+*.token
+*.credentials
