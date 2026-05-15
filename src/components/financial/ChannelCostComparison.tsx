@@ -121,8 +121,30 @@ export function ChannelCostComparison({ clientId }: ChannelCostComparisonProps) 
 
   if (!data) return null;
 
+  // Guard: si el backend no devuelve canales (cliente nuevo sin datos), no renderizar el gráfico
+  // y mostrar un mensaje neutral en su lugar.
+  const canales = Array.isArray(data.canales) ? data.canales : [];
+  if (canales.length === 0) {
+    return (
+      <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-indigo-700">
+            <DollarSign className="h-5 w-5" />
+            Costo por Canal
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-600">
+            Sin datos de costo por canal disponibles para este cliente todavía.
+            La métrica aparecerá cuando haya llamadas clasificadas por canal (voz, WhatsApp, email, chat).
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Formatear para gráfico
-  const chartData = data.canales.map((c) => ({
+  const chartData = canales.map((c) => ({
     canal: channelLabel(c.channel),
     costo: c.costo,
     tiempo: c.tiempo_seg,

@@ -46,6 +46,35 @@ function normalizeClientId(clientId: string): string {
   return mapping[clientId.toLowerCase()] || clientId;
 }
 
+/**
+ * Resuelve el client_id activo SIN defaults inventados (no fallback a 'credismart').
+ * Prioridad: ClientContext (localStorage 'wki_client_id') → URL param → vacío (con warning).
+ *
+ * Si retorna vacío, las llamadas al backend producirán un error explícito
+ * "client_id requerido" — preferible a mostrar datos de otro cliente silenciosamente.
+ */
+function getActiveClientId(): string {
+  // 1. localStorage (set por ClientContext / Login)
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = window.localStorage.getItem('wki_client_id');
+      if (stored && stored.trim()) return normalizeClientId(stored.trim());
+    }
+  } catch { /* localStorage unavailable */ }
+  // 2. URL param (fallback compatibilidad)
+  try {
+    if (typeof window !== 'undefined' && window.location) {
+      const fromUrl = new URL(window.location.href).searchParams.get('client_id');
+      if (fromUrl && fromUrl.trim()) return normalizeClientId(fromUrl.trim());
+    }
+  } catch { /* SSR / no window */ }
+  // 3. Sin cliente activo: log + vacío para que el backend devuelva 4xx visible
+  if (typeof console !== 'undefined') {
+    console.warn('[api] client_id no disponible en localStorage ni URL. La request fallará con error explícito.');
+  }
+  return '';
+}
+
 // ─── Base fetch ────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -71,9 +100,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   // Transcriptions - NOW USING REAL API
   getTranscriptions: (params: TranscriptionsParams = {}) => {
-    const url = new URL(window.location.href);
-    const rawClientId = url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = getActiveClientId();
     const qs = new URLSearchParams({
       client_id,
       page: String(params.page ?? 1),
@@ -85,9 +112,7 @@ export const api = {
   },
 
   getTranscription: (id: string) => {
-    const url = new URL(window.location.href);
-    const rawClientId = url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = getActiveClientId();
     return apiFetch<Transcription>(`/transcriptions/${id}?client_id=${client_id}`);
   },
   updateTranscription: (id: string, body: { agentName?: string; clientName?: string; clientPhone?: string }) =>
@@ -110,33 +135,24 @@ export const api = {
 
   // Client Config
   getClientConfig: async (clientId?: string): Promise<any> => {
-    const url = new URL(window.location.href);
-    const rawClientId = clientId || url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = clientId ? normalizeClientId(clientId) : getActiveClientId();
     return apiFetch(`/client/config?client_id=${client_id}`);
   },
 
   // Client Campaigns
   getClientCampaigns: async (clientId?: string, days = 7): Promise<any> => {
-    const url = new URL(window.location.href);
-    const rawClientId = clientId || url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = clientId ? normalizeClientId(clientId) : getActiveClientId();
     return apiFetch(`/client/campaigns?client_id=${client_id}&days=${days}`);
   },
 
   // Dashboard - NOW USING REAL API
   getDashboardKPIs: async (): Promise<any> => {
-    // Call real API endpoint
-    const url = new URL(window.location.href);
-    const rawClientId = url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = getActiveClientId();
     return apiFetch(`/dashboard/kpis?client_id=${client_id}`);
   },
 
   getCallsPerDay: async (): Promise<CallsPerDay[]> => {
-    const url = new URL(window.location.href);
-    const rawClientId = url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = getActiveClientId();
     return apiFetch(`/dashboard/calls-per-day?client_id=${client_id}`);
   },
 
@@ -144,9 +160,7 @@ export const api = {
     apiFetch<SentimentDistribution[]>('/dashboard/sentiment-distribution'),
 
   getAgentStats: async (): Promise<AgentStats[]> => {
-    const url = new URL(window.location.href);
-    const rawClientId = url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = getActiveClientId();
     return apiFetch(`/agents/stats?client_id=${client_id}`);
   },
 
@@ -155,9 +169,7 @@ export const api = {
 
   // Chat - Vicky AI
   sendMessage: (body: { conversationId?: string; message: string; question?: string }) => {
-    const url = new URL(window.location.href);
-    const rawClientId = url.searchParams.get('client_id') || 'credismart';
-    const client_id = normalizeClientId(rawClientId);
+    const client_id = getActiveClientId();
     return apiFetch<any>('/vicky/chat', {
       method: 'POST',
       body: JSON.stringify({

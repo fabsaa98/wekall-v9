@@ -89,7 +89,9 @@ interface ClientDetail {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const INDUSTRIES = [
-  'cobranzas', 'servicio', 'ventas', 'soporte', 'banca', 'salud', 'retail', 'telco'
+  'cobranzas', 'servicio', 'ventas', 'soporte', 'banca',
+  'salud', 'salud_eps', 'salud_privada', 'salud_publica',
+  'fintech_pagos', 'retail', 'telco'
 ];
 
 const COUNTRIES = [
@@ -113,6 +115,10 @@ const INDUSTRY_COLORS: Record<string, string> = {
   soporte: 'bg-sky-500/15 text-sky-600 border-sky-500/30',
   banca: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
   salud: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
+  salud_eps: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
+  salud_privada: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+  salud_publica: 'bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/30',
+  fintech_pagos: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
   retail: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
   telco: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
 };

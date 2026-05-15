@@ -27,13 +27,17 @@ interface Integration {
   category: string;
 }
 
+// ⚠️ Catálogo de integraciones disponibles. Status hoy: todas 'pending' — no hay
+// integración real activada para ningún cliente. Antes había hubspot/slack en
+// 'connected' sin sync real (engañoso). Cuando exista tabla `client_integrations`
+// en Supabase, este array debe leer status real por client_id activo.
 const integrations: Integration[] = [
-  { id: 'salesforce', name: 'Salesforce', description: 'CRM · Sync de oportunidades y contactos', status: 'pending', category: 'CRM' },
-  { id: 'hubspot', name: 'HubSpot', description: 'Marketing Hub · Pipeline de ventas', status: 'connected', category: 'CRM' },
-  { id: 'slack', name: 'Slack', description: 'Notificaciones de alertas · Resúmenes diarios', status: 'connected', category: 'Comunicación' },
-  { id: 'teams', name: 'Microsoft Teams', description: 'Notificaciones y reportes automáticos', status: 'pending', category: 'Comunicación' },
-  { id: 'powerbi', name: 'Power BI', description: 'Export de datos para dashboards avanzados', status: 'pending', category: 'Analytics' },
-  { id: 'looker', name: 'Looker Studio', description: 'Visualización y reportes personalizados', status: 'pending', category: 'Analytics' },
+  { id: 'salesforce', name: 'Salesforce',     description: 'CRM · Sync de oportunidades y contactos', status: 'pending', category: 'CRM' },
+  { id: 'hubspot',    name: 'HubSpot',        description: 'Marketing Hub · Pipeline de ventas', status: 'pending', category: 'CRM' },
+  { id: 'slack',      name: 'Slack',          description: 'Notificaciones de alertas · Resúmenes diarios', status: 'pending', category: 'Comunicación' },
+  { id: 'teams',      name: 'Microsoft Teams',description: 'Notificaciones y reportes automáticos', status: 'pending', category: 'Comunicación' },
+  { id: 'powerbi',    name: 'Power BI',       description: 'Export de datos para dashboards avanzados', status: 'pending', category: 'Analytics' },
+  { id: 'looker',     name: 'Looker Studio',  description: 'Visualización y reportes personalizados', status: 'pending', category: 'Analytics' },
 ];
 
 function StatusBadge({ status }: { status: 'connected' | 'pending' | 'error' }) {

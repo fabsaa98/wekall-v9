@@ -115,6 +115,8 @@ function mesLabel(ym: string): string {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
+// ⚠️  Templates de distribución por vertical — fallback cuando no hay datos reales en cdr_campaign_metrics.
+// Los porcentajes son referenciales. Cuando exista data real para el cliente, debería leerse desde Supabase.
 const CAMPANAS_COBRANZA = [
   { name: 'Cobranzas Colombia', pct: 0.55, tipo: 'cobranza' as const, moneda: 'COP' as const },
   { name: 'Cobranzas Perú',     pct: 0.25, tipo: 'cobranza' as const, moneda: 'PEN' as const },
@@ -126,11 +128,33 @@ const CAMPANAS_FINTECH = [
   { name: 'Ventas / Activación', pct: 0.20, tipo: 'servicio' as const, moneda: 'COP' as const },
   { name: 'Retención',          pct: 0.10, tipo: 'servicio' as const, moneda: 'COP' as const },
 ];
+const CAMPANAS_SALUD = [
+  { name: 'Servicios Hospitalarios',      pct: 0.38, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'Autorización de Urgencias',    pct: 0.28, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'Referencia/Contrarreferencia', pct: 0.23, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'Remisiones',                   pct: 0.05, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'PAC (Plan Complementario)',    pct: 0.05, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'Otros',                        pct: 0.01, tipo: 'servicio' as const, moneda: 'COP' as const },
+];
+const CAMPANAS_GENERICAS = [
+  { name: 'Operación principal',  pct: 0.80, tipo: 'servicio' as const, moneda: 'COP' as const },
+  { name: 'Operación secundaria', pct: 0.20, tipo: 'servicio' as const, moneda: 'COP' as const },
+];
 const COBRANZA_PCT = 0.80;
 
-const USD_COP = 3634;
-const USD_PEN = 3.42;
-const TICKET_PEN = 150;
+// Tipos de cambio · fallback si no hay env override. Sin VITE_USD_COP setea valor referencial.
+// TODO: leer de un endpoint diario (Banrep, fixer.io) o cachear en client_config.
+const USD_COP = Number(import.meta.env.VITE_USD_COP) || 3634;
+const USD_PEN = Number(import.meta.env.VITE_USD_PEN) || 3.42;
+const TICKET_PEN = Number(import.meta.env.VITE_TICKET_PEN) || 150;
+
+function pickCampanasByIndustry(industry?: string | null) {
+  const i = (industry || '').toLowerCase();
+  if (i === 'fintech_pagos') return CAMPANAS_FINTECH;
+  if (i.startsWith('salud') || i.includes('eps') || i.includes('ips')) return CAMPANAS_SALUD;
+  if (i === 'cobranzas' || i === 'banca') return CAMPANAS_COBRANZA;
+  return CAMPANAS_GENERICAS;
+}
 
 function toUSD(amount: number, moneda: 'COP' | 'PEN'): number {
   return moneda === 'COP' ? amount / USD_COP : amount / USD_PEN;
@@ -166,7 +190,7 @@ function FinancialTooltip({ active, payload, label }: {
 export default function FinancialIntelligence() {
   const { clientId, clientConfig } = useClient();
   const { data: businessProfile, isLoading: profileLoading } = useBusinessProfile();
-  const CAMPANAS_DIST = clientConfig?.industry === 'fintech_pagos' ? CAMPANAS_FINTECH : CAMPANAS_COBRANZA;
+  const CAMPANAS_DIST = pickCampanasByIndustry(clientConfig?.industry);
 
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState<string | null>(null);
@@ -487,8 +511,14 @@ export default function FinancialIntelligence() {
         },
       ];
 
-      const industry = clientConfig?.industry;
-      const filteredKpis = industry === 'fintech_pagos'
+      const industry = (clientConfig?.industry || '').toLowerCase();
+      // Verticales que NO son cobranzas → ocultan KPIs de recaudo/margen (no aplican):
+      const noCollectionVertical =
+        industry === 'fintech_pagos' ||
+        industry.startsWith('salud') ||
+        industry.includes('eps') ||
+        industry.includes('ips');
+      const filteredKpis = noCollectionVertical
         ? kpisBuilt.filter(k => !['recaudo_mes', 'margen_op'].includes(k.id))
         : kpisBuilt;
       setKpis(filteredKpis);
@@ -672,7 +702,11 @@ export default function FinancialIntelligence() {
         </div>
       </div>
 
-      {clientConfig?.industry !== 'fintech_pagos' && <>
+      {(() => {
+        const ind = (clientConfig?.industry || '').toLowerCase();
+        const noRecaudo = ind === 'fintech_pagos' || ind.startsWith('salud') || ind.includes('eps') || ind.includes('ips');
+        return !noRecaudo;
+      })() && <>
       {/* ── Gráfico principal: Recaudo + Costo (legacy) ──────────────────── */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-wk-sm">
         <div className="flex items-center justify-between mb-4">
