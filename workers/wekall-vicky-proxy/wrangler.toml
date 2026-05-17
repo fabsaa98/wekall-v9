@@ -1,0 +1,18 @@
+# Cloudflare Worker · wekall-vicky-proxy
+# Proxy a OpenAI (chat, whisper, embeddings) + Supabase pipeline (/ingest, /rag-query).
+# Versionado en repo · 2026-05-17 · resuelve P1.2 de la auditoría hardcoded.
+
+name = "wekall-vicky-proxy"
+main = "index.js"
+compatibility_date = "2024-09-01"
+
+# Secrets (configurar con `wrangler secret put <NAME>` — NO commitear valores):
+#   SUPABASE_URL          → URL del proyecto Supabase
+#   SUPABASE_SERVICE_KEY  → service_role key (bypassa RLS) ← obligatorio para /ingest
+#   SUPABASE_ANON_KEY     → anon key (fallback legacy)
+#   OPENAI_API_KEY        → API key de OpenAI (gpt-4o, whisper-1, embeddings)
+#   ANTHROPIC_API_KEY     → opcional, para fallback de chat
+#   DIARIZATION_URL       → URL del Mac Mini vía Cloudflare Tunnel (opcional, default hardcoded)
+#   ALLOWED_ORIGIN        → CORS origin (opcional, default *)
+#   LOAD_TOKEN            → token para endpoint /load protegido (opcional)
+#   ALERT_RECIPIENT       → destinatario de alertas internas (opcional)
