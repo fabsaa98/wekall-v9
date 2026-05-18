@@ -58,21 +58,21 @@ Este documento es el plan ejecutable de seguimiento al informe de auditoría. Cu
 
 | # | Hallazgo | Estado | Notas |
 |---|---|---|---|
-| P2-1 | Sin particionado de `transcriptions` | 🔵 | `PARTITION BY RANGE (call_date)` mensual. Ventana de downtime 30min. |
-| P2-2 | Sin retention policy | 🔵 | ADR + job semanal. Effort 1.5d. |
+| P2-1 | Sin particionado de `transcriptions` | 🟢 DEFERRED | Migration con runbook en `20260518_sprint2_partitioning_DEFERRED.sql`. Ejecutar cuando >5M filas + ventana. |
+| P2-2 | Sin retention policy | 🟢 | `purge_retention()` + `purge_all_retention()` en `20260518_sprint2_retention.sql`. Schedule via pg_cron o jobs-worker. |
 | P2-3 | Sin Zod en endpoints | 🟢 | `functions/lib/schemas.ts` con parsers puros (sin dependencia extra). |
 | P2-4 | Logs no estructurados (Worker) | 🟢 parcial | Pages Functions OK; Worker queda para P1-3. |
 | P2-5 | Cero ARIA / a11y | 🔵 | Effort 4d. Empezar por nav, modales, tablas. |
-| P2-6 | Estado global disperso | 🔵 | ADR + refactor. Effort 3d. |
+| P2-6 | Estado global disperso | 🟢 parcial | ADR 0001 (`docs/decisions/0001-state-management.md`) + helper `storage<T>()` (`src/lib/storage.ts`). Migración de usos directos queda en Sprint 4. |
 | P2-7 | Manejo de errores inconsistente | 🟢 | `useApiCall()` + `ApiStateView` en `src/`. ErrorBoundary global mantiene. |
 | P2-8 | Sin MFA | 🔵 | TOTP opt-in. Effort 2d. |
 | P2-9 | Sin secrets scanning en CI | 🟢 parcial | `check-env.mjs` valida no haya `VITE_OPENAI_KEY`. Falta `gitleaks` pre-commit. |
 | P2-10 | Sin audit log | 🟢 | `audit_log` table + `audit.ts` helper + `record_audit()` RPC. RTBF ya usa. |
-| P2-11 | Sin costos por tenant | 🔵 | Tabla `usage_log` + dashboard. Effort 2d. |
-| P2-12 | Sin IaC Supabase | 🔵 | `supabase config.toml`. Effort 2d. |
+| P2-11 | Sin costos por tenant | 🟢 | Tabla `usage_log` + `usage.ts` con `computeCost()` + vistas `usage_summary_daily/monthly`. Worker debe insertar en cada call. |
+| P2-12 | Sin IaC Supabase | 🟢 | `supabase/config.toml` con auth + storage + hooks. JWT secret y MFA documentados. |
 | P2-13 | Sin `.env.example` exhaustivo | 🟢 | `.env.example` + `npm run check-env`. |
-| P2-14 | Sin APM / tracing | 🔵 | Sentry + OpenTelemetry. Effort 2d. |
-| P2-15 | Imágenes sin optimizar | 🔵 | Cloudflare Images. Effort 1d. |
+| P2-14 | Sin APM / tracing | 🟢 parcial | `src/lib/observability.ts` con dynamic import de Sentry (opt-in via VITE_SENTRY_DSN). Wiring CSP ya permite *.sentry.io. |
+| P2-15 | Imágenes sin optimizar | 🟢 | Componente `<Image>` con CF Images proxy + lazy + dimensiones obligatorias. |
 
 ---
 
@@ -82,10 +82,10 @@ Este documento es el plan ejecutable de seguimiento al informe de auditoría. Cu
 |---|---|---|---|
 | P3-2 | Sin verificación HMAC en webhooks | 🟢 | `functions/lib/webhook-verify.ts` con Twilio + Meta + genérico. |
 | P3-3 | Wrangler config sin TS | 🔵 | Trabajo en repo del Worker. Effort 0.5d. |
-| P3-4 | Sin alertas | 🔵 | Cron `/health` → Slack. Effort 0.5d. |
-| P3-5 | Sin CDN cache assets dinámicos | 🔵 | Cache API CF. Effort 1d. |
-| P3-6 | Sin PII masking | 🟢 | `functions/lib/pii.ts` con detectPii + maskPii + safeForLog. |
-| P3-7 | Sin DPA template | 🔵 | Legal task. Effort 2d. |
+| P3-4 | Sin alertas | 🟢 | `GET /api/health` retorna 200/503 chequeando Supabase + Worker. Conectar cron externo (UptimeRobot/Cronitor → Slack). |
+| P3-5 | Sin CDN cache assets dinámicos | 🟢 | `functions/lib/edge-cache.ts` con cacheGet/Put/Invalidate isolation por user_id. |
+| P3-6 | Sin PII masking | 🟢 | `functions/lib/pii.ts` (backend) + `src/lib/pii-frontend.ts` (frontend mirror). |
+| P3-7 | Sin DPA template | 🟢 | `docs/legal/DPA-template.md` — Habeas Data Col + GDPR ready. Revisión legal pendiente. |
 | P3-8 | Sin clasificación de datos | 🟢 | Tabla `data_classification` con 22 tablas etiquetadas. |
 | P3-9 | Sin Right-to-be-Forgotten | 🟢 | `POST /api/gdpr/forget` con audit log + soft delete + purge en 30 días. |
 
