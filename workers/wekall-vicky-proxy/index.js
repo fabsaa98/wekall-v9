@@ -297,10 +297,14 @@ Vocabulario del dominio: ${domainVocab}`
             "Authorization": `Bearer ${insertKey}`,
             "Prefer": "return=representation"
           },
+          // Fix: la columna en transcriptions se llama `campaign` (display
+          // name humano), no `campaign_id`. Antes el INSERT fallaba con
+          // PGRST204 "Could not find the campaign_id column" silenciosamente.
+          // Acepto campaign_id en el body por compat con clientes existentes.
           body: JSON.stringify({
             agent_id,
             agent_name,
-            campaign_id,
+            campaign: body.campaign || campaign_id,
             call_date,
             call_type,
             transcript,
@@ -311,6 +315,14 @@ Vocabulario del dominio: ${domainVocab}`
           })
         });
         const saved = await supabaseResp.json();
+        if (!supabaseResp.ok) {
+          // Log el error real para debugging — antes el Worker devolvia
+          // solo "status:error" sin detalle, lo cual hizo el debug muy dificil.
+          console.error("[/ingest] supabase INSERT failed", {
+            http: supabaseResp.status,
+            body: saved
+          });
+        }
         return new Response(JSON.stringify({
           status: supabaseResp.ok ? "ok" : "error",
           id: saved?.[0]?.id || null,
