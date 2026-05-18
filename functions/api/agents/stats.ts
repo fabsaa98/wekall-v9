@@ -1,12 +1,11 @@
 /**
- * Agent Stats API Endpoint
- * 
- * Returns top agents by performance metrics
+ * GET /api/agents/stats?limit=10&sort_by=llamadas_total
+ * Top N agentes del tenant del JWT.
  */
 
-interface Env {
-  WORKER_PROXY_URL?: string;
-}
+import { withAuth } from '../../lib/handler';
+import { jsonResponse, withRetry } from '../../lib/http';
+import { log } from '../../lib/logger';
 
 interface AgentStat {
   agent_name: string;
@@ -20,81 +19,65 @@ interface AgentStat {
   aht_segundos: number;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
+const ALLOWED_SORT = new Set([
+  'llamadas_total', 'contactos', 'promesas',
+  'tasa_contacto', 'tasa_promesa', 'csat', 'fcr', 'aht_segundos',
+]);
 
-  if (context.request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+export const onRequest = withAuth(async ({ request, env, auth, requestId }) => {
+  const WORKER_PROXY_URL = env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
+  const url = new URL(request.url);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
+  const sortByRaw = url.searchParams.get('sort_by') || 'llamadas_total';
+  const sortBy = ALLOWED_SORT.has(sortByRaw) ? sortByRaw : 'llamadas_total';
 
   try {
-    const WORKER_PROXY_URL = context.env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
+    const data = (await withRetry(async () => {
+      const res = await fetch(`${WORKER_PROXY_URL}/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-Authorization': request.headers.get('Authorization') || '',
+          'X-Client-Id': auth.client_id,
+        },
+        body: JSON.stringify({
+          table: 'agents_performance',
+          select: 'agent_name,llamadas_total,contactos,promesas,tasa_contacto,tasa_promesa,csat,fcr,aht_segundos',
+          filters: { client_id: `eq.${auth.client_id}` },
+          order: `${sortBy}.desc`,
+          limit: 500,
+        }),
+      });
+      if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
+      return res.json();
+    })) as Array<Record<string, number | string | null>>;
 
-    const url = new URL(context.request.url);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
-    const limit = parseInt(url.searchParams.get('limit') || '10', 10);
-    const sortBy = url.searchParams.get('sort_by') || 'llamadas_total';
-
-    const res = await fetch(`${WORKER_PROXY_URL}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        table: 'agents_performance',
-        select: 'agent_name,llamadas_total,contactos,promesas,tasa_contacto,tasa_promesa,csat,fcr,aht_segundos',
-        filters: { client_id: `eq.${client_id}` },
-        order: `${sortBy}.desc`,
-        limit: 500,
-      }),
-    });
-    
-    if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
-    const data = await res.json();
-
-    // Aggregate by agent
     const agentMap = new Map<string, AgentStat>();
-
-    data?.forEach(row => {
-      const name = row.agent_name;
+    for (const row of data || []) {
+      const name = String(row.agent_name || '');
+      if (!name) continue;
       if (!agentMap.has(name)) {
         agentMap.set(name, {
           agent_name: name,
-          llamadas_total: 0,
-          contactos: 0,
-          promesas: 0,
-          tasa_contacto: 0,
-          tasa_promesa: 0,
-          csat: 0,
-          fcr: 0,
-          aht_segundos: 0,
+          llamadas_total: 0, contactos: 0, promesas: 0,
+          tasa_contacto: 0, tasa_promesa: 0, csat: 0, fcr: 0, aht_segundos: 0,
         });
       }
-
       const agent = agentMap.get(name)!;
-      agent.llamadas_total += row.llamadas_total || 0;
-      agent.contactos += row.contactos || 0;
-      agent.promesas += row.promesas || 0;
-      
-      // Average rates (weighted by days)
-      agent.tasa_contacto = ((agent.tasa_contacto + (row.tasa_contacto || 0)) / 2);
-      agent.tasa_promesa = ((agent.tasa_promesa + (row.tasa_promesa || 0)) / 2);
-      agent.csat = ((agent.csat + (row.csat || 0)) / 2);
-      agent.fcr = ((agent.fcr + (row.fcr || 0)) / 2);
-      agent.aht_segundos = ((agent.aht_segundos + (row.aht_segundos || 0)) / 2);
-    });
+      agent.llamadas_total += Number(row.llamadas_total || 0);
+      agent.contactos += Number(row.contactos || 0);
+      agent.promesas += Number(row.promesas || 0);
+      agent.tasa_contacto = (agent.tasa_contacto + Number(row.tasa_contacto || 0)) / 2;
+      agent.tasa_promesa = (agent.tasa_promesa + Number(row.tasa_promesa || 0)) / 2;
+      agent.csat = (agent.csat + Number(row.csat || 0)) / 2;
+      agent.fcr = (agent.fcr + Number(row.fcr || 0)) / 2;
+      agent.aht_segundos = (agent.aht_segundos + Number(row.aht_segundos || 0)) / 2;
+    }
 
-    // Convert to array and sort
     const result = Array.from(agentMap.values())
-      .sort((a, b) => {
-        const aVal = (a as any)[sortBy] || 0;
-        const bVal = (b as any)[sortBy] || 0;
-        return bVal - aVal;
-      })
+      .sort((a, b) => ((b as any)[sortBy] || 0) - ((a as any)[sortBy] || 0))
       .slice(0, limit)
-      .map(agent => ({
+      .map((agent) => ({
         ...agent,
         tasa_contacto: Number(agent.tasa_contacto.toFixed(1)),
         tasa_promesa: Number(agent.tasa_promesa.toFixed(1)),
@@ -103,24 +86,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         aht_segundos: Math.round(agent.aht_segundos),
       }));
 
-    return new Response(JSON.stringify(result), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=300',
-      },
+    return jsonResponse(result, {
+      headers: { 'Cache-Control': 'private, s-maxage=300' },
     });
-
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Error' }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    log.error('agents_stats_error', {
+      request_id: requestId,
+      client_id: auth.client_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse({ error: 'Error obteniendo stats', request_id: requestId }, { status: 500 });
   }
-};
+});

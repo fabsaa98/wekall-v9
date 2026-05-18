@@ -1,82 +1,58 @@
 /**
- * GET /api/client/branding?client_id=credismart
- * 
- * Retorna branding del cliente desde client_branding table
- * Aplica mapping: credismart → crediminuto
+ * GET /api/client/branding
+ * Branding del tenant del JWT.
  */
 
-interface Env {
-  WORKER_PROXY_URL?: string;
-}
+import { withAuth } from '../../lib/handler';
+import { jsonResponse, withRetry } from '../../lib/http';
+import { log } from '../../lib/logger';
 
 function normalizeClientId(clientId: string): string {
   const mapping: Record<string, string> = {
-    'credismart': 'crediminuto',
-    'credi': 'crediminuto',
+    credismart: 'crediminuto',
+    credi: 'crediminuto',
   };
   return mapping[clientId.toLowerCase()] || clientId;
 }
 
-export async function onRequestGet(context: { request: Request; env: Env }) {
-  const { request, env } = context;
-  const url = new URL(request.url);
-  const rawClientId = url.searchParams.get('client_id') || 'credismart';
-  const client_id = normalizeClientId(rawClientId);
-
+export const onRequestGet = withAuth(async ({ request, env, auth, requestId }) => {
   const WORKER_PROXY_URL = env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
+  const client_id = normalizeClientId(auth.client_id);
 
   try {
-    // Get all branding and filter client-side (Worker proxy filter bug workaround)
-    const res = await fetch(`${WORKER_PROXY_URL}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        table: 'client_branding',
-        select: '*',
-        limit: 20,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Worker query failed: ${res.status}`);
-    }
-
-    const allBranding = await res.json();
-    const branding = allBranding.find((b: any) => b.client_id === client_id) || null;
-
-    if (!branding) {
-      return new Response(
-        JSON.stringify({
-          client_id,
-          logo_url: null,
-          primary_color: null,
-          company_name: client_id,
+    const data = (await withRetry(async () => {
+      const res = await fetch(`${WORKER_PROXY_URL}/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-Authorization': request.headers.get('Authorization') || '',
+          'X-Client-Id': auth.client_id,
+        },
+        body: JSON.stringify({
+          table: 'client_branding',
+          select: '*',
+          filters: { client_id: `eq.${client_id}` },
+          limit: 1,
         }),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=3600',
-          },
-        }
-      );
-    }
+      });
+      if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
+      return res.json();
+    })) as Array<Record<string, unknown>>;
 
-    return new Response(JSON.stringify(branding), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=3600',
-      },
-    });
+    const branding = data?.[0] || {
+      client_id,
+      logo_url: null,
+      primary_color: null,
+      company_name: client_id,
+    };
+
+    return jsonResponse(branding, { headers: { 'Cache-Control': 'private, max-age=3600' } });
   } catch (error) {
-    console.error('[client/branding] Error:', error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    log.error('client_branding_error', {
+      request_id: requestId,
+      client_id: auth.client_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse({ error: 'Error obteniendo branding', request_id: requestId }, { status: 500 });
   }
-}
+});
