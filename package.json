@@ -10,6 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "typecheck:strict": "tsc -p tsconfig.strict.json --noEmit",
+    "check-env": "node scripts/check-env.mjs --mode=build",
+    "check-env:all": "node scripts/check-env.mjs --mode=all",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
