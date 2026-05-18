@@ -184,6 +184,38 @@ var worker_default = {
           status: response.status
         });
       }
+      if (path === "/embed") {
+        // POST /embed { text: "..." } -> { embedding: [...1536 floats] }
+        // Util para regenerar embeddings de filas legacy sin re-transcribir
+        // ni hacer INSERT. El llamante hace el UPDATE en Supabase con su
+        // service_key. Agregado 2026-05-17 para fix retroactivo de
+        // transcripciones cargadas con el bug del Worker viejo.
+        const body = await request.json();
+        const text = (body && body.text) ? String(body.text) : "";
+        if (!text.trim()) {
+          return new Response(JSON.stringify({ error: "Se requiere campo 'text' no vacio" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        const embedResp = await fetch("https://api.openai.com/v1/embeddings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.OPENAI_API_KEY}` },
+          body: JSON.stringify({ model: "text-embedding-3-small", input: text.slice(0, 8e3) })
+        });
+        if (!embedResp.ok) {
+          const errBody = await embedResp.text();
+          return new Response(JSON.stringify({ error: "openai_embed_failed", detail: errBody.slice(0, 500) }), {
+            status: embedResp.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        const embedData = await embedResp.json();
+        const embedding = embedData.data?.[0]?.embedding;
+        return new Response(JSON.stringify({ embedding, model: "text-embedding-3-small", dims: embedding?.length || 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
       if (path === "/ingest") {
         const body = await request.json();
         const {
