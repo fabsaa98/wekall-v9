@@ -1,8 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-// ⚠️ Security: load from env vars; fallback only for local dev (never commit real keys to source)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string || 'https://iszodrpublcnsyvtgjcg.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string || 'sb_publishable_eRRG-QSyURpWV-FstJUc4g_M-xmD6v_';
+// Sprint 0 · P1-7: ya no hay fallback hardcoded.
+// Las env vars VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY deben venir del build env.
+// Si falta alguna, fallamos en runtime con mensaje claro (mejor que un bug silencioso).
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    '[supabase] VITE_SUPABASE_URL y/o VITE_SUPABASE_ANON_KEY no configuradas. ' +
+    'Revisar configuración de variables de entorno en Cloudflare Pages / GitHub Actions.'
+  );
+}
 
 // Usar sessionStorage para el JWT — la sesión muere al cerrar el browser.
 // Esto obliga al login cada vez que se abre la app de nuevo.
