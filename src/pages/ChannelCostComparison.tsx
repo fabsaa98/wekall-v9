@@ -101,7 +101,7 @@ export default function ChannelCostComparison() {
           <CardHeader>
             <CardTitle>Sin datos disponibles</CardTitle>
             <CardDescription>
-              No se encontraron costos configurados para {currentClient?.nombre || 'este cliente'}
+              No se encontraron costos configurados para {currentClient?.client_name || 'este cliente'}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -118,7 +118,7 @@ export default function ChannelCostComparison() {
           Comparativa de costos operativos: IA vs Agente Humano
         </p>
         <Badge variant="outline" className="mt-2">
-          Scale-A P2 · {currentClient?.nombre}
+          Scale-A P2 · {currentClient?.client_name}
         </Badge>
       </div>
 

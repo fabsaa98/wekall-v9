@@ -1,50 +1,56 @@
 /**
  * GET /api/jobs/{jobId}
- * Consulta el estado de un job de análisis
- * 
- * Returns: { jobId, status, progress, message, result?, error? }
+ * Consulta el estado de un job de análisis.
+ *
+ * Sprint 0 fixes:
+ *  - P0-3: SERVICE_KEY desde env binding.
+ *  - P0-5/P0-7: requireAuth + verificación de que el job pertenezca al client_id del JWT.
+ *               Antes cualquiera con el jobId leía cualquier job (IDOR).
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = 'https://iszodrpublcnsyvtgjcg.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzem9kcnB1YmxjbnN5dnRnanNnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MzY1NzYyOSwiZXhwIjoyMDU5MjMzNjI5fQ.Oi5GRYSc0krtjJAn0XsN1wY9Gr-N8p3HL0rEJMO8L8o';
+import { requireAuth, AuthError } from '../../lib/auth';
+import { getSupabaseAdmin } from '../../lib/supabase-admin';
+import { log, newRequestId } from '../../lib/logger';
+import { jsonResponse, errorResponse } from '../../lib/http';
 
 export async function onRequestGet(context: any) {
-  try {
-    const { jobId } = context.params;
+  const env = context.env as Record<string, string | undefined>;
+  const request = context.request as Request;
+  const requestId = newRequestId();
 
-    if (!jobId) {
-      return new Response(
-        JSON.stringify({ error: 'jobId es requerido' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+  try {
+    let auth;
+    try {
+      auth = await requireAuth(request, env);
+    } catch (err) {
+      if (err instanceof AuthError) return jsonResponse({ error: err.message, request_id: requestId }, { status: err.status });
+      throw err;
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { jobId } = context.params;
+    if (!jobId) return jsonResponse({ error: 'jobId es requerido', request_id: requestId }, { status: 400 });
 
+    const supabase = getSupabaseAdmin(env);
+
+    // Filtro por client_id del JWT — defensa en profundidad (también lo hace RLS)
     const { data: job, error } = await supabase
       .from('executive_insights_jobs')
       .select('*')
       .eq('id', jobId)
+      .eq('client_id', auth.client_id)
       .single();
 
     if (error || !job) {
-      return new Response(
-        JSON.stringify({ error: 'Job no encontrado', jobId }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Job no encontrado', jobId, request_id: requestId }, { status: 404 });
     }
 
-    // Calcular tiempo estimado restante
     let estimatedTimeLeft: number | null = null;
     if (job.status === 'processing' || job.status === 'queued') {
       const elapsed = Date.now() - new Date(job.created_at).getTime();
-      const totalEstimated = 60000; // 60 segundos
+      const totalEstimated = 60000;
       estimatedTimeLeft = Math.max(0, Math.floor((totalEstimated - elapsed) / 1000));
     }
 
-    // Respuesta
     const response: any = {
       jobId: job.id,
       status: job.status,
@@ -53,7 +59,8 @@ export async function onRequestGet(context: any) {
       fileName: job.file_name,
       createdAt: job.created_at,
       updatedAt: job.updated_at,
-      estimatedTimeLeft
+      estimatedTimeLeft,
+      request_id: requestId,
     };
 
     if (job.status === 'completed') {
@@ -61,29 +68,21 @@ export async function onRequestGet(context: any) {
       response.completedAt = job.completed_at;
       response.processingTimeMs = job.processing_time_ms;
     }
-
     if (job.status === 'failed') {
       response.error = job.error;
     }
 
-    return new Response(
-      JSON.stringify(response),
-      { 
-        status: 200,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': job.status === 'completed' || job.status === 'failed' 
-            ? 'public, max-age=3600'  // Cache resultados finales 1 hora
-            : 'no-cache'  // No cachear estados intermedios
-        } 
-      }
-    );
-
-  } catch (err: any) {
-    console.error('Error en /api/jobs/[jobId]:', err);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: err.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonResponse(response, {
+      status: 200,
+      headers: {
+        'Cache-Control': job.status === 'completed' || job.status === 'failed' ? 'private, max-age=3600' : 'no-cache',
+      },
+    });
+  } catch (err) {
+    log.error('jobs_get_unhandled', {
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return errorResponse(err);
   }
 }

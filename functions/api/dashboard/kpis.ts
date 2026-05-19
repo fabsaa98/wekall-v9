@@ -1,16 +1,18 @@
 /**
- * Dashboard KPIs API Endpoint
- * 
- * Cloudflare Pages Function - Edge computing
- * Returns real-time KPIs from Supabase executive functions
- * 
- * Architecture: Frontend → API (this) → Supabase
- * Best practice: Centralized data fetching, type-safe, cacheable
+ * GET /api/dashboard/kpis
+ *
+ * Sprint 1 fix · cierre P0-5 propagado:
+ *  - requireAuth() valida JWT y extrae client_id del custom claim.
+ *  - Antes el client_id venía del query (`?client_id=credismart`) → IDOR.
+ *  - Ahora se ignora cualquier query param `client_id`.
+ *
+ * Returns: KPIResponse
  */
 
-interface Env {
-  WORKER_PROXY_URL?: string;
-}
+import { withAuth } from '../../lib/handler';
+import { jsonResponse } from '../../lib/http';
+import { withRetry } from '../../lib/http';
+import { log } from '../../lib/logger';
 
 interface KPIResponse {
   csat: number | null;
@@ -25,128 +27,92 @@ interface KPIResponse {
   last_updated: string;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+export const onRequest = withAuth(async ({ request, env, auth, requestId }) => {
+  const WORKER_PROXY_URL = env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
 
-  // Handle preflight
-  if (context.request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const WORKER_PROXY_URL = context.env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
-    
-    // Helper to query via Worker proxy
-    const queryWorker = async (body: any) => {
+  const queryWorker = (body: unknown) =>
+    withRetry(async () => {
       const res = await fetch(`${WORKER_PROXY_URL}/query`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // Reenviar el JWT del usuario al Worker para defensa en profundidad.
+          'X-Forwarded-Authorization': request.headers.get('Authorization') || '',
+          'X-Client-Id': auth.client_id,
+        },
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
       return res.json();
-    };
+    });
 
-    // Extract client_id from query params or auth
-    const url = new URL(context.request.url);
-    const client_id = url.searchParams.get('client_id') || 'credismart';
-
-    // Fetch all KPIs in parallel via Worker proxy
-    const [
-      recaudoHoyData,
-      recaudoMtdData,
-      momData,
-      agentsData,
-    ] = await Promise.all([
-      queryWorker({ rpc: 'get_recaudo_hoy', params: { p_client_id: client_id } }),
-      queryWorker({ rpc: 'get_recaudo_mtd', params: { p_client_id: client_id } }),
-      queryWorker({ rpc: 'get_recaudo_mom', params: { p_client_id: client_id } }),
+  try {
+    const [recaudoHoyData, recaudoMtdData, momData, agentsData] = await Promise.all([
+      queryWorker({ rpc: 'get_recaudo_hoy', params: { p_client_id: auth.client_id } }),
+      queryWorker({ rpc: 'get_recaudo_mtd', params: { p_client_id: auth.client_id } }),
+      queryWorker({ rpc: 'get_recaudo_mom', params: { p_client_id: auth.client_id } }),
       queryWorker({
         table: 'agents_performance',
         select: 'csat,fcr,escalaciones,tasa_contacto,tasa_promesa',
-        filters: { client_id: `eq.${client_id}` },
+        filters: { client_id: `eq.${auth.client_id}` },
         limit: 100,
       }),
     ]);
-    
-    const recaudoHoy = recaudoHoyData?.[0]?.recaudo_cop || null;
-    const recaudoMtd = recaudoMtdData?.[0]?.recaudo_cop || null;
-    const mom = momData?.[0]?.mom_pct || null;
 
-    // Aggregate agent metrics
+    const recaudoHoy = (recaudoHoyData as any)?.[0]?.recaudo_cop ?? null;
+    const recaudoMtd = (recaudoMtdData as any)?.[0]?.recaudo_cop ?? null;
+    const mom = (momData as any)?.[0]?.mom_pct ?? null;
+
     let avgCsat = null;
     let avgFcr = null;
     let avgEscalaciones = null;
     let avgConversion = null;
 
-    if (agentsData && agentsData.length > 0) {
-      const validCsat = agentsData.filter(a => a.csat !== null);
-      const validFcr = agentsData.filter(a => a.fcr !== null);
-      const validEsc = agentsData.filter(a => a.escalaciones !== null);
-      const validConv = agentsData.filter(a => a.tasa_promesa !== null);
+    if (Array.isArray(agentsData) && agentsData.length > 0) {
+      const arr = agentsData as Array<{
+        csat: number | null;
+        fcr: number | null;
+        escalaciones: number | null;
+        tasa_promesa: number | null;
+      }>;
+      const validCsat = arr.filter((a) => a.csat !== null);
+      const validFcr = arr.filter((a) => a.fcr !== null);
+      const validEsc = arr.filter((a) => a.escalaciones !== null);
+      const validConv = arr.filter((a) => a.tasa_promesa !== null);
 
-      avgCsat = validCsat.length > 0
-        ? validCsat.reduce((sum, a) => sum + a.csat, 0) / validCsat.length
-        : null;
-
-      avgFcr = validFcr.length > 0
-        ? validFcr.reduce((sum, a) => sum + a.fcr, 0) / validFcr.length
-        : null;
-
-      avgEscalaciones = validEsc.length > 0
-        ? validEsc.reduce((sum, a) => sum + a.escalaciones, 0) / validEsc.length
-        : null;
-
-      avgConversion = validConv.length > 0
-        ? validConv.reduce((sum, a) => sum + a.tasa_promesa, 0) / validConv.length
-        : null;
+      avgCsat = validCsat.length > 0 ? validCsat.reduce((s, a) => s + (a.csat ?? 0), 0) / validCsat.length : null;
+      avgFcr = validFcr.length > 0 ? validFcr.reduce((s, a) => s + (a.fcr ?? 0), 0) / validFcr.length : null;
+      avgEscalaciones = validEsc.length > 0 ? validEsc.reduce((s, a) => s + (a.escalaciones ?? 0), 0) / validEsc.length : null;
+      avgConversion = validConv.length > 0 ? validConv.reduce((s, a) => s + (a.tasa_promesa ?? 0), 0) / validConv.length : null;
     }
 
-    // Calculate cost per call (simplified - should come from financial data)
-    const costoLlamada = recaudoHoy && agentsData && agentsData.length > 0
-      ? Math.round(3000000 / (agentsData.length * 22 * 150)) // Estimado
-      : null;
+    const costoLlamada =
+      recaudoHoy && Array.isArray(agentsData) && agentsData.length > 0
+        ? Math.round(3_000_000 / (agentsData.length * 22 * 150))
+        : null;
 
     const response: KPIResponse = {
-      csat: avgCsat ? Number(avgCsat.toFixed(2)) : null,
-      fcr: avgFcr ? Number(avgFcr.toFixed(1)) : null,
-      escalaciones: avgEscalaciones ? Number(avgEscalaciones.toFixed(1)) : null,
-      tasa_conversion: avgConversion ? Number(avgConversion.toFixed(1)) : null,
+      csat: avgCsat !== null ? Number(avgCsat.toFixed(2)) : null,
+      fcr: avgFcr !== null ? Number(avgFcr.toFixed(1)) : null,
+      escalaciones: avgEscalaciones !== null ? Number(avgEscalaciones.toFixed(1)) : null,
+      tasa_conversion: avgConversion !== null ? Number(avgConversion.toFixed(1)) : null,
       costo_llamada: costoLlamada,
-      recaudo_hoy: recaudoHoy || null,
-      recaudo_mtd: recaudoMtd || null,
-      mom_change: mom || null,
-      yoy_change: null, // TODO: implement get_recaudo_yoy
+      recaudo_hoy: recaudoHoy,
+      recaudo_mtd: recaudoMtd,
+      mom_change: mom,
+      yoy_change: null,
       last_updated: new Date().toISOString(),
     };
 
-    return new Response(JSON.stringify(response), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=300', // Cache 5 min
-      },
+    return jsonResponse(response, {
+      headers: { 'Cache-Control': 'private, s-maxage=300' },
     });
-
   } catch (error) {
-    console.error('Dashboard KPIs error:', error);
-
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'Internal server error',
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    log.error('dashboard_kpis_error', {
+      request_id: requestId,
+      client_id: auth.client_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse({ error: 'Error obteniendo KPIs', request_id: requestId }, { status: 500 });
   }
-};
+});

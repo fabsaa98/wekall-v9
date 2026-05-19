@@ -1,70 +1,49 @@
 /**
- * GET /api/transcriptions/[id]?client_id=credismart
- * 
- * Obtiene una transcripción por ID
+ * GET /api/transcriptions/[id]
+ * Transcripción individual del tenant del JWT.
+ * Sprint 1 fix: el filtro client_id se valida contra el JWT, no contra query.
  */
 
-interface Env {
-  WORKER_PROXY_URL?: string;
-}
+import { withAuth } from '../../lib/handler';
+import { jsonResponse, withRetry } from '../../lib/http';
+import { log } from '../../lib/logger';
 
-export async function onRequestGet(context: { 
-  request: Request; 
-  env: Env;
-  params: { id: string };
-}) {
-  const { request, env, params } = context;
-  const url = new URL(request.url);
-  const client_id = url.searchParams.get('client_id') || 'credismart';
-  const { id } = params;
-
+export const onRequestGet = withAuth(async ({ request, env, auth, requestId, params }) => {
   const WORKER_PROXY_URL = env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
+  const id = params.id;
+  if (!id) return jsonResponse({ error: 'id requerido', request_id: requestId }, { status: 400 });
 
   try {
-    const res = await fetch(`${WORKER_PROXY_URL}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        table: 'transcriptions',
-        select: '*',
-        filters: {
-          id: `eq.${id}`,
-          client_id: `eq.${client_id}`,
+    const data = (await withRetry(async () => {
+      const res = await fetch(`${WORKER_PROXY_URL}/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-Authorization': request.headers.get('Authorization') || '',
+          'X-Client-Id': auth.client_id,
         },
-        limit: 1,
-      }),
-    });
+        body: JSON.stringify({
+          table: 'transcriptions',
+          select: '*',
+          filters: { id: `eq.${id}`, client_id: `eq.${auth.client_id}` },
+          limit: 1,
+        }),
+      });
+      if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
+      return res.json();
+    })) as Array<Record<string, unknown>>;
 
-    if (!res.ok) {
-      throw new Error(`Worker query failed: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const transcription = data?.[0] || null;
-
+    const transcription = data?.[0];
     if (!transcription) {
-      return new Response(
-        JSON.stringify({ error: 'Transcription not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Transcription not found', request_id: requestId }, { status: 404 });
     }
-
-    return new Response(JSON.stringify(transcription), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300',
-      },
-    });
+    return jsonResponse(transcription, { headers: { 'Cache-Control': 'private, max-age=300' } });
   } catch (error) {
-    console.error('[transcriptions/[id]] Error:', error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    log.error('transcriptions_id_error', {
+      request_id: requestId,
+      client_id: auth.client_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse({ error: 'Error obteniendo transcripcion', request_id: requestId }, { status: 500 });
   }
-}
+});

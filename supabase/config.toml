@@ -1,0 +1,117 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Supabase project config — wekall-intelligence
+# Sprint 2 · P2-12 (IaC parcial)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Este archivo lo lee `supabase start` (local) y opcionalmente `supabase link`
+# para sincronizar config con el proyecto remoto.
+# Settings críticos (auth providers, JWT secret, hooks) NO se versionan acá
+# porque son secrets o requieren toggle en el dashboard.
+#
+# Variables `env(...)` se leen de .env.local o del entorno de CI.
+
+project_id = "wekall-intelligence"
+
+# ─── API ───────────────────────────────────────────────────────────────────
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+# ─── DB ────────────────────────────────────────────────────────────────────
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = true
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+# ─── Realtime ──────────────────────────────────────────────────────────────
+
+[realtime]
+enabled = true
+
+# ─── Storage ───────────────────────────────────────────────────────────────
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+# Buckets que la app espera (provisioning manual en dashboard hasta que
+# `supabase storage list buckets` lo soporte vía config).
+# Documentado acá para inventario:
+#   - branding (public)        — logos + assets visibles
+#   - recordings (private)     — MP3 / .wav de llamadas
+#   - exports (private)        — CSV / PDF generados
+
+# ─── Auth ──────────────────────────────────────────────────────────────────
+
+[auth]
+enabled = true
+site_url = "https://intel.wekall.co"
+additional_redirect_urls = [
+  "https://wekall-intelligence.pages.dev",
+  "https://staging.wekall-intelligence.pages.dev",
+  "http://localhost:5173"
+]
+jwt_expiry = 3600                # 1 hora · token refresh automático
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10  # seg de gracia
+enable_signup = false             # admin-only signup (P2-8)
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 12
+
+[auth.email]
+enable_signup = false
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = true
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true             # P2-8 · opt-in para usuarios
+verify_enabled = true
+
+# ─── Hooks (configurar también en el Dashboard) ─────────────────────────────
+# El Auth Hook custom_access_token es CRÍTICO para Sprint 0 (P0-7).
+# Pega el custom claim client_id que las RLS y requireAuth necesitan.
+
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token"
+
+# ─── Edge functions ─────────────────────────────────────────────────────────
+# No usamos Supabase Edge Functions — la lógica vive en Cloudflare Workers
+# y Pages Functions. Mantener disabled.
+
+[edge_runtime]
+enabled = false
+
+# ─── Analytics ─────────────────────────────────────────────────────────────
+
+[analytics]
+enabled = false
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Comandos útiles:
+#   supabase link --project-ref iszodrpublcnsyvtgjcg
+#   supabase db push                  # aplica migraciones nuevas
+#   supabase db pull                  # trae schema actual
+#   supabase functions deploy         # NO usamos · vacío intencional
+# ═══════════════════════════════════════════════════════════════════════════

@@ -76,10 +76,10 @@ export default function SearchView() {
           </div>
           <div className="space-y-3">
             {results.map(t => {
-              // transcript puede ser string o array de segmentos
-              const transcriptText = typeof t.transcript === 'string'
-                ? t.transcript
-                : (Array.isArray(t.transcript) ? t.transcript.map((s: { text: string }) => s.text).join(' ') : '');
+              // transcript es array de segmentos en el adapter; usar transcriptText si está disponible.
+              const transcriptText =
+                (t as { transcriptText?: string }).transcriptText
+                || (Array.isArray(t.transcript) ? t.transcript.map((s) => s.text).join(' ') : '');
               const idx = transcriptText.toLowerCase().indexOf(debouncedQuery.toLowerCase());
               const excerptText = idx >= 0
                 ? transcriptText.slice(Math.max(0, idx - 40), idx + debouncedQuery.length + 80)

@@ -1,12 +1,48 @@
-name: Deploy to GitHub Pages + Cloudflare Pages
+name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+# Sprint 0 / Sprint 1 cambios:
+#  - P0-3-bis: ELIMINADA `VITE_OPENAI_KEY` del build (toda key con prefix VITE_
+#    termina en el bundle JS público; las llamadas a OpenAI van por Worker proxy).
+#  - P1-11: branches separadas → main = prod (con approval), staging = preview.
 
 jobs:
+  determine-env:
+    name: Resolve environment
+    runs-on: ubuntu-latest
+    outputs:
+      env_name: ${{ steps.set.outputs.env_name }}
+      cf_branch: ${{ steps.set.outputs.cf_branch }}
+    steps:
+      - id: set
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "env_name=${{ inputs.target }}" >> $GITHUB_OUTPUT
+            echo "cf_branch=${{ inputs.target == 'production' && 'main' || 'staging' }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "env_name=production" >> $GITHUB_OUTPUT
+            echo "cf_branch=main" >> $GITHUB_OUTPUT
+          else
+            echo "env_name=staging" >> $GITHUB_OUTPUT
+            echo "cf_branch=staging" >> $GITHUB_OUTPUT
+          fi
+
   deploy-cloudflare:
     name: Deploy to Cloudflare Pages
+    needs: determine-env
+    environment: ${{ needs.determine-env.outputs.env_name }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,16 +50,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build for Cloudflare Pages (base = /)
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build for Cloudflare Pages
         run: npm run build
         env:
           VITE_BASE_URL: /
-          VITE_OPENAI_KEY: ${{ secrets.VITE_OPENAI_KEY }}
-          VITE_PROXY_URL: ${{ secrets.VITE_PROXY_URL }}
+          # ⚠️ NUNCA agregar API keys reales con prefix VITE_ — terminan en el bundle JS público.
+          # Las keys de OpenAI/Deepgram/Supabase service se quedan en el Worker proxy.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_PROXY_URL: ${{ vars.VITE_PROXY_URL }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -32,10 +78,14 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: wekall-intelligence
           directory: dist
+          branch: ${{ needs.determine-env.outputs.cf_branch }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-github:
-    name: Deploy to GitHub Pages
+    # GitHub Pages se mantiene solo para production (legacy mirror).
+    name: Deploy to GitHub Pages (mirror)
+    needs: determine-env
+    if: needs.determine-env.outputs.env_name == 'production'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,16 +93,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build for GitHub Pages (base = /wekall-intelligence/)
         run: npm run build
         env:
           VITE_BASE_URL: /wekall-intelligence/
-          VITE_OPENAI_KEY: ${{ secrets.VITE_OPENAI_KEY }}
-          VITE_PROXY_URL: ${{ secrets.VITE_PROXY_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_PROXY_URL: ${{ vars.VITE_PROXY_URL }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

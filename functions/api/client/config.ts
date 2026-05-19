@@ -1,87 +1,63 @@
 /**
- * GET /api/client/config?client_id=credismart
- * 
- * Retorna configuración del cliente desde client_config
- * Aplica mapping: credismart → crediminuto
+ * GET /api/client/config
+ * Configuración del tenant del JWT.
  */
 
-interface Env {
-  WORKER_PROXY_URL?: string;
-}
+import { withAuth } from '../../lib/handler';
+import { jsonResponse, withRetry } from '../../lib/http';
+import { log } from '../../lib/logger';
 
 function normalizeClientId(clientId: string): string {
   const mapping: Record<string, string> = {
-    'credismart': 'crediminuto',
-    'credi': 'crediminuto',
+    credismart: 'crediminuto',
+    credi: 'crediminuto',
   };
   return mapping[clientId.toLowerCase()] || clientId;
 }
 
-export async function onRequestGet(context: { request: Request; env: Env }) {
-  const { request, env } = context;
-  const url = new URL(request.url);
-  const rawClientId = url.searchParams.get('client_id') || 'credismart';
-  const client_id = normalizeClientId(rawClientId);
-
+export const onRequestGet = withAuth(async ({ request, env, auth, requestId }) => {
   const WORKER_PROXY_URL = env.WORKER_PROXY_URL || 'https://wekall-vicky-proxy.fabsaa98.workers.dev';
+  const client_id = normalizeClientId(auth.client_id);
 
   try {
-    // Get all configs and filter client-side (Worker proxy filter bug workaround)
-    const res = await fetch(`${WORKER_PROXY_URL}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        table: 'client_config',
-        select: '*',
-        limit: 20,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Worker query failed: ${res.status}`);
-    }
-
-    const allConfigs = await res.json();
-    const config = allConfigs.find((c: any) => c.client_id === client_id) || null;
-
-    if (!config) {
-      // Return default config if not found
-      return new Response(
-        JSON.stringify({
-          client_id,
-          client_name: client_id,
-          industry: 'general',
-          business_type: 'service_support',
-          country: 'colombia',
-          currency: 'COP',
-          timezone: 'America/Bogota',
-          active: true,
+    const data = (await withRetry(async () => {
+      const res = await fetch(`${WORKER_PROXY_URL}/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-Authorization': request.headers.get('Authorization') || '',
+          'X-Client-Id': auth.client_id,
+        },
+        body: JSON.stringify({
+          table: 'client_config',
+          select: '*',
+          filters: { client_id: `eq.${client_id}` },
+          limit: 1,
         }),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=3600', // 1 hour cache
-          },
-        }
-      );
-    }
+      });
+      if (!res.ok) throw new Error(`Worker query failed: ${res.status}`);
+      return res.json();
+    })) as Array<Record<string, unknown>>;
 
-    return new Response(JSON.stringify(config), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=3600',
-      },
-    });
+    const config =
+      data?.[0] || {
+        client_id,
+        client_name: client_id,
+        industry: 'general',
+        business_type: 'service_support',
+        country: 'colombia',
+        currency: 'COP',
+        timezone: 'America/Bogota',
+        active: true,
+      };
+
+    return jsonResponse(config, { headers: { 'Cache-Control': 'private, max-age=3600' } });
   } catch (error) {
-    console.error('[client/config] Error:', error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    log.error('client_config_error', {
+      request_id: requestId,
+      client_id: auth.client_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return jsonResponse({ error: 'Error obteniendo config', request_id: requestId }, { status: 500 });
   }
-}
+});

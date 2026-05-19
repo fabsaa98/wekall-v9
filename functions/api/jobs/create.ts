@@ -1,127 +1,138 @@
 /**
  * POST /api/jobs/create
- * Crea un job de análisis y lo encola para procesamiento background
- * 
- * Body: { fileName, fileContent (base64), clientId }
+ * Crea un job de análisis y lo encola para procesamiento background.
+ *
+ * Sprint 0 fixes:
+ *  - P0-3: SERVICE_KEY ahora viene de env binding, NO hardcoded.
+ *  - P0-5/P0-7: requireAuth() valida JWT + extrae client_id del custom claim
+ *               (antes el client_id se confiaba del body → IDOR cross-tenant).
+ *  - P0-6: rate-limit 20 req/min por usuario (endpoint caro — toca OpenAI).
+ *
+ * Body: { fileName, fileContent (base64) | fileUrl }
+ * El client_id se IGNORA del body y se toma del JWT.
+ *
  * Returns: { jobId, status, fileName, estimatedTime }
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = 'https://iszodrpublcnsyvtgjcg.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzem9kcnB1YmxjbnN5dnRnanNnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MzY1NzYyOSwiZXhwIjoyMDU5MjMzNjI5fQ.Oi5GRYSc0krtjJAn0XsN1wY9Gr-N8p3HL0rEJMO8L8o';
-
-// Upstash Redis REST API credentials from env
+import { requireAuth, AuthError } from '../../lib/auth';
+import { getSupabaseAdmin } from '../../lib/supabase-admin';
+import { checkRateLimit, buildRateLimitOpts, rateLimitHeaders } from '../../lib/rate-limit';
+import { log, newRequestId } from '../../lib/logger';
+import { jsonResponse, errorResponse } from '../../lib/http';
 
 interface CreateJobRequest {
   fileName: string;
-  fileContent?: string;  // base64 encoded file content
-  fileUrl?: string;  // O una URL si ya está en storage
-  clientId: string;
+  fileContent?: string;
+  fileUrl?: string;
 }
 
 export async function onRequestPost(context: any) {
-  const UPSTASH_REDIS_URL = context.env.UPSTASH_REDIS_REST_URL || '';
-  const UPSTASH_REDIS_TOKEN = context.env.UPSTASH_REDIS_REST_TOKEN || '';
+  const env = context.env as Record<string, string | undefined>;
+  const request = context.request as Request;
+  const requestId = newRequestId();
+
   try {
-    const body: CreateJobRequest = await context.request.json();
-    const { fileName, fileContent, fileUrl, clientId } = body;
+    // 1. Auth
+    let auth;
+    try {
+      auth = await requireAuth(request, env);
+    } catch (err) {
+      if (err instanceof AuthError) return jsonResponse({ error: err.message, request_id: requestId }, { status: err.status });
+      throw err;
+    }
 
-    if (!fileName || !clientId) {
+    // 2. Rate limit (endpoint caro)
+    const rl = await checkRateLimit(env, buildRateLimitOpts(request, auth, 'jobs/create', { expensive: true }));
+    if (!rl.allowed) {
+      log.warn('rate_limit_exceeded', { request_id: requestId, endpoint: 'jobs/create', client_id: auth.client_id });
       return new Response(
-        JSON.stringify({ error: 'fileName y clientId son requeridos' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Too many requests', retry_after: rl.reset, request_id: requestId }),
+        { status: 429, headers: { 'Content-Type': 'application/json', ...rateLimitHeaders(rl) } }
       );
     }
 
+    // 3. Body validation
+    const body: CreateJobRequest = await request.json();
+    const { fileName, fileContent, fileUrl } = body;
+
+    if (!fileName) return jsonResponse({ error: 'fileName es requerido', request_id: requestId }, { status: 400 });
     if (!fileContent && !fileUrl) {
-      return new Response(
-        JSON.stringify({ error: 'Debe proporcionar fileContent o fileUrl' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Debe proporcionar fileContent o fileUrl', request_id: requestId }, { status: 400 });
     }
-
-    // Validar tamaño (max 15 MB en base64 = ~20 MB encoded)
     if (fileContent && fileContent.length > 20_000_000) {
-      return new Response(
-        JSON.stringify({ error: 'Archivo demasiado grande. Máximo 15 MB.' }),
-        { status: 413, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Archivo demasiado grande. Máximo 15 MB.', request_id: requestId }, { status: 413 });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-    // Crear job en DB
+    // 4. Insert job (client_id viene del JWT, NO del body)
+    const supabase = getSupabaseAdmin(env);
     const { data: job, error: dbError } = await supabase
       .from('executive_insights_jobs')
       .insert({
-        client_id: clientId,
+        client_id: auth.client_id,
         file_name: fileName,
         file_url: fileUrl || null,
-        file_size_bytes: fileContent ? Math.floor(fileContent.length * 0.75) : null, // aprox decoded size
+        file_size_bytes: fileContent ? Math.floor(fileContent.length * 0.75) : null,
         status: 'queued',
         progress: 0,
-        message: 'En cola de procesamiento...'
+        message: 'En cola de procesamiento...',
+        created_by: auth.sub,
       })
       .select()
       .single();
 
     if (dbError || !job) {
-      console.error('Error creando job en DB:', dbError);
-      return new Response(
-        JSON.stringify({ error: 'Error creando job', details: dbError?.message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      log.error('jobs_create_db_error', {
+        request_id: requestId,
+        client_id: auth.client_id,
+        error: dbError?.message,
+      });
+      return jsonResponse({ error: 'Error creando job', request_id: requestId }, { status: 500 });
     }
 
-    // Publicar a Redis queue (si está configurado)
-    if (UPSTASH_REDIS_URL && UPSTASH_REDIS_TOKEN) {
+    // 5. Publicar a Redis queue
+    const upstashUrl = env.UPSTASH_REDIS_REST_URL;
+    const upstashToken = env.UPSTASH_REDIS_REST_TOKEN;
+    if (upstashUrl && upstashToken) {
       try {
         const queuePayload = {
           jobId: job.id,
           fileName: job.file_name,
           fileContent: fileContent || null,
           fileUrl: fileUrl || null,
-          clientId: job.client_id
+          clientId: job.client_id,
         };
-
-        // Upstash Redis REST API: LPUSH
-        await fetch(`${UPSTASH_REDIS_URL}/lpush/analyze-queue/${encodeURIComponent(JSON.stringify(queuePayload))}`, {
+        await fetch(`${upstashUrl}/lpush/analyze-queue/${encodeURIComponent(JSON.stringify(queuePayload))}`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${UPSTASH_REDIS_TOKEN}`
-          }
+          headers: { Authorization: `Bearer ${upstashToken}` },
         });
-
-        console.log(`Job ${job.id} enqueued to Redis`);
+        log.info('job_enqueued', { request_id: requestId, job_id: job.id, client_id: auth.client_id });
       } catch (redisErr) {
-        console.error('Error publishing to Redis queue:', redisErr);
-        // No fallar el request si Redis falla, el job ya está en DB
+        log.warn('redis_publish_failed', {
+          request_id: requestId,
+          job_id: job.id,
+          error: redisErr instanceof Error ? redisErr.message : String(redisErr),
+        });
       }
     }
 
-    // Retornar respuesta inmediata
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         jobId: job.id,
         status: job.status,
         fileName: job.file_name,
         progress: job.progress,
         message: job.message,
-        estimatedTime: 60,  // segundos
-        createdAt: job.created_at
-      }),
-      { 
-        status: 202,  // Accepted (processing asynchronously)
-        headers: { 'Content-Type': 'application/json' } 
-      }
+        estimatedTime: 60,
+        createdAt: job.created_at,
+        request_id: requestId,
+      },
+      { status: 202, headers: rateLimitHeaders(rl) }
     );
-
-  } catch (err: any) {
-    console.error('Error en /api/jobs/create:', err);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: err.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+  } catch (err) {
+    log.error('jobs_create_unhandled', {
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return errorResponse(err);
   }
 }

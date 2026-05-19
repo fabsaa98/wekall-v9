@@ -579,7 +579,7 @@ export default function DocumentAnalysis() {
   const CDR_CONTEXT = cdr.latestDay
     ? `## DATOS CDR — WeKall / ${clientName} — ${cdr.latestDay.fecha}
 - Total llamadas: ${cdr.latestDay.total_llamadas?.toLocaleString('es-CO') ?? 'N/D'} | Campañas activas
-- Agentes activos: ${cdr.latestDay.agentes_activos ?? 'N/D'}
+- Agentes activos: ${(cdr.latestDay as unknown as Record<string, unknown>).agentes_activos ?? 'N/D'}
 - Tasa de contacto efectivo: ${cdr.latestDay.tasa_contacto_pct?.toFixed(1) ?? 'N/D'}%
 - AHT real: ${cdr.latestDay.aht_minutos?.toFixed(1) ?? 'N/D'} min promedio
 - Promesa de pago: 40% de contactos efectivos
@@ -780,20 +780,20 @@ export default function DocumentAnalysis() {
             throw new Error('Job completed but no result returned');
           }
           
-          const { analysis, executiveBrief, benchmarks } = finalStatus.result;
+          const rawResult = finalStatus.result as unknown as {
+            analysis: string;
+            executiveBrief: string;
+            benchmarks?: BenchmarkMetric[];
+          };
+          const { analysis, executiveBrief, benchmarks } = rawResult;
           const sources: string[] = []; // Job queue no retorna sources por ahora
-          
-          // Guardar resultado
+
+          // Guardar resultado · usa el mismo patrón que el camino síncrono (setDocs/setSelectedDoc).
           clearInterval(timerInterval);
-          setStatus('done');
-          setAnalysis(analysis);
-          setExecutiveBrief(executiveBrief);
-          setBenchmarks(benchmarks || []);
-          setSources(sources);
-          
-          // Guardar en Supabase
+
+          let savedInsight: ExecutiveInsight | null = null;
           if (clientConfig?.client_id && !analysis.startsWith('❌')) {
-            const savedInsight = await saveExecutiveInsight({
+            savedInsight = await saveExecutiveInsight({
               client_id: clientConfig.client_id,
               file_name: file.name,
               file_type: fileType,
@@ -801,16 +801,27 @@ export default function DocumentAnalysis() {
               extracted_text: extractedText,
               analysis,
               executive_brief: executiveBrief,
-              benchmarks,
+              benchmarks: benchmarks && benchmarks.length > 0 ? { metrics: benchmarks } : undefined,
               sources,
-              metadata: { processingTimeMs: finalStatus.processingTimeMs }
             });
-            
-            if (savedInsight) {
-              setHistory(prev => [savedInsight, ...prev]);
-            }
           }
-          
+
+          const doc: ProcessedDoc = {
+            id: savedInsight?.id,
+            fileName: file.name,
+            fileType,
+            extractedText,
+            analysis,
+            executiveBrief,
+            sources,
+            benchmarks: benchmarks || [],
+            createdAt: savedInsight?.created_at || new Date().toISOString(),
+          };
+
+          setDocs((prev) => [doc, ...prev]);
+          setSelectedDoc(doc);
+          setStatus('done');
+
           return; // Exit early, job queue handled everything
           
         } catch (jobErr: any) {
@@ -1472,7 +1483,18 @@ export default function DocumentAnalysis() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedDoc.benchmarks.map((bm, i) => (
-                      <BenchmarkCard key={i} {...bm} />
+                      <BenchmarkCard
+                        key={i}
+                        metric={bm.metric}
+                        currentValue={bm.current_value ?? 0}
+                        benchmarkValue={bm.benchmark_value}
+                        topQuartile={bm.top_quartile}
+                        bottomQuartile={bm.bottom_quartile}
+                        unit={bm.unit}
+                        source={bm.benchmark_source}
+                        gapPercent={bm.gap_percent ?? 0}
+                        position={bm.position ?? 'inline'}
+                      />
                     ))}
                   </div>
                 </div>
