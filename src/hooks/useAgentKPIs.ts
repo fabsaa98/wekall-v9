@@ -24,6 +24,7 @@ export interface AgentKPIsSummary {
   csatPromedio: number;            // promedio últimos 30d
   fcrPromedio: number;             // %
   escalacionesPromedio: number;    // %
+  tasaPromesaPromedio: number;     // % — proxy tasa conversión
   agentesActivos: number;          // cantidad de agentes con datos
 
   // Flags de estado
@@ -33,7 +34,9 @@ export interface AgentKPIsSummary {
 
 const HORAS_TRABAJO = 8;
 
-export function useAgentKPIs(): AgentKPIsSummary {
+// El parámetro `_days` queda como hint informativo — `useAgentsData` ya decide el rango.
+// Lo aceptamos para compat con callers existentes que pasan días.
+export function useAgentKPIs(_days?: number): AgentKPIsSummary {
   const { loading, error, agents } = useAgentsData();
 
   return useMemo(() => {
@@ -48,6 +51,7 @@ export function useAgentKPIs(): AgentKPIsSummary {
         csatPromedio: 0,
         fcrPromedio: 0,
         escalacionesPromedio: 0,
+        tasaPromesaPromedio: 0,
         agentesActivos: 0,
         loading,
         error,
@@ -97,6 +101,9 @@ export function useAgentKPIs(): AgentKPIsSummary {
     const csatPromedio = avg(agents.map(a => a.avg_csat));
     const fcrPromedio = avg(agents.map(a => a.avg_fcr));
     const escalacionesPromedio = avg(agents.map(a => a.avg_escalaciones));
+    const tasaPromesaPromedio = avg(
+      agents.map((a) => (a as unknown as Record<string, number>).avg_tasa_promesa || 0)
+    );
 
     return {
       ocupacionPromedio,
@@ -108,6 +115,7 @@ export function useAgentKPIs(): AgentKPIsSummary {
       csatPromedio,
       fcrPromedio,
       escalacionesPromedio,
+      tasaPromesaPromedio,
       agentesActivos: agents.length,
       loading: false,
       error: null,

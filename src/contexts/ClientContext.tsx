@@ -19,6 +19,18 @@ export interface ClientConfig {
   nomina_total_mes?: number;
   trm_cop?: number;
   notas?: string;
+  // Alertas dinámicas (columnas en client_config)
+  alert_tasa_critica?: number;
+  alert_tasa_warning?: number;
+  alert_delta_critico?: number;
+  alert_delta_warning?: number;
+  alert_volumen_minimo?: number;
+  // Metadatos opcionales del onboarding
+  uploaded_by?: string;
+  business_type?: string;
+  // Index signature para tooling que necesita iterar campos arbitrarios
+  // (Configuracion.tsx + VickyInsights.tsx hacen as Record<string, unknown>).
+  [key: string]: unknown;
 }
 
 export interface ClientBranding {
@@ -52,6 +64,9 @@ export interface AppUser {
 interface ClientContextValue {
   clientId: string;
   setClientId: (id: string) => void;
+  clientName: string;
+  /** Alias de la config completa del tenant activo (mismo objeto que `clientConfig`). */
+  currentClient: ClientConfig | null;
   clientConfig: ClientConfig | null;
   clientBranding: ClientBranding | null;
   currentUser: AppUser | null;
@@ -62,6 +77,8 @@ interface ClientContextValue {
 const ClientContext = createContext<ClientContextValue>({
   clientId: '',
   setClientId: () => {},
+  clientName: '',
+  currentClient: null,
   clientConfig: null,
   clientBranding: null,
   currentUser: null,
@@ -277,6 +294,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       value={{
         clientId,
         setClientId,
+        clientName: clientConfig?.client_name || clientBranding?.company_name || clientId,
+        currentClient: clientConfig,
         clientConfig,
         clientBranding,
         currentUser,

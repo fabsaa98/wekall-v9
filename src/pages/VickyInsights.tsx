@@ -1700,8 +1700,10 @@ Puedes usar **negrita** para énfasis puntual dentro de un párrafo, pero nunca 
     'Pendiente': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   };
 
-  // Get last Vicky/assistant message and the user question before it
-  const lastVickyMessage = [...messages].reverse().find(m => m.role === 'assistant' || m.role === 'vicky');
+  // Get last Vicky/assistant message and the user question before it.
+  // Comparamos contra el union real de m.role (que puede haber sido 'assistant' en versiones viejas
+  // del store · de ahí el cast a string para no romper si llega un valor de un mensaje legacy).
+  const lastVickyMessage = [...messages].reverse().find(m => (m.role as string) === 'assistant' || m.role === 'vicky');
   const lastInsight = lastVickyMessage?.content ?? '';
   const lastVickyIndex = lastVickyMessage ? [...messages].lastIndexOf(lastVickyMessage) : -1;
   const lastUserQuestion = lastVickyIndex > 0

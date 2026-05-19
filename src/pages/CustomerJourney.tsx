@@ -49,12 +49,15 @@ function getChannelColor(channel: Touchpoint['channel']) {
   }
 }
 
-function getResultadoColor(resultado: Touchpoint['resultado']) {
+type ResultadoAny = Touchpoint['resultado'] | Journey['resultado'];
+
+function getResultadoColor(resultado: ResultadoAny) {
   switch (resultado) {
     case 'exitoso': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
     case 'fallido': return 'text-red-400 bg-red-500/10 border-red-500/20';
     case 'pendiente': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
     case 'no_contacto': return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+    case 'abandonado': return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
     default: return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
   }
 }

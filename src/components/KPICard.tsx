@@ -65,7 +65,7 @@ export function KPICard({ kpi, className, style, onDrillDown }: KPICardProps) {
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest truncate flex items-center gap-1">
             {kpi.title}
             {kpi.description && (
-              <InfoTooltip text={kpi.description} size={11} position="top" />
+              <InfoTooltip text={kpi.description} size={11} />
             )}
           </p>
           <p className="mt-1.5 text-[28px] font-bold text-foreground leading-none tracking-tight">

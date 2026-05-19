@@ -117,7 +117,7 @@ export default function TranscriptionDetail() {
           {/* Copiar */}
           <button
             onClick={() => {
-              const text = t.transcript?.map((s: {speaker: string; text: string}) => `[${s.speaker}] ${s.text}`).join('\n') || '';
+              const text = t.transcript?.map((s) => `[${s.speaker}] ${s.text}`).join('\n') || '';
               navigator.clipboard.writeText(text);
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);

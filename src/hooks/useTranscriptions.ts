@@ -20,32 +20,105 @@ interface SupabaseTranscription {
   transcript?: string;
   campaign?: string;
   client_id?: string;
+  audio_url?: string;
+  filename?: string;
+}
+
+// Re-uso del type global para compatibilidad con TranscriptBubble.
+import type { TranscriptSegment as GlobalTranscriptSegment } from '@/types';
+
+export type TranscriptSegment = GlobalTranscriptSegment;
+
+function parseTranscriptToSegments(raw: string | undefined): TranscriptSegment[] {
+  if (!raw) return [];
+  // Si el transcript trae bloques "Agente:" / "Cliente:" los partimos en segmentos.
+  // En caso contrario, todo es un solo bloque de agente (Whisper sin diarization).
+  const labeled = /(?:^|\n)\s*(agente|cliente|operador|user|system)\s*:/i.test(raw);
+  if (!labeled) {
+    return [{ speaker: 'agent', text: raw.trim(), startTime: 0, endTime: 0 }];
+  }
+  const segments: TranscriptSegment[] = [];
+  const lines = raw.split(/\n+/);
+  let cursor = 0;
+  let current: TranscriptSegment | null = null;
+  for (const line of lines) {
+    const m = line.match(/^\s*(agente|operador|user|cliente|system)\s*:\s*(.*)$/i);
+    if (m) {
+      if (current) segments.push(current);
+      const speaker: TranscriptSegment['speaker'] = /cliente/i.test(m[1]!) ? 'client' : 'agent';
+      current = { speaker, text: (m[2] || '').trim(), startTime: cursor, endTime: cursor + 10 };
+      cursor += 10;
+    } else if (current) {
+      current.text += (current.text ? ' ' : '') + line.trim();
+    }
+  }
+  if (current) segments.push(current);
+  return segments.filter((s) => s.text.length > 0);
+}
+
+export interface AdaptedTranscription {
+  id: string;
+  agent: { name: string; id: string; role?: string };
+  client: { name: string; phone: string };
+  agentName: string;
+  clientName: string;
+  clientPhone: string;
+  startedAt: string;
+  duration: number;
+  status: 'completed' | 'processing' | 'failed';
+  classification: {
+    sentiment: 'positive' | 'neutral' | 'negative';
+    callType: string;
+    result: 'resolved' | 'pending' | 'escalated' | 'no_contact';
+    mainTopic: string;
+    confidence: number;
+  };
+  sentiment: 'positive' | 'neutral' | 'negative';
+  summary: string;
+  transcript: TranscriptSegment[];
+  transcriptText: string;
+  tags: Tag[];
+  callType: string;
+  campaign: string;
+  client_id: string;
+  direction: 'inbound' | 'outbound';
+  source: 'ai' | 'manual';
+  audioUrl?: string;
 }
 
 // Adapter: convierte el formato Supabase → formato esperado por TranscriptionList/Detail
-function adaptTranscription(t: SupabaseTranscription) {
+function adaptTranscription(t: SupabaseTranscription): AdaptedTranscription {
+  const isInbound =
+    (t.call_type || '').toLowerCase().startsWith('inbound') ||
+    (t.filename || '').includes('_in_');
   return {
     id: t.id,
-    agent: { name: t.agent_name || 'Agente', id: '' },
+    agent: { name: t.agent_name || 'Agente', id: '', role: 'agent' },
     client: { name: '', phone: '' },
     agentName: t.agent_name || 'Agente',
     clientName: '',
     clientPhone: '',
     startedAt: t.call_date ? `${t.call_date}T08:00:00` : new Date().toISOString(),
     duration: 0,
-    status: 'completed' as const,
+    status: 'completed',
     classification: {
-      sentiment: 'neutral' as const,
+      sentiment: 'neutral',
       callType: t.call_type || 'collection',
+      result: 'resolved',
+      mainTopic: '',
+      confidence: 0,
     },
-    sentiment: 'neutral' as const,
+    sentiment: 'neutral',
     summary: t.summary || '',
-    transcript: t.transcript || '',
+    transcript: parseTranscriptToSegments(t.transcript),
+    transcriptText: t.transcript || '',
     tags: [],
     callType: t.call_type || 'collection',
     campaign: t.campaign || '',
     client_id: t.client_id || '',
-    direction: 'outbound' as const,
+    direction: isInbound ? 'inbound' : 'outbound',
+    source: 'ai',
+    audioUrl: t.audio_url || undefined,
   };
 }
 

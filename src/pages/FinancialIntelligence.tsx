@@ -322,7 +322,7 @@ export default function FinancialIntelligence() {
       });
 
       if (!cdrData?.length) {
-        setError(`Sin datos CDR para cliente: ${client.id}. Intenta con ceo@crediminuto.com o fabian@wekall.co`);
+        setError(`Sin datos CDR para cliente: ${clientId}. Intenta con ceo@crediminuto.com o fabian@wekall.co`);
         return;
       }
 

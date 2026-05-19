@@ -61,7 +61,7 @@ export async function signIn(email: string, password: string, clientIdHint?: str
       throw new Error(err.error || 'auth_error');
     }
 
-    const json = await resp.json() as { access_token: string; refresh_token: string; user: { email: string; user_metadata?: Record<string, unknown> }; client_id: string | null };
+    const json = await resp.json() as { access_token: string; refresh_token: string; user: { id?: string; email: string; user_metadata?: Record<string, unknown> }; client_id: string | null };
 
     // Sincronizar sesión con el cliente de supabase (con timeout corto para no bloquear)
     if (json.access_token) {

@@ -155,7 +155,7 @@ export default function TranscriptionList() {
                 </div>
                 <p className="text-sm text-muted-foreground italic line-clamp-2 mb-2">{t.summary}</p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  {t.tags.slice(0, 4).map((tag: { id: string; label: string; source: string }) => (
+                  {t.tags.slice(0, 4).map((tag) => (
                     <TagPill key={tag.id} label={tag.label} source={tag.source} />
                   ))}
                   {t.tags.length > 4 && <span className="text-[10px] text-muted-foreground self-center">+{t.tags.length - 4} más</span>}

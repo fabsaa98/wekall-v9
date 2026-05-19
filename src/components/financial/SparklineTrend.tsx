@@ -19,10 +19,11 @@ function fmtCOP(n: number): string {
 
 function CustomTooltip({ active, payload }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number; dataKey: string }>;
+  payload?: Array<{ name: string; value: number; dataKey: string; payload?: RecaudoSparkline }>;
 }) {
   if (!active || !payload?.length) return null;
-  const data = payload[0].payload as RecaudoSparkline;
+  const data = payload[0].payload;
+  if (!data) return null;
   const fecha = new Date(data.fecha);
   const fechaLabel = `${fecha.getDate()}/${fecha.getMonth() + 1}`;
 
